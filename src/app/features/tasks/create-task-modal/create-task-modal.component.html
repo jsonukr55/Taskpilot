@@ -335,6 +335,28 @@ Buy groceries,medium,2026-06-10</code>
             </div>
           </div>
 
+          <!-- Subtasks -->
+          <div class="form-group">
+            <label class="form-label">Subtasks</label>
+            @for (st of subtaskDrafts(); track $index) {
+              <div class="subtask-draft">
+                <tp-icon name="list" [size]="13" />
+                <span class="subtask-draft__title">{{ st }}</span>
+                <button type="button" class="subtask-draft__del" (click)="removeSubtaskDraft($index)">
+                  <tp-icon name="x" [size]="13" />
+                </button>
+              </div>
+            }
+            <div class="subtask-add">
+              <input class="form-input" placeholder="Add a subtask…"
+                     [value]="newSubtaskDraft()" (input)="newSubtaskDraft.set($any($event.target).value)"
+                     (keydown.enter)="$event.preventDefault(); addSubtaskDraft()">
+              <button type="button" class="btn btn-secondary" (click)="addSubtaskDraft()" [disabled]="!newSubtaskDraft().trim()">
+                <tp-icon name="plus" [size]="14" /> Add
+              </button>
+            </div>
+          </div>
+
           <button type="submit" class="btn btn-primary btn-block" [disabled]="form.invalid || isProcessing()">
             @if (isProcessing()) {
               <span class="btn-spinner"></span> Saving...

@@ -5,6 +5,7 @@
 $task-cols: 28px 1fr 44px 106px 90px 110px;
 
 .task-row {
+  position: relative;
   display: grid;
   grid-template-columns: $task-cols;
   align-items: center;
@@ -51,13 +52,56 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
     &.in-progress { border-color: $indigo-500; }
   }
 
+  &__main {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    min-width: 0;
+  }
+
   &__title {
     font-size: $font-size-sm;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
   }
+
+  &__subcount {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    padding: 1px 6px;
+    border-radius: $radius-full;
+    background: var(--bg-tertiary);
+  }
+
+  &__add-sub {
+    position: absolute;
+    right: $space-3;
+    top: 50%;
+    transform: translateY(-50%);
+    @include flex-center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: $radius-md;
+    background: var(--bg-elevated);
+    box-shadow: var(--card-shadow);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity $transition-fast;
+    z-index: 2;
+
+    &:hover { color: var(--text-brand); }
+  }
+
+  &:hover &__add-sub { opacity: 1; }
 
   &__priority {
     display: flex;

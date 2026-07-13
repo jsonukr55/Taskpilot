@@ -136,11 +136,11 @@
         }
       </div>
 
-      @if (task().checklist.length > 0) {
+      @if (live().checklist.length > 0) {
         @if (checklistProgress(); as cp) {
           <div class="drawer__cl-bar"><div class="drawer__cl-fill" [style.width.%]="cp.pct"></div></div>
         }
-        @for (item of task().checklist; track item.id) {
+        @for (item of live().checklist; track item.id) {
           <div class="cl-item" [class.done]="item.completed">
             <button class="cl-check" [class.checked]="item.completed" (click)="toggleChecklist(item.id)">
               @if (item.completed) { <tp-icon name="check" [size]="9" /> }
@@ -203,10 +203,10 @@
     </div>
 
     <!-- AI suggestion -->
-    @if (task().aiMetadata?.schedulingSuggestion) {
+    @if (live().aiMetadata?.schedulingSuggestion) {
       <div class="drawer__ai-hint">
         <tp-icon name="sparkles" [size]="13" />
-        {{ task().aiMetadata!.schedulingSuggestion }}
+        {{ live().aiMetadata!.schedulingSuggestion }}
       </div>
     }
 

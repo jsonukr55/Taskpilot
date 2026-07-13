@@ -264,6 +264,33 @@ export class TaskService {
     await this.updateTask(taskId, { assigneeIds });
   }
 
+  /** Create a subtask under a parent (inherits some parent context). */
+  async createSubtask(parentId: string, title: string): Promise<string> {
+    const parent = this.getTaskById(parentId);
+    return this.createTask({
+      title,
+      description:    '',
+      status:         'todo',
+      priority:       parent?.priority ?? 'medium',
+      parentId,
+      startDate:      null,
+      dueDate:        parent?.dueDate ?? null,
+      dueTime:        null,
+      estimatedHours: null,
+      actualHours:    null,
+      categoryIds:    parent ? [...parent.categoryIds] : [],
+      tags:           [],
+      checklist:      [],
+      timeBlocks:     [],
+      recurrence:     null,
+      isScheduled:    false,
+      completedAt:    null,
+      imageUrl:       null,
+      reminders:      [],
+      aiMetadata:     null
+    });
+  }
+
   async updateStatus(id: string, status: TaskStatus): Promise<void> {
     const changes: Partial<Task> = { status };
     if (status === 'completed') {

@@ -99,7 +99,24 @@
                     <span>Category</span>
                   </div>
                   @for (task of group.tasks; track task.id; let i = $index) {
-                    <tp-task-card [task]="task" [style.animation-delay]="(i * 15) + 'ms'" (taskOpen)="selectedTask.set($event)" />
+                    <tp-task-card [task]="task" [style.animation-delay]="(i * 15) + 'ms'"
+                      (taskOpen)="selectedTask.set($event)" (addSubtask)="startAddSubtask($event)" />
+
+                    <!-- Existing subtasks -->
+                    @for (sub of subtasksOf(task.id); track sub.id) {
+                      <tp-task-card class="subtask-nested" [task]="sub" (taskOpen)="selectedTask.set($event)" />
+                    }
+
+                    <!-- Inline add-subtask input -->
+                    @if (addingSubtaskFor() === task.id) {
+                      <div class="subtask-inline">
+                        <tp-icon name="list" [size]="13" />
+                        <input class="subtask-inline__input" placeholder="Subtask title… (Enter to add, Esc to close)"
+                               [value]="subtaskDraft()" (input)="subtaskDraft.set($any($event.target).value)"
+                               (keydown.enter)="confirmSubtask(task.id)" (keydown.escape)="closeSubtaskAdd()" autofocus>
+                        <button class="subtask-inline__done" (click)="closeSubtaskAdd()">Done</button>
+                      </div>
+                    }
                   }
                   <button class="task-add-row" (click)="showCreateModal.set(true)">
                     <tp-icon name="plus" [size]="13" /> Add task

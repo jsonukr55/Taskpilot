@@ -1,4 +1,4 @@
-import { Component, input, output, inject, signal, effect, untracked, OnDestroy } from '@angular/core';
+import { Component, input, output, inject, signal, computed, effect, untracked, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
@@ -40,21 +40,25 @@ export class TaskDrawerComponent implements OnDestroy {
 
   readonly allCategories = () => this.categories.rootCategories();
 
-  readonly subtasks = () => this.taskService.getSubtasks(this.task().id);
+  // Live task from the service — reflects Firestore updates instantly
+  // (the `task` input is a static snapshot that never changes after open).
+  readonly live = computed(() => this.taskService.getTaskById(this.task().id) ?? this.task());
 
-  readonly subtaskProgress = () => {
+  readonly subtasks = computed(() => this.taskService.getSubtasks(this.task().id));
+
+  readonly subtaskProgress = computed(() => {
     const subs = this.subtasks();
     if (!subs.length) return null;
     const done = subs.filter(s => s.status === 'completed').length;
     return { done, total: subs.length, pct: Math.round((done / subs.length) * 100) };
-  };
+  });
 
-  readonly checklistProgress = () => {
-    const items = this.task().checklist;
+  readonly checklistProgress = computed(() => {
+    const items = this.live().checklist;
     if (!items.length) return null;
     const done = items.filter(i => i.completed).length;
     return { done, total: items.length, pct: Math.round((done / items.length) * 100) };
-  };
+  });
 
   readonly isOverdue = () => {
     const t = this.task();
@@ -158,30 +162,8 @@ export class TaskDrawerComponent implements OnDestroy {
   async addSubtask(): Promise<void> {
     const title = this.newSubtaskTitle().trim();
     if (!title) return;
-    const parent = this.task();
-    await this.taskService.createTask({
-      title,
-      description:  '',
-      status:       'todo',
-      priority:     parent.priority,
-      parentId:     parent.id,
-      startDate:    null,
-      dueDate:      parent.dueDate ?? null,
-      dueTime:      null,
-      estimatedHours: null,
-      actualHours:  null,
-      categoryIds:  [...parent.categoryIds],
-      tags:         [],
-      checklist:    [],
-      timeBlocks:   [],
-      recurrence:   null,
-      isScheduled:  false,
-      completedAt:  null,
-      imageUrl:     null,
-      reminders:    [],
-      aiMetadata:   null,
-    });
     this.newSubtaskTitle.set('');
+    await this.taskService.createSubtask(this.task().id, title);
   }
 
   async toggleSubtaskStatus(subtask: Task): Promise<void> {

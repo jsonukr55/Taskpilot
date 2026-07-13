@@ -15,10 +15,13 @@ import { IconComponent } from '../icon/icon.component';
 export class TaskCardComponent {
   task    = input.required<Task>();
   compact = input(false);
-  taskOpen = output<Task>();
+  taskOpen   = output<Task>();
+  addSubtask = output<Task>();
 
   private readonly categories = inject(CategoryService);
   private readonly taskService = inject(TaskService);
+
+  readonly subtaskCount = computed(() => this.taskService.getSubtasks(this.task().id).length);
 
   readonly taskCategories = computed(() =>
     this.task().categoryIds

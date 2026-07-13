@@ -39,6 +39,20 @@ export class CreateTaskModalComponent {
 
   readonly categories$ = computed(() => this.categories.rootCategories());
 
+  // ---- Subtask drafts (manual mode) ----
+  readonly subtaskDrafts   = signal<string[]>([]);
+  readonly newSubtaskDraft = signal('');
+
+  addSubtaskDraft(): void {
+    const t = this.newSubtaskDraft().trim();
+    if (!t) return;
+    this.subtaskDrafts.update(list => [...list, t]);
+    this.newSubtaskDraft.set('');
+  }
+  removeSubtaskDraft(i: number): void {
+    this.subtaskDrafts.update(list => list.filter((_, idx) => idx !== i));
+  }
+
   // ---- Form (manual mode) ----
   readonly form = this.fb.group({
     title:          ['', [Validators.required, Validators.minLength(2)]],
@@ -207,7 +221,7 @@ export class CreateTaskModalComponent {
 
     const v = this.form.value;
     try {
-      await this.taskService.createTask({
+      const parentId = await this.taskService.createTask({
         title:           v.title!,
         description:     v.description ?? '',
         status:          'todo',
@@ -228,6 +242,10 @@ export class CreateTaskModalComponent {
         reminders:       [],
         aiMetadata:      { confidence: 1, extractionMethod: 'manual' }
       });
+      // Create any subtasks entered in the modal
+      for (const st of this.subtaskDrafts()) {
+        await this.taskService.createSubtask(parentId, st);
+      }
       this.close.emit();
     } finally {
       this.isProcessing.set(false);

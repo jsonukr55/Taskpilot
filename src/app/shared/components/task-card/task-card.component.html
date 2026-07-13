@@ -11,7 +11,12 @@
     @else if (task().status === 'in_progress') { <span class="ip-dot"></span> }
   </button>
 
-  <span class="task-row__title">{{ task().title }}</span>
+  <div class="task-row__main">
+    <span class="task-row__title">{{ task().title }}</span>
+    @if (subtaskCount() > 0) {
+      <span class="task-row__subcount" title="Subtasks"><tp-icon name="list" [size]="11" /> {{ subtaskCount() }}</span>
+    }
+  </div>
 
   <div class="task-row__priority">
     <span class="task-row__flag task-row__flag--{{ task().priority }}">
@@ -42,4 +47,8 @@
       </span>
     }
   </div>
+
+  <button class="task-row__add-sub" (click)="$event.stopPropagation(); addSubtask.emit(task())" title="Add subtask">
+    <tp-icon name="plus" [size]="13" />
+  </button>
 </div>

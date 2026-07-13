@@ -272,3 +272,38 @@
 
   &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 }
+
+// ---- Inline subtasks (list view) ----
+.subtask-nested {
+  display: block;
+  margin-left: $space-6;
+  border-left: 2px solid var(--border-subtle);
+}
+
+.subtask-inline {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  margin-left: $space-6;
+  border-left: 2px solid var(--border-brand);
+  background: var(--bg-tertiary);
+
+  &__input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: $font-size-sm;
+    outline: none;
+    &::placeholder { color: var(--text-tertiary); }
+  }
+  &__done {
+    border: none;
+    background: none;
+    color: var(--text-brand);
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+  }
+}

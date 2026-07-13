@@ -30,6 +30,28 @@ export class TasksComponent implements OnInit {
   readonly selectedTask    = signal<Task | null>(null);
   readonly collapsedGroups = signal<Set<TaskStatus>>(new Set());
 
+  // Inline "add subtask" on a row
+  readonly addingSubtaskFor = signal<string | null>(null);
+  readonly subtaskDraft     = signal('');
+
+  startAddSubtask(task: Task): void {
+    this.addingSubtaskFor.set(task.id);
+    this.subtaskDraft.set('');
+  }
+  async confirmSubtask(parentId: string): Promise<void> {
+    const title = this.subtaskDraft().trim();
+    if (!title) return;
+    this.subtaskDraft.set('');
+    await this.taskService.createSubtask(parentId, title);
+  }
+  closeSubtaskAdd(): void {
+    this.addingSubtaskFor.set(null);
+    this.subtaskDraft.set('');
+  }
+  subtasksOf(parentId: string): Task[] {
+    return this.taskService.getSubtasks(parentId);
+  }
+
   toggleGroup(status: TaskStatus): void {
     this.collapsedGroups.update(s => {
       const next = new Set(s);

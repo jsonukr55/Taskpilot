@@ -1,0 +1,41 @@
+<header class="topbar">
+  <div class="topbar__left">
+    <button class="btn-icon topbar__menu-btn" (click)="toggleSidebar.emit()">
+      <tp-icon name="menu" [size]="20" />
+    </button>
+  </div>
+
+  <div class="topbar__search">
+    <tp-icon name="search" [size]="16" class="topbar__search-icon" />
+    <input
+      class="topbar__search-input"
+      type="text"
+      placeholder="Search tasks..."
+      [value]="searchValue()"
+      (input)="onSearch($any($event.target).value)"
+      (change)="searchValue.set($any($event.target).value)"
+    >
+    <kbd class="topbar__search-kbd">⌘K</kbd>
+  </div>
+
+  <div class="topbar__right">
+    <!-- Quick Add Task -->
+    <a routerLink="/tasks" [queryParams]="{new: true}" class="btn btn-primary btn-sm">
+      <tp-icon name="plus" [size]="14" />
+      New Task
+    </a>
+
+    <!-- AI Chat -->
+    <a routerLink="/ai-chat" class="btn btn-ghost btn-icon" data-tooltip="AI Assistant">
+      <tp-icon name="cpu" [size]="18" />
+    </a>
+
+    <!-- Overdue indicator -->
+    @if (tasks.overdueTasks().length > 0) {
+      <div class="topbar__alert" data-tooltip="Overdue tasks">
+        <tp-icon name="alert-circle" [size]="18" />
+        <span class="topbar__alert-count">{{ tasks.overdueTasks().length }}</span>
+      </div>
+    }
+  </div>
+</header>

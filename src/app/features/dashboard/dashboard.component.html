@@ -1,0 +1,227 @@
+<div class="dashboard fade-in">
+
+  <!-- Header -->
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__greeting">{{ greeting() }}</h1>
+      <p class="dashboard__subtitle">
+        @if (stats().overdue > 0) {
+          You have <strong>{{ stats().overdue }} overdue tasks</strong> — let's catch up.
+        } @else if (stats().today > 0) {
+          You have <strong>{{ stats().today }} tasks due today</strong>. Keep going!
+        } @else {
+          You're all caught up. Great work!
+        }
+      </p>
+    </div>
+    <div class="dashboard__actions">
+      <button type="button" class="btn btn-secondary btn--soon" data-tooltip="Coming soon" aria-disabled="true">
+        <tp-icon name="sparkles" [size]="16" />
+        Ask AI
+        <span class="soon-tag">Soon</span>
+      </button>
+      <button class="btn btn-secondary" (click)="newNote()" [disabled]="creatingNote()">
+        <tp-icon name="file-text" [size]="16" />
+        {{ creatingNote() ? 'Creating…' : 'New Note' }}
+      </button>
+      <a routerLink="/groups" [queryParams]="{new: true}" class="btn btn-secondary">
+        <tp-icon name="users" [size]="16" />
+        New Group
+      </a>
+      <a routerLink="/tasks" [queryParams]="{new: true}" class="btn btn-primary">
+        <tp-icon name="plus" [size]="16" />
+        New Task
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="dashboard__stats">
+    <div class="stat-card stat-card--primary">
+      <div class="stat-card__icon">
+        <tp-icon name="inbox" [size]="20" />
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__value">{{ stats().total }}</span>
+        <span class="stat-card__label">Total Tasks</span>
+      </div>
+      <div class="stat-card__trend">
+        <tp-icon name="trending-up" [size]="14" />
+      </div>
+    </div>
+
+    <div class="stat-card stat-card--today">
+      <div class="stat-card__icon">
+        <tp-icon name="clock" [size]="20" />
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__value">{{ stats().today }}</span>
+        <span class="stat-card__label">Due Today</span>
+      </div>
+    </div>
+
+    <div class="stat-card" [class.stat-card--danger]="stats().overdue > 0">
+      <div class="stat-card__icon">
+        <tp-icon name="alert-circle" [size]="20" />
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__value">{{ stats().overdue }}</span>
+        <span class="stat-card__label">Overdue</span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-card--success">
+      <div class="stat-card__icon">
+        <tp-icon name="check" [size]="20" />
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__value">{{ stats().rate }}%</span>
+        <span class="stat-card__label">Completion Rate</span>
+      </div>
+      <!-- Progress ring -->
+      <svg class="stat-card__ring" width="48" height="48" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.15"/>
+        <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="3"
+          stroke-dasharray="125.66"
+          [attr.stroke-dashoffset]="125.66 - (125.66 * stats().rate / 100)"
+          stroke-linecap="round"
+          transform="rotate(-90 24 24)"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="dashboard__grid">
+
+    <!-- AI Insights -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="sparkles" [size]="18" />
+          AI Insights
+        </h2>
+        @if (generatingInsights()) {
+          <span class="section-header__badge">Generating...</span>
+        }
+      </div>
+
+      @if (insights().length > 0) {
+        <div class="insights-list">
+          @for (insight of insights(); track insight.id) {
+            <div class="insight-card" [class]="'insight-card--' + insight.severity">
+              <span class="insight-card__icon">{{ insight.icon }}</span>
+              <div class="insight-card__body">
+                <strong class="insight-card__title">{{ insight.title }}</strong>
+                <p class="insight-card__text">{{ insight.body }}</p>
+                @if (insight.action) {
+                  <a routerLink="/ai-chat" class="insight-card__action">
+                    {{ insight.action.label }} →
+                  </a>
+                }
+              </div>
+              <button class="btn-icon insight-card__dismiss" (click)="dismissInsight(insight)">
+                <tp-icon name="x" [size]="14" />
+              </button>
+            </div>
+          }
+        </div>
+      } @else if (!generatingInsights()) {
+        <div class="empty-insights">
+          <span class="empty-insights__icon">💡</span>
+          <p>Complete a few tasks to unlock AI insights about your productivity patterns.</p>
+        </div>
+      }
+    </section>
+
+    <!-- Today's Tasks -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="clock" [size]="18" />
+          Due Today
+        </h2>
+        <a routerLink="/tasks" class="section-header__link">View all →</a>
+      </div>
+
+      @if (tasks.todayTasks().length > 0) {
+        <div class="task-list">
+          @for (task of tasks.todayTasks(); track task.id; let i = $index) {
+            <tp-task-card [task]="task" [style.animation-delay]="i * 50 + 'ms'" (taskOpen)="selectedTask.set($event)" />
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <span class="empty-state__icon">🎯</span>
+          <p class="empty-state__text">No tasks due today — enjoy!</p>
+        </div>
+      }
+    </section>
+
+    <!-- Category Breakdown -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="layers" [size]="18" />
+          By Category
+        </h2>
+        <a routerLink="/analytics" class="section-header__link">Details →</a>
+      </div>
+
+      @if (tasksByCategory().length > 0) {
+        <div class="category-breakdown">
+          @for (item of tasksByCategory(); track item.category.id) {
+            <div class="category-row">
+              <div class="category-row__info">
+                <span class="category-row__icon">{{ item.category.icon }}</span>
+                <span class="category-row__name">{{ item.category.name }}</span>
+                <span class="category-row__count">{{ item.count }}</span>
+              </div>
+              <div class="category-row__bar-wrap">
+                <div
+                  class="category-row__bar"
+                  [style.width.%]="item.count > 0 ? (item.done / item.count) * 100 : 0"
+                  [style.background]="item.category.color"
+                ></div>
+              </div>
+              <span class="category-row__pct">
+                {{ item.count > 0 ? ((item.done / item.count) * 100 | number:'1.0-0') : 0 }}%
+              </span>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <p class="empty-state__text">No tasks yet.</p>
+        </div>
+      }
+    </section>
+
+    <!-- Upcoming -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="calendar" [size]="18" />
+          Next 7 Days
+        </h2>
+        <a routerLink="/calendar" class="section-header__link">Calendar →</a>
+      </div>
+
+      @if (upcomingTasks().length > 0) {
+        <div class="task-list">
+          @for (task of upcomingTasks(); track task.id) {
+            <tp-task-card [task]="task" [compact]="true" (taskOpen)="selectedTask.set($event)" />
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <span class="empty-state__icon">📅</span>
+          <p class="empty-state__text">Nothing scheduled for the next 7 days.</p>
+        </div>
+      }
+    </section>
+
+  </div>
+</div>
+
+@if (selectedTask()) {
+  <tp-task-drawer [task]="selectedTask()!" (closed)="selectedTask.set(null)" />
+}

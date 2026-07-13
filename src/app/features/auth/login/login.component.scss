@@ -1,0 +1,287 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.login-page {
+  min-height: 100vh;
+  @include flex-center;
+  background: var(--bg-primary);
+  padding: $space-4;
+  position: relative;
+  overflow: hidden;
+}
+
+// ---- Background Blobs ----
+.login-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  &__blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+
+    &--1 {
+      width: 600px; height: 600px;
+      background: $indigo-500;
+      top: -200px; left: -100px;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    &--2 {
+      width: 500px; height: 500px;
+      background: $violet-500;
+      bottom: -150px; right: -100px;
+      animation: float 10s ease-in-out infinite reverse;
+    }
+
+    &--3 {
+      width: 300px; height: 300px;
+      background: $emerald-500;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation: float 12s ease-in-out infinite;
+    }
+  }
+}
+
+// ---- Card ----
+.login-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: $radius-2xl;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.08);
+  padding: $space-10 $space-8;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(20px);
+}
+
+// ---- Logo ----
+.login-logo {
+  @include flex-center;
+  gap: $space-3;
+  margin-bottom: $space-8;
+
+  &__icon {
+    @include flex-center;
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, $indigo-500, $violet-500);
+    border-radius: $radius-xl;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+  }
+
+  &__name {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    @include gradient-text($indigo-500, $violet-500);
+  }
+}
+
+// ---- Typography ----
+.login-title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: $space-2;
+}
+
+.login-subtitle {
+  font-size: $font-size-sm;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: $space-6;
+}
+
+// ---- Error ----
+.login-error {
+  @include flex-start;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  background: var(--surface-danger);
+  color: $rose-500;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  margin-bottom: $space-4;
+}
+
+// ---- Google Button ----
+.login-google-btn {
+  @include flex-center;
+  gap: $space-3;
+  width: 100%;
+  padding: $space-4;
+  background: var(--card-bg);
+  border: 1px solid var(--border-default);
+  border-radius: $radius-xl;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all $transition-fast;
+  font-family: $font-sans;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-tertiary);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    box-shadow: $shadow-md;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.login-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-default);
+  border-top-color: $indigo-500;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+// ---- Divider ----
+.login-divider {
+  margin: $space-5 0;
+  text-align: center;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  span {
+    position: relative;
+    background: var(--card-bg);
+    padding: 0 $space-3;
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+  }
+}
+
+// ---- Tabs ----
+.login-tabs {
+  display: flex;
+  gap: $space-1;
+  background: var(--bg-tertiary);
+  border-radius: $radius-xl;
+  padding: $space-1;
+  margin-bottom: $space-5;
+}
+
+.login-tab {
+  flex: 1;
+  padding: $space-2 $space-3;
+  border: none;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &.active {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    box-shadow: $shadow-sm;
+  }
+}
+
+// ---- Email Form ----
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  margin-bottom: $space-4;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+  }
+
+  .form-label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: var(--text-secondary);
+  }
+
+  .form-input {
+    padding: $space-3 $space-4;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: $radius-lg;
+    font-size: $font-size-base;
+    color: var(--text-primary);
+    font-family: $font-sans;
+    transition: border-color $transition-fast;
+
+    &:focus {
+      outline: none;
+      border-color: $indigo-500;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    &::placeholder { color: var(--text-tertiary); }
+  }
+}
+
+// ---- Switch link ----
+.login-switch {
+  text-align: center;
+  font-size: $font-size-sm;
+  color: var(--text-secondary);
+  margin-bottom: $space-4;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: $indigo-500;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+
+  &:hover { text-decoration: underline; }
+}
+
+.login-spinner--sm {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+// ---- Features ----
+.login-features {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  li {
+    @include flex-start;
+    gap: $space-3;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
+
+  &__icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+}

@@ -1,0 +1,130 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+
+  <!-- Logo -->
+  <div class="sidebar__header">
+    <div class="sidebar__logo">
+      <div class="sidebar__logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      @if (!collapsed()) {
+        <span class="sidebar__logo-text">TaskPilot</span>
+      }
+    </div>
+    <button class="sidebar__collapse-btn btn-icon" (click)="toggleCollapse.emit()" data-tooltip [attr.data-tooltip]="collapsed() ? 'Expand' : 'Collapse'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        @if (collapsed()) {
+          <path d="M13 17l5-5-5-5M6 17l5-5-5-5"/>
+        } @else {
+          <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>
+        }
+      </svg>
+    </button>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="sidebar__nav">
+    <ul class="sidebar__nav-list">
+      @for (item of navItems; track item.route) {
+        <li class="sidebar__nav-item">
+          @if (item.comingSoon) {
+            <div
+              class="sidebar__nav-link sidebar__nav-link--soon"
+              data-tooltip [attr.data-tooltip]="collapsed() ? item.label + ' — coming soon' : 'Coming soon'"
+            >
+              <tp-icon [name]="item.icon" [size]="18" />
+              @if (!collapsed()) {
+                <span class="sidebar__nav-label">{{ item.label }}</span>
+                <span class="sidebar__soon">Soon</span>
+              }
+            </div>
+          } @else {
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              class="sidebar__nav-link"
+              data-tooltip [attr.data-tooltip]="collapsed() ? item.label : null"
+            >
+              <tp-icon [name]="item.icon" [size]="18" />
+              @if (!collapsed()) {
+                <span class="sidebar__nav-label">{{ item.label }}</span>
+                @if (item.badge && item.badge() > 0) {
+                  <span class="sidebar__badge">{{ item.badge() }}</span>
+                }
+              } @else if (item.badge && item.badge() > 0) {
+                <span class="sidebar__badge sidebar__badge--dot"></span>
+              }
+            </a>
+          }
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <!-- Categories -->
+  @if (!collapsed()) {
+    <div class="sidebar__section">
+      <div class="sidebar__section-header">
+        <span class="sidebar__section-title">Categories</span>
+        <a routerLink="/categories" class="sidebar__section-action btn-icon" data-tooltip="Manage">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </a>
+      </div>
+      <ul class="sidebar__categories">
+        @for (cat of topCategories(); track cat.id) {
+          <li>
+            <a [routerLink]="['/tasks']" [queryParams]="{category: cat.id}" class="sidebar__category-link">
+              <span class="sidebar__category-dot" [style.background]="cat.color"></span>
+              <span class="sidebar__category-name">{{ cat.name }}</span>
+              <span class="sidebar__category-count">
+                {{ tasks.getTasksByCategory(cat.id).length }}
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <!-- Footer -->
+  <div class="sidebar__footer">
+    <button class="sidebar__theme-btn btn-icon" (click)="theme.toggle()" data-tooltip="Toggle theme">
+      @if (theme.resolvedTheme() === 'dark') {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      } @else {
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      }
+    </button>
+
+    @if (!collapsed()) {
+      <div class="sidebar__user">
+        @if (auth.photoURL()) {
+          <img [src]="auth.photoURL()!" alt="avatar" class="sidebar__avatar">
+        } @else {
+          <div class="sidebar__avatar sidebar__avatar--fallback">
+            {{ auth.displayName().charAt(0).toUpperCase() }}
+          </div>
+        }
+        <div class="sidebar__user-info">
+          <span class="sidebar__user-name">{{ auth.displayName() }}</span>
+          <span class="sidebar__user-email">{{ auth.currentUser()?.email }}</span>
+        </div>
+        <button class="btn-icon" (click)="auth.signOut()" data-tooltip="Sign out">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </div>
+    }
+  </div>
+</aside>

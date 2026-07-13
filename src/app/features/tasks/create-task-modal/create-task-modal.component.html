@@ -1,0 +1,350 @@
+<div class="modal-overlay" (click)="close.emit()">
+  <div class="modal scale-in" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="modal__header">
+      <h2 class="modal__title">
+        <tp-icon name="sparkles" [size]="20" />
+        Create Task
+      </h2>
+      <button class="btn-icon" (click)="close.emit()">
+        <tp-icon name="x" [size]="18" />
+      </button>
+    </div>
+
+    <!-- Mode Tabs -->
+    <div class="modal__tabs">
+      <button class="modal__tab" [class.active]="mode() === 'ai'" (click)="mode.set('ai')">
+        <tp-icon name="sparkles" [size]="14" /> AI Text
+      </button>
+      <button class="modal__tab" [class.active]="mode() === 'image'" (click)="mode.set('image')">
+        <tp-icon name="image" [size]="14" /> From Image
+      </button>
+      <button class="modal__tab" [class.active]="mode() === 'file'" (click)="mode.set('file')">
+        <tp-icon name="file-text" [size]="14" /> File
+      </button>
+      <button class="modal__tab" [class.active]="mode() === 'form'" (click)="mode.set('form')">
+        <tp-icon name="edit-2" [size]="14" /> Manual
+      </button>
+    </div>
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="modal__error">
+        <tp-icon name="alert-circle" [size]="16" />
+        {{ error() }}
+      </div>
+    }
+
+    <div class="modal__body">
+
+      <!-- === AI TEXT MODE === -->
+      @if (mode() === 'ai') {
+        <div class="ai-input-mode">
+          @if (extracted().length === 0) {
+            <div class="ai-prompt">
+              <textarea
+                class="ai-prompt__textarea"
+                placeholder="Describe your tasks in plain language...
+
+Examples:
+• 'Finish the quarterly report by Friday, high priority, 3 hours'
+• 'Schedule gym for tomorrow morning and doctor appointment next Tuesday at 2pm'
+• 'Buy groceries, call mom, pay electricity bill this week'"
+                rows="6"
+                [(ngModel)]="aiText"
+              ></textarea>
+
+              <div class="ai-prompt__footer">
+                <span class="ai-prompt__hint">
+                  <tp-icon name="sparkles" [size]="12" /> AI will extract, prioritize, and categorize automatically
+                </span>
+                <button
+                  class="btn btn-primary"
+                  (click)="extractFromText()"
+                  [disabled]="isProcessing() || !aiText().trim()"
+                >
+                  @if (isProcessing()) {
+                    <span class="btn-spinner"></span> Extracting...
+                  } @else {
+                    <tp-icon name="zap" [size]="16" /> Extract Tasks
+                  }
+                </button>
+              </div>
+            </div>
+          } @else {
+            <!-- Extracted tasks review -->
+            <div class="extracted-tasks">
+              <div class="extracted-tasks__header">
+                <span>Found {{ extracted().length }} task(s) — review and save</span>
+                <button class="btn btn-ghost btn-sm" (click)="extracted.set([])">
+                  <tp-icon name="arrow-left" [size]="14" /> Re-enter
+                </button>
+              </div>
+
+              @for (task of extracted(); let i = $index; track i) {
+                <div class="extracted-card">
+                  <div class="extracted-card__header">
+                    <span class="extracted-card__priority" [style.color]="priorityColor(task.priority ?? 'medium')">
+                      ●
+                    </span>
+                    <strong class="extracted-card__title">{{ task.title }}</strong>
+                    <span class="extracted-card__confidence">{{ (task.confidence * 100 | number:'1.0-0') }}%</span>
+                    <button class="btn-icon btn-sm" (click)="removeExtracted(i)">
+                      <tp-icon name="x" [size]="12" />
+                    </button>
+                  </div>
+                  @if (task.description) {
+                    <p class="extracted-card__desc">{{ task.description }}</p>
+                  }
+                  <div class="extracted-card__meta">
+                    @if (task.dueDate) {
+                      <span class="tag"><tp-icon name="calendar" [size]="10" /> {{ task.dueDate | date:'MMM d' }}</span>
+                    }
+                    @if (task.estimatedHours) {
+                      <span class="tag"><tp-icon name="clock" [size]="10" /> {{ task.estimatedHours }}h</span>
+                    }
+                    @if (task.categoryName) {
+                      <span class="tag">{{ task.categoryName }}</span>
+                    }
+                    @if (task.schedulingSuggestion) {
+                      <span class="tag tag-suggestion"><tp-icon name="sparkles" [size]="10" /> {{ task.schedulingSuggestion }}</span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <button
+                class="btn btn-primary btn-block"
+                (click)="saveExtracted()"
+                [disabled]="isProcessing() || extracted().length === 0"
+              >
+                @if (isProcessing()) {
+                  <span class="btn-spinner"></span> Saving...
+                } @else {
+                  <tp-icon name="check" [size]="16" /> Save {{ extracted().length }} Task(s)
+                }
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- === IMAGE MODE === -->
+      @if (mode() === 'image') {
+        <div class="image-mode">
+          @if (!imagePreview()) {
+            <label class="image-drop-zone">
+              <tp-icon name="image" [size]="32" />
+              <span>Click or drag an image here</span>
+              <span class="image-drop-zone__hint">Photos of whiteboards, sticky notes, handwritten lists...</span>
+              <input type="file" accept="image/*" (change)="onImageSelected($event)" hidden>
+            </label>
+          } @else {
+            <div class="image-preview">
+              <img [src]="imagePreview()!" alt="Task image" class="image-preview__img">
+              <button class="btn btn-ghost btn-sm" (click)="imagePreview.set(null); imageBase64.set(null)">
+                <tp-icon name="x" [size]="14" /> Remove
+              </button>
+            </div>
+
+            @if (extracted().length === 0) {
+              <button
+                class="btn btn-primary btn-block"
+                (click)="extractFromImage()"
+                [disabled]="isProcessing()"
+              >
+                @if (isProcessing()) {
+                  <span class="btn-spinner"></span> Analyzing image...
+                } @else {
+                  <tp-icon name="sparkles" [size]="16" /> Extract Tasks from Image
+                }
+              </button>
+            } @else {
+              <div class="extracted-tasks">
+                <div class="extracted-tasks__header">
+                  <span>Found {{ extracted().length }} task(s) — review and save</span>
+                  <button class="btn btn-ghost btn-sm" (click)="extracted.set([])">
+                    <tp-icon name="arrow-left" [size]="14" /> Re-scan
+                  </button>
+                </div>
+                @for (task of extracted(); let i = $index; track i) {
+                  <div class="extracted-card">
+                    <div class="extracted-card__header">
+                      <span class="extracted-card__priority" [style.color]="priorityColor(task.priority ?? 'medium')">●</span>
+                      <strong class="extracted-card__title">{{ task.title }}</strong>
+                      @if (task.confidence) {
+                        <span class="extracted-card__confidence">{{ (task.confidence * 100 | number:'1.0-0') }}%</span>
+                      }
+                      <button class="btn-icon btn-sm" (click)="removeExtracted(i)">
+                        <tp-icon name="x" [size]="12" />
+                      </button>
+                    </div>
+                    @if (task.description) {
+                      <p class="extracted-card__desc">{{ task.description }}</p>
+                    }
+                    <div class="extracted-card__meta">
+                      @if (task.dueDate) {
+                        <span class="tag"><tp-icon name="calendar" [size]="10" /> {{ task.dueDate | date:'MMM d' }}</span>
+                      }
+                      @if (task.estimatedHours) {
+                        <span class="tag"><tp-icon name="clock" [size]="10" /> {{ task.estimatedHours }}h</span>
+                      }
+                    </div>
+                  </div>
+                }
+                <button class="btn btn-primary btn-block" (click)="saveExtracted()" [disabled]="isProcessing()">
+                  @if (isProcessing()) {
+                    <span class="btn-spinner"></span> Saving...
+                  } @else {
+                    <tp-icon name="check" [size]="16" /> Save {{ extracted().length }} Task(s)
+                  }
+                </button>
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- === FILE IMPORT MODE === -->
+      @if (mode() === 'file') {
+        <div class="file-import-mode">
+          @if (extracted().length === 0) {
+            <div class="file-import">
+              <label class="image-drop-zone">
+                <tp-icon name="upload" [size]="32" />
+                <span>Import tasks from a file</span>
+                <span class="image-drop-zone__hint">Supports JSON and CSV files</span>
+                <input type="file" accept=".json,.csv,.tsv" (change)="onFileSelected($event)" hidden>
+              </label>
+
+              <div class="file-import__formats">
+                <div class="file-import__format">
+                  <strong>JSON format:</strong>
+                  <code class="file-import__code">[{{ '{' }} "title": "Task name", "priority": "high", "dueDate": "2026-06-10" {{ '}' }}]</code>
+                </div>
+                <div class="file-import__format">
+                  <strong>CSV format:</strong>
+                  <code class="file-import__code">title,priority,dueDate
+Buy groceries,medium,2026-06-10</code>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="extracted-tasks">
+              <div class="extracted-tasks__header">
+                <span>Found {{ extracted().length }} task(s) from {{ fileName() }} — review and save</span>
+                <button class="btn btn-ghost btn-sm" (click)="extracted.set([]); fileName.set(null)">
+                  <tp-icon name="arrow-left" [size]="14" /> Re-import
+                </button>
+              </div>
+              @for (task of extracted(); let i = $index; track i) {
+                <div class="extracted-card">
+                  <div class="extracted-card__header">
+                    <span class="extracted-card__priority" [style.color]="priorityColor(task.priority ?? 'medium')">●</span>
+                    <strong class="extracted-card__title">{{ task.title }}</strong>
+                    <button class="btn-icon btn-sm" (click)="removeExtracted(i)">
+                      <tp-icon name="x" [size]="12" />
+                    </button>
+                  </div>
+                  @if (task.description) {
+                    <p class="extracted-card__desc">{{ task.description }}</p>
+                  }
+                  <div class="extracted-card__meta">
+                    @if (task.dueDate) {
+                      <span class="tag"><tp-icon name="calendar" [size]="10" /> {{ task.dueDate | date:'MMM d' }}</span>
+                    }
+                    @if (task.estimatedHours) {
+                      <span class="tag"><tp-icon name="clock" [size]="10" /> {{ task.estimatedHours }}h</span>
+                    }
+                  </div>
+                </div>
+              }
+              <button class="btn btn-primary btn-block" (click)="saveExtracted()" [disabled]="isProcessing()">
+                @if (isProcessing()) {
+                  <span class="btn-spinner"></span> Saving...
+                } @else {
+                  <tp-icon name="check" [size]="16" /> Save {{ extracted().length }} Task(s)
+                }
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- === MANUAL FORM MODE === -->
+      @if (mode() === 'form') {
+        <form [formGroup]="form" (ngSubmit)="submitForm()" class="task-form">
+          <div class="form-group">
+            <label class="form-label">Title *</label>
+            <input formControlName="title" class="form-input" placeholder="What needs to be done?">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea formControlName="description" class="form-textarea" rows="3" placeholder="Add more details..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Priority</label>
+              <select formControlName="priority" class="form-input">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select formControlName="categoryId" class="form-input">
+                <option value="">None</option>
+                @for (cat of categories$(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Start Date</label>
+              <input formControlName="startDate" type="date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Due Date</label>
+              <input formControlName="dueDate" type="date" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Due Time</label>
+              <input formControlName="dueTime" type="time" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Est. Hours</label>
+              <input formControlName="estimatedHours" type="number" min="0.5" step="0.5" class="form-input" placeholder="e.g. 2">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tags (comma-separated)</label>
+              <input formControlName="tags" class="form-input" placeholder="design, review, urgent">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" [disabled]="form.invalid || isProcessing()">
+            @if (isProcessing()) {
+              <span class="btn-spinner"></span> Saving...
+            } @else {
+              <tp-icon name="check" [size]="16" /> Create Task
+            }
+          </button>
+        </form>
+      }
+
+    </div>
+  </div>
+</div>

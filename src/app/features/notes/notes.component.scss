@@ -1,0 +1,56 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.notes-page {
+  max-width: $content-max-width;
+  margin: 0 auto;
+  padding: $space-6;
+
+  &__header {
+    @include flex-between;
+    gap: $space-4;
+    margin-bottom: $space-6;
+    flex-wrap: wrap;
+  }
+
+  &__title { font-size: $font-size-3xl; font-weight: $font-weight-bold; }
+  &__subtitle { color: var(--text-secondary); font-size: $font-size-sm; margin-top: $space-1; }
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: $space-4;
+}
+
+.note-card {
+  @include card;
+  padding: $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  cursor: pointer;
+  min-height: 120px;
+
+  &__top { @include flex-between; }
+  &__icon { font-size: $font-size-2xl; }
+  &__del { opacity: 0; }
+  &:hover &__del { opacity: 1; }
+
+  &__title { font-size: $font-size-lg; font-weight: $font-weight-semibold; @include text-truncate; }
+  &__preview { font-size: $font-size-sm; color: var(--text-secondary); @include text-clamp(2); }
+}
+
+.notes-empty {
+  text-align: center;
+  padding: $space-12 $space-6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-3;
+
+  &__icon { font-size: 3rem; }
+  h2 { font-size: $font-size-xl; font-weight: $font-weight-semibold; }
+  p { color: var(--text-secondary); max-width: 380px; }
+  .btn-primary { margin-top: $space-2; }
+}

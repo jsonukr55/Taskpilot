@@ -1,0 +1,39 @@
+<div class="notes-page">
+
+  <header class="notes-page__header">
+    <div>
+      <h1 class="notes-page__title">Notes</h1>
+      <p class="notes-page__subtitle">Your personal notes. For shared notes, open a group.</p>
+    </div>
+    <button class="btn-primary" (click)="newNote()">
+      <tp-icon name="plus" [size]="16" />
+      New note
+    </button>
+  </header>
+
+  @if (notes.notesLoading()) {
+    <div class="notes-grid">
+      @for (i of [1,2,3]; track i) { <div class="skeleton" style="height:120px;border-radius:16px;"></div> }
+    </div>
+  } @else if (notes.notes().length === 0) {
+    <div class="notes-empty card">
+      <div class="notes-empty__icon">📝</div>
+      <h2>No notes yet</h2>
+      <p>Create a note to jot down ideas, docs, and checklists — just for you.</p>
+      <button class="btn-primary" (click)="newNote()"><tp-icon name="plus" [size]="16" /> Create your first note</button>
+    </div>
+  } @else {
+    <div class="notes-grid">
+      @for (n of notes.notes(); track n.id) {
+        <div class="note-card card-hover" (click)="open(n.id)">
+          <div class="note-card__top">
+            <span class="note-card__icon">{{ n.icon || '📄' }}</span>
+            <button class="btn-icon note-card__del" (click)="remove($event, n.id)" data-tooltip="Delete"><tp-icon name="trash-2" [size]="15" /></button>
+          </div>
+          <h3 class="note-card__title">{{ n.title || 'Untitled' }}</h3>
+          <p class="note-card__preview">{{ preview(n) }}</p>
+        </div>
+      }
+    </div>
+  }
+</div>

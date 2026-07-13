@@ -1,0 +1,180 @@
+<div class="categories-page fade-in">
+
+  <div class="categories-page__header">
+    <div>
+      <h1 class="categories-page__title">Categories</h1>
+      <p class="categories-page__subtitle">Organize tasks and configure AI behavior per category</p>
+    </div>
+    <button class="btn btn-primary" (click)="startCreate()">
+      <tp-icon name="plus" [size]="16" /> New Category
+    </button>
+  </div>
+
+  @if (categories.isLoading()) {
+    <div class="categories-grid">
+      @for (n of [1,2,3,4,5]; track n) {
+        <div class="skeleton" style="height: 140px; border-radius: 16px;"></div>
+      }
+    </div>
+  } @else {
+    <div class="categories-grid">
+      @for (item of categoryWithStats(); track item.cat.id) {
+        <div class="category-card">
+          <div class="category-card__header">
+            <div class="category-card__icon" [style.background]="item.cat.color + '20'" [style.color]="item.cat.color">
+              {{ item.cat.icon }}
+            </div>
+            <div class="category-card__actions">
+              <button class="btn-icon" (click)="startEdit(item.cat)" data-tooltip="Edit">
+                <tp-icon name="edit-2" [size]="14" />
+              </button>
+              <button class="btn-icon" (click)="deleteCategory(item.cat.id, item.cat.name)" data-tooltip="Delete">
+                <tp-icon name="trash-2" [size]="14" />
+              </button>
+            </div>
+          </div>
+
+          <h3 class="category-card__name">{{ item.cat.name }}</h3>
+          @if (item.cat.description) {
+            <p class="category-card__desc">{{ item.cat.description }}</p>
+          }
+
+          <!-- Stats -->
+          <div class="category-card__stats">
+            <span>{{ item.taskCount }} tasks</span>
+            <span class="category-card__rate">{{ item.taskCount > 0 ? ((item.doneCount / item.taskCount) * 100 | number:'1.0-0') : 0 }}% done</span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="category-card__bar">
+            <div class="category-card__bar-fill"
+              [style.width.%]="item.taskCount > 0 ? (item.doneCount / item.taskCount) * 100 : 0"
+              [style.background]="item.cat.color">
+            </div>
+          </div>
+
+          <!-- Rules badges -->
+          <div class="category-card__rules">
+            @if (item.cat.rules.preferredHours) {
+              <span class="tag">🕐 {{ item.cat.rules.preferredHours.start }}–{{ item.cat.rules.preferredHours.end }}</span>
+            }
+            @if (item.cat.rules.priorityBias) {
+              <span class="tag">⚡ {{ item.cat.rules.priorityBias }}</span>
+            }
+          </div>
+
+          <!-- Children -->
+          @if (item.children.length > 0) {
+            <div class="category-card__children">
+              @for (child of item.children; track child.id) {
+                <span class="category-child" [style.color]="child.color">
+                  {{ child.icon }} {{ child.name }}
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Add card -->
+      <button class="category-add-card" (click)="startCreate()">
+        <tp-icon name="plus" [size]="24" />
+        <span>Add Category</span>
+      </button>
+    </div>
+  }
+</div>
+
+<!-- Create/Edit Form Modal -->
+@if (showForm()) {
+  <div class="modal-overlay" (click)="showForm.set(false)">
+    <div class="modal scale-in" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2 class="modal__title">{{ editingId() ? 'Edit' : 'New' }} Category</h2>
+        <button class="btn-icon" (click)="showForm.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal__body">
+        <form [formGroup]="form" (ngSubmit)="submit()" class="cat-form">
+
+          <!-- Icon + Color -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Icon</label>
+              <div class="icon-picker">
+                @for (icon of ICONS; track icon) {
+                  <button type="button" class="icon-option" [class.selected]="form.value.icon === icon"
+                    (click)="form.patchValue({icon})">{{ icon }}</button>
+                }
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Color</label>
+              <div class="color-picker">
+                @for (color of COLORS; track color) {
+                  <button type="button" class="color-swatch" [style.background]="color"
+                    [class.selected]="form.value.color === color"
+                    (click)="form.patchValue({color})"></button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input formControlName="name" class="form-input" placeholder="Category name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <input formControlName="description" class="form-input" placeholder="Optional description">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Keywords (for AI auto-detection)</label>
+            <input formControlName="keywords" class="form-input" placeholder="meeting, deadline, project...">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Preferred Start</label>
+              <input formControlName="preferredStart" type="time" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Preferred End</label>
+              <input formControlName="preferredEnd" type="time" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Priority Bias</label>
+              <select formControlName="priorityBias" class="form-input">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Remind me (minutes before)</label>
+              <input formControlName="reminderMinutes" type="number" min="5" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Parent Category</label>
+            <select formControlName="parentId" class="form-input">
+              <option [value]="null">None (root)</option>
+              @for (cat of categories.rootCategories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+              }
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" [disabled]="form.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Saving...' : (editingId() ? 'Update Category' : 'Create Category') }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+}

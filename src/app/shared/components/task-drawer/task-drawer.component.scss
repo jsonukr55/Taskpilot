@@ -1,0 +1,484 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Backdrop
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  z-index: $z-overlay;
+  animation: fade-in 150ms ease both;
+}
+
+// Panel
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40%;
+  min-width: 400px;
+  max-width: 680px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-subtle);
+  z-index: $z-modal;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -4px 0 32px rgba(0,0,0,0.12);
+  animation: slide-in-right $transition-normal both;
+
+  @media (max-width: $bp-md) { width: 100vw; min-width: 0; }
+}
+
+// Top bar — minimal: save indicator + close
+.drawer__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: $space-3 $space-5;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  gap: $space-3;
+}
+
+.drawer__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: $radius-md;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+}
+
+// Scrollable body
+.drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-6 $space-5 $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+// Title — big editable heading
+.drawer__title {
+  width: 100%;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-semibold;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin-bottom: $space-6;
+  line-height: $line-height-tight;
+
+  &::placeholder { color: var(--text-tertiary); }
+  &:focus { border-bottom: 2px solid var(--border-brand); padding-bottom: 2px; }
+}
+
+// ---- Property rows (ClickUp style) ----
+.drawer__props {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: $space-2;
+}
+
+.drawer__prop {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  min-height: 38px;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: $space-3;
+
+  &:last-child { border-bottom: none; }
+
+  &--wrap {
+    align-items: flex-start;
+    padding-top: $space-2;
+    padding-bottom: $space-2;
+  }
+}
+
+.drawer__prop-label {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  padding: $space-2 0;
+}
+
+.drawer__prop-value {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  flex-wrap: wrap;
+  padding: $space-1 0;
+}
+
+// Divider between props and description
+.drawer__divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: $space-4 0;
+}
+
+// Inline input (used inside prop rows)
+.drawer__input {
+  height: 30px;
+  padding: 0 $space-2;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  color: var(--text-primary);
+  font-size: $font-size-sm;
+  transition: all $transition-fast;
+  width: 100%;
+
+  &:focus { outline: none; border-color: var(--border-brand); background: var(--bg-tertiary); }
+  &.is-overdue { color: $rose-500; }
+
+  &--inline {
+    height: 28px;
+    width: auto;
+    &:not(:focus) { background: transparent; }
+  }
+}
+
+.drawer__textarea {
+  padding: $space-3;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  color: var(--text-primary);
+  font-size: $font-size-sm;
+  resize: none;
+  width: 100%;
+  font-family: inherit;
+  line-height: $line-height-relaxed;
+  transition: border-color $transition-fast;
+  margin-bottom: $space-4;
+
+  &:focus { outline: none; border-color: var(--border-brand); background: var(--bg-tertiary); }
+  &::placeholder { color: var(--text-tertiary); }
+}
+
+// Section title (checklist header)
+.drawer__section-title {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: $space-2;
+}
+
+.drawer__cl-count {
+  font-weight: $font-weight-normal;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+}
+
+// Checklist section
+.drawer__checklist-section {
+  margin-bottom: $space-4;
+}
+
+.drawer__cl-bar {
+  height: 3px;
+  background: var(--bg-tertiary);
+  border-radius: $radius-full;
+  overflow: hidden;
+  margin: $space-2 0;
+}
+
+.drawer__cl-fill {
+  height: 100%;
+  background: $emerald-500;
+  border-radius: $radius-full;
+  transition: width $transition-slow;
+}
+
+.cl-item {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-2 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &.done .cl-text {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+  }
+}
+
+.cl-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-default);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all $transition-fast;
+  color: white;
+
+  &:hover { border-color: $emerald-500; }
+  &.checked { background: $emerald-500; border-color: $emerald-500; }
+}
+
+.cl-text {
+  font-size: $font-size-sm;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.cl-add {
+  display: flex;
+  gap: $space-2;
+  margin-top: $space-2;
+}
+
+.cl-add-btn {
+  width: 32px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default);
+  border-radius: $radius-md;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all $transition-fast;
+
+  &:hover:not(:disabled) { border-color: $indigo-500; color: $indigo-500; }
+  &:disabled { opacity: 0.4; cursor: default; }
+}
+
+// Subtask section
+.drawer__subtask-section {
+  margin-bottom: $space-4;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-2 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &.done .subtask-item__title {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+  }
+
+  &__title {
+    flex: 1;
+    font-size: $font-size-sm;
+    color: var(--text-primary);
+    @include text-truncate;
+  }
+
+  &__priority {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    color: var(--text-tertiary);
+
+    &[data-p='urgent'] { color: #ff4444; }
+    &[data-p='high']   { color: $rose-500; }
+    &[data-p='medium'] { color: $amber-500; }
+    &[data-p='low']    { color: $emerald-500; }
+  }
+
+  &__delete {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    border-radius: $radius-sm;
+    cursor: pointer;
+    opacity: 0;
+    transition: all $transition-fast;
+
+    &:hover { color: $rose-500; background: rgba($rose-500, 0.08); }
+  }
+
+  &:hover .subtask-item__delete { opacity: 1; }
+}
+
+// Category grid in prop row
+.drawer__cats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-1;
+}
+
+.cat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 3px $space-2;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { border-color: var(--var(--cat-color, $indigo-500)); }
+
+  &--active {
+    background: color-mix(in srgb, var(--cat-color, #{$indigo-500}) 15%, transparent);
+    border-color: var(--cat-color, #{$indigo-500});
+    color: var(--cat-color, #{$indigo-500});
+  }
+}
+
+// Categories
+.cat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 3px $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+// AI hint
+.drawer__ai-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-2;
+  padding: $space-3;
+  background: var(--surface-brand);
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: var(--text-brand);
+  margin-bottom: $space-4;
+}
+
+// Status chips (inline in prop row)
+.status-chip {
+  padding: 3px $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { border-color: var(--border-strong); color: var(--text-primary); }
+  &.active { border-color: transparent; color: white; }
+  &[data-s='todo'].active        { background: $slate-500; }
+  &[data-s='in_progress'].active { background: $indigo-500; }
+  &[data-s='completed'].active   { background: $emerald-500; }
+}
+
+// Priority chips
+.priority-chip {
+  padding: 3px $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { border-color: var(--border-strong); }
+  &.active { border-color: transparent; color: white; }
+  &[data-p='low'].active    { background: $emerald-500; }
+  &[data-p='medium'].active { background: $amber-500; }
+  &[data-p='high'].active   { background: $rose-500; }
+  &[data-p='urgent'].active { background: #ff4444; }
+}
+
+// Save indicator
+.save-indicator {
+  font-size: $font-size-xs;
+  transition: opacity $transition-fast;
+  margin-right: auto;
+
+  &--idle   { opacity: 0; }
+  &--saving { opacity: 1; color: var(--text-tertiary); }
+  &--saved  { opacity: 1; color: $emerald-500; }
+  &--error  { opacity: 1; color: $rose-500; }
+}
+
+// Footer
+.drawer__footer {
+  display: flex;
+  align-items: center;
+  padding: $space-3 $space-5;
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  gap: $space-3;
+}
+
+.drawer__delete {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  border: 1px solid rgba($rose-500, 0.3);
+  background: transparent;
+  color: $rose-500;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { background: rgba($rose-500, 0.08); border-color: $rose-500; }
+}
+
+.drawer__close-btn {
+  margin-left: auto;
+  padding: $space-2 $space-4;
+  border-radius: $radius-md;
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+}
+
+// Animation
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}

@@ -1,0 +1,149 @@
+<div class="calendar-page fade-in">
+
+  <!-- Header -->
+  <div class="cal-header">
+    <div class="cal-header__left">
+      <h1 class="cal-header__title">Calendar</h1>
+      <span class="cal-header__range">
+        {{ weekDays()[0] | date:'MMM d' }} – {{ weekDays()[6] | date:'MMM d, y' }}
+      </span>
+    </div>
+    <div class="cal-header__controls">
+      <button class="btn btn-ghost btn-sm" (click)="goToday()">Today</button>
+      <div class="cal-nav">
+        <button class="btn btn-icon" (click)="navigate(-1)">
+          <tp-icon name="chevron-right" [size]="16" style="transform: rotate(180deg)" />
+        </button>
+        <button class="btn btn-icon" (click)="navigate(1)">
+          <tp-icon name="chevron-right" [size]="16" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Week View -->
+  <div class="week-view">
+
+    <!-- Scrollable body — day headers are sticky inside so they share the same scroll context -->
+    <div class="week-view__body">
+
+      <!-- Sticky Day Headers -->
+      <div class="week-view__grid week-view__grid--sticky-header">
+        <div class="week-view__time-col week-view__time-col--header"></div>
+        @for (day of weekDays(); track day.toISOString()) {
+          <div class="week-view__day-header" [class.today]="isToday(day)">
+            <span class="week-view__day-name">{{ day | date:'EEE' }}</span>
+            <span class="week-view__day-num" [class.today-circle]="isToday(day)">{{ day | date:'d' }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Notes band (notes added on each day) -->
+      @if (hasAnyNotes()) {
+        <div class="week-view__grid week-view__notes-row">
+          <div class="week-view__time-col week-view__notes-label" data-tooltip="Notes added">
+            <tp-icon name="file-text" [size]="13" />
+          </div>
+          @for (dayData of calendarDays(); track dayData.date.toISOString()) {
+            <div class="week-view__notes-cell">
+              @for (note of dayData.notes; track note.id) {
+                <a class="cal-note" [routerLink]="['/notes', note.id]"
+                   (mouseenter)="showNotePreview($event, note)" (mouseleave)="hoverNote.set(null)">
+                  <tp-icon name="file-text" [size]="11" />
+                  <span class="cal-note__title">{{ note.title || 'Untitled' }}</span>
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Time Grid -->
+      <div class="week-view__grid week-view__grid--body">
+
+        <!-- Time labels -->
+        <div class="week-view__time-col">
+          @for (h of hours; track h) {
+            <div class="week-view__hour-label">
+              {{ h > 12 ? h - 12 : h }}{{ h >= 12 ? 'PM' : 'AM' }}
+            </div>
+          }
+        </div>
+
+        <!-- Day columns -->
+        @for (dayData of calendarDays(); track dayData.date.toISOString()) {
+          <div class="week-view__day-col">
+            <!-- Hour lines -->
+            @for (h of hours; track h) {
+              <div class="week-view__hour-row"></div>
+            }
+
+            <!-- Scheduled blocks -->
+            @for (block of dayData.blocks; track block.id) {
+              <a
+                [routerLink]="['/tasks', block.taskId]"
+                class="cal-block"
+                [style]="blockStyle(block)"
+                [class.conflict]="block.hasConflict"
+              >
+                @if (getTask(block.taskId); as task) {
+                  <span class="cal-block__title">{{ task.title }}</span>
+                  <span class="cal-block__time">
+                    {{ block.startTime.toDate() | date:'h:mm' }}–{{ block.endTime.toDate() | date:'h:mma' }}
+                  </span>
+                }
+              </a>
+            }
+
+            <!-- Task due/start date pills -->
+            @for (task of dayData.tasks; track task.id) {
+              <div class="cal-task-block" [style]="taskStyle(task)" [attr.data-p]="task.priority">
+                <span class="cal-task-block__title">{{ task.title }}</span>
+              </div>
+            }
+
+            <!-- Current time indicator -->
+            @if (isToday(dayData.date)) {
+              <div class="now-line" [style.top.%]="nowLineTop()"></div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Upcoming Tasks (no scheduled time) -->
+  <div class="unscheduled-section">
+    <h2 class="unscheduled-section__title">
+      <tp-icon name="inbox" [size]="18" />
+      Unscheduled Tasks
+    </h2>
+    <div class="unscheduled-list">
+      @for (task of tasks.filteredTasks(); track task.id) {
+        @if (!task.isScheduled && task.status !== 'completed') {
+          <div class="unscheduled-item">
+            <span class="priority-dot" [class]="'priority-dot-' + task.priority"></span>
+            <a [routerLink]="['/tasks', task.id]" class="unscheduled-item__title">{{ task.title }}</a>
+            @if (task.estimatedHours) {
+              <span class="unscheduled-item__hours">{{ task.estimatedHours }}h</span>
+            }
+            @if (task.dueDate) {
+              <span class="unscheduled-item__due">Due {{ task.dueDate.toDate() | date:'MMM d' }}</span>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+</div>
+
+<!-- Note hover preview -->
+@if (hoverNote(); as h) {
+  <div class="note-preview-pop" [style.left.px]="h.x" [style.top.px]="h.y">
+    <strong class="note-preview-pop__title">{{ h.title }}</strong>
+    <p class="note-preview-pop__body">{{ h.preview }}</p>
+  </div>
+}

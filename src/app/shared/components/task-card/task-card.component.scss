@@ -1,0 +1,137 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Grid columns: [checkbox] [name] [priority] [status] [due] [category]
+$task-cols: 28px 1fr 44px 106px 90px 110px;
+
+.task-row {
+  display: grid;
+  grid-template-columns: $task-cols;
+  align-items: center;
+  gap: $space-2;
+  padding: 0 $space-4;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  user-select: none;
+  transition: background $transition-fast;
+  min-height: 38px;
+
+  @include mobile-only {
+    grid-template-columns: 28px 1fr 44px 90px;
+    padding: 0 $space-3;
+  }
+
+  &:hover { background: var(--bg-tertiary); }
+
+  &--done {
+    opacity: 0.45;
+    .task-row__title { text-decoration: line-through; }
+  }
+
+  &--overdue .task-row__title { color: var(--text-primary); }
+
+  // Circle checkbox
+  &__check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-default);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all $transition-fast;
+    color: white;
+    justify-self: center;
+
+    &:hover { border-color: $indigo-400; }
+    &.checked  { background: $emerald-500; border-color: $emerald-500; }
+    &.in-progress { border-color: $indigo-500; }
+  }
+
+  &__title {
+    font-size: $font-size-sm;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__priority {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__flag {
+    display: flex;
+    align-items: center;
+    opacity: 0.35;
+
+    &--low    { color: $emerald-500; opacity: 1; }
+    &--medium { color: $amber-500;   opacity: 1; }
+    &--high   { color: $rose-500;    opacity: 1; }
+    &--urgent { color: #ff4444;      opacity: 1; }
+  }
+
+  &__status-col { display: flex; align-items: center; }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: $radius-full;
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    white-space: nowrap;
+
+    &--todo        { background: var(--bg-tertiary); color: var(--text-secondary); }
+    &--in_progress { background: rgba($indigo-500, 0.15); color: $indigo-400; }
+    &--completed   { background: rgba($emerald-500, 0.15); color: $emerald-500; }
+  }
+
+  &__due-col { display: flex; align-items: center; }
+
+  &__due {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+
+    &--overdue { color: $rose-500; font-weight: $font-weight-medium; }
+  }
+
+  &__cat-col { display: flex; align-items: center; }
+
+  &__cat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__cat-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  // Hide status & category columns on mobile
+  @include mobile-only {
+    &__status-col { display: none; }
+    &__cat-col    { display: none; }
+  }
+}
+
+.ip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: $indigo-500;
+}

@@ -1,0 +1,106 @@
+<div class="chat-page fade-in">
+
+  <div class="chat-header">
+    <div class="chat-header__info">
+      <div class="chat-header__avatar">
+        <tp-icon name="sparkles" [size]="20" />
+      </div>
+      <div>
+        <h1 class="chat-header__title">AI Assistant</h1>
+        <p class="chat-header__status">
+          @if (isTyping()) { <span class="typing-indicator"><span></span><span></span><span></span></span> Thinking... }
+          @else { Powered by Claude }
+        </p>
+      </div>
+    </div>
+    <div class="chat-header__stats">
+      <span class="chat-stat">
+        <tp-icon name="check-square" [size]="14" />
+        {{ taskService.tasks().length }} tasks
+      </span>
+      @if (taskService.overdueTasks().length > 0) {
+        <span class="chat-stat chat-stat--danger">
+          <tp-icon name="alert-circle" [size]="14" />
+          {{ taskService.overdueTasks().length }} overdue
+        </span>
+      }
+      <button class="btn btn-ghost btn-sm" (click)="clearHistory()" title="Clear chat history">
+        <tp-icon name="trash-2" [size]="14" />
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages">
+    @for (msg of messages(); track msg.id) {
+      <div class="message" [class.message--user]="msg.role === 'user'" [class.message--ai]="msg.role === 'assistant'">
+        @if (msg.role === 'assistant') {
+          <div class="message__avatar">
+            <tp-icon name="sparkles" [size]="14" />
+          </div>
+        }
+        <div class="message__bubble">
+          <div class="message__text" [innerHTML]="formatMessage(msg.content)"></div>
+          <span class="message__time">{{ msg.time | date:'h:mm a' }}</span>
+        </div>
+      </div>
+    }
+
+    <!-- Typing indicator -->
+    @if (isTyping()) {
+      <div class="message message--ai">
+        <div class="message__avatar">
+          <tp-icon name="sparkles" [size]="14" />
+        </div>
+        <div class="message__bubble">
+          <div class="typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    }
+
+    <div #messagesEnd></div>
+  </div>
+
+  <!-- Suggestions -->
+  @if (messages().length <= 2) {
+    <div class="suggestions">
+      @for (s of suggestions; track s) {
+        <button class="suggestion-chip" (click)="useSuggestion(s)">{{ s }}</button>
+      }
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="chat-error">
+      <tp-icon name="alert-circle" [size]="14" />
+      {{ error() }}
+    </div>
+  }
+
+  <!-- Input -->
+  <div class="chat-input-wrapper">
+    <div class="chat-input">
+      <textarea
+        class="chat-input__textarea"
+        placeholder="Message TaskPilot AI... (Shift+Enter for newline)"
+        [value]="inputText()"
+        (input)="inputText.set($any($event.target).value)"
+        (keydown)="onKeyDown($event)"
+        rows="1"
+      ></textarea>
+      <button
+        class="chat-input__send btn btn-primary btn-icon"
+        (click)="sendMessage()"
+        [disabled]="!inputText().trim() || isTyping()"
+      >
+        <tp-icon name="send" [size]="18" />
+      </button>
+    </div>
+    <p class="chat-input__hint">
+      AI can move, reschedule, create tasks, and give insights. Changes apply immediately.
+    </p>
+  </div>
+</div>

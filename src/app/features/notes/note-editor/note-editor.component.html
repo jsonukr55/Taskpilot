@@ -1,0 +1,248 @@
+@if (!isPersonal() && !group() && !groups.isLoading()) {
+  <div class="ne-missing">
+    <p>You don't have access to this note.</p>
+    <a routerLink="/groups" class="btn-secondary">Back to groups</a>
+  </div>
+} @else {
+  <div class="editor">
+    <div class="editor__main" (scroll)="onScroll()">
+
+      <!-- Slim top bar -->
+      <div class="ne-top">
+        <a [routerLink]="isPersonal() ? ['/notes'] : ['/groups', groupId()]" class="btn-icon" data-tooltip="Back">
+          <tp-icon name="arrow-left" [size]="18" />
+        </a>
+        @if (canEdit()) {
+          <div class="ne-history">
+            <button class="btn-icon" (click)="undo()" [disabled]="!canUndo()" data-tooltip="Undo (Ctrl+Z)"><tp-icon name="rotate-ccw" [size]="16" /></button>
+            <button class="btn-icon" (click)="redo()" [disabled]="!canRedo()" data-tooltip="Redo (Ctrl+Y)"><tp-icon name="rotate-cw" [size]="16" /></button>
+          </div>
+        }
+        @if (!canEdit()) { <span class="badge ne-readonly">Viewer · read-only</span> }
+        <span class="ne-live"><span class="ne-live__dot"></span> Live</span>
+        <button class="btn btn-secondary btn-sm ne-copy" (click)="copyNote()" data-tooltip="Copy note (title, lists & formatting)">
+          <tp-icon [name]="copied() ? 'check' : 'copy'" [size]="15" />
+          {{ copied() ? 'Copied' : 'Copy' }}
+        </button>
+      </div>
+
+      <!-- Document -->
+      <div class="editor__doc">
+        <input class="doc-title" [value]="titleDraft()" (input)="onTitleInput($any($event.target).value)"
+               [readOnly]="!canEdit()" placeholder="Untitled">
+
+        <div class="blocks">
+          @for (b of localBlocks(); track b.id; let i = $index) {
+            <div class="block" [class.block--sel]="selectedBlockId() === b.id">
+
+              <!-- Left gutter: + and ⋮⋮ (editors of this line only) -->
+              @if (canEditBlock(b)) {
+                <div class="gutter">
+                  <button class="gutter__btn" (click)="addBelow(i, $event)" data-tooltip="Insert block below"><tp-icon name="plus" [size]="16" /></button>
+                  <button class="gutter__btn gutter__handle" (click)="openBlockMenu(b.id, $event)" data-tooltip="Click to open menu"><span class="grip"></span></button>
+                </div>
+              }
+
+              <!-- Content -->
+              <div class="block__main" [class.block__main--callout]="b.type === 'callout'">
+                @if (b.type === 'divider') {
+                  <hr class="block__hr">
+                } @else {
+                  @if (b.type === 'todo') {
+                    <button class="block__check" (click)="toggleCheck(b)" [disabled]="!canEditBlock(b)">
+                      <tp-icon [name]="b.checked ? 'check-square' : 'square'" [size]="18" />
+                    </button>
+                  } @else if (b.type === 'bulleted') {
+                    <span class="block__marker">•</span>
+                  } @else if (b.type === 'numbered') {
+                    <span class="block__marker">{{ i + 1 }}.</span>
+                  } @else if (b.type === 'callout') {
+                    <span class="block__callout-emoji">💡</span>
+                  }
+
+                  <div class="block__content" [class]="'ct-' + b.type" [class.checked]="b.type === 'todo' && b.checked"
+                       [attr.data-block-id]="b.id"
+                       [attr.contenteditable]="canEditBlock(b)"
+                       [attr.data-ph]="i === 0 ? 'Write something, or press “/” for commands' : (focusedBlockId() === b.id ? 'Press “/” for commands' : '')"
+                       [tpEditable]="b.html"
+                       (htmlChange)="onInput(b, $event)"
+                       (focusin)="focusedBlockId.set(b.id)"
+                       (focusout)="onBlur()"
+                       (keydown.enter)="onEnter($event, b, i)"
+                       (keydown.backspace)="onBackspace($event, b, i)"
+                       (keydown.escape)="onEscape()"
+                       (paste)="onPaste($event)"></div>
+                }
+              </div>
+
+              <!-- Right: assignees (with access role) + comment -->
+              <div class="block__side">
+                @for (a of assigneesOf(b); track a.member.userId) {
+                  <button class="side-avatar" (click)="openAssign(b.id, $event)"
+                          [attr.data-tooltip]="a.member.displayName + ' · ' + (a.role === 'editor' ? 'Editor' : 'Viewer')" data-tooltip>
+                    <span class="avatar avatar--sm" [class.role-editor]="a.role === 'editor'" [class.role-viewer]="a.role === 'viewer'">
+                      @if (a.member.photoURL) { <img [src]="a.member.photoURL" alt=""> } @else { {{ initial(a.member.displayName) }} }
+                    </span>
+                  </button>
+                }
+                @if (canEditBlock(b) && members().length) {
+                  <button class="side-btn side-btn--hover" (click)="openAssign(b.id, $event)" data-tooltip="Assign / access"><tp-icon name="user-plus" [size]="15" /></button>
+                }
+
+                @if (blockDateLabel(b); as d) {
+                  <button class="side-btn side-btn--has" (click)="openDate(b.id, $event)" data-tooltip="Line date">
+                    <tp-icon name="calendar" [size]="13" /><span>{{ d }}</span>
+                  </button>
+                } @else if (canEditBlock(b)) {
+                  <button class="side-btn side-btn--hover" (click)="openDate(b.id, $event)" data-tooltip="Set date"><tp-icon name="calendar" [size]="15" /></button>
+                }
+
+                @if (commentCounts().get(b.id); as n) {
+                  <button class="side-btn side-btn--has" (click)="openComments(b.id)" data-tooltip="Comments">
+                    <tp-icon name="message-square" [size]="15" /><span>{{ n }}</span>
+                  </button>
+                } @else {
+                  <button class="side-btn side-btn--hover" (click)="openComments(b.id)" data-tooltip="Comment"><tp-icon name="message-square" [size]="15" /></button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Comment panel -->
+    @if (selectedBlockId(); as sel) {
+      <aside class="editor__comments">
+        <tp-comment-thread
+          [groupId]="groupId()" [noteId]="noteId()" [blockId]="sel"
+          [blockPreview]="blockPreview(sel)" [isOwner]="isOwner()"
+          (close)="selectedBlockId.set(null)" />
+      </aside>
+    }
+  </div>
+
+  <!-- Floating selection menu -->
+  @if (bubble(); as bp) {
+    <div class="bubble" [style.left.px]="bp.x" [style.top.px]="bp.y" (mousedown)="$event.preventDefault()">
+      <div class="bubble__row">
+        <button class="bubble__fbtn" (click)="format('bold')" data-tooltip="Bold"><span class="b">B</span></button>
+        <button class="bubble__fbtn" (click)="format('italic')" data-tooltip="Italic"><span class="i">i</span></button>
+        <button class="bubble__fbtn" (click)="format('underline')" data-tooltip="Underline"><span class="u">U</span></button>
+        <button class="bubble__fbtn" (click)="format('strikeThrough')" data-tooltip="Strikethrough"><span class="st">S</span></button>
+        <button class="bubble__fbtn" (click)="toggleCode()" data-tooltip="Code"><span class="code">&lt;/&gt;</span></button>
+        <button class="bubble__fbtn" (click)="addLink()" data-tooltip="Link"><tp-icon name="link" [size]="15" /></button>
+      </div>
+
+      <div class="bubble__div"></div>
+      <button class="bubble__item" [class.active]="turnIntoSub()"
+              (mouseenter)="openTurnIntoSub($event)" (mouseleave)="scheduleCloseSub()" (click)="openTurnIntoSub($event)">
+        <tp-icon name="type" [size]="15" /><span class="bubble__txt">Turn into</span><tp-icon name="chevron-right" [size]="14" />
+      </button>
+      <button class="bubble__item" (click)="bubbleComment()">
+        <tp-icon name="message-square" [size]="15" /><span class="bubble__txt">Comment</span>
+      </button>
+
+      <div class="bubble__div"></div>
+      <p class="bubble__label"><tp-icon name="sparkles" [size]="12" /> AI</p>
+      @for (a of AI_ACTIONS; track a.key) {
+        <button class="bubble__item" (click)="runAi(a)" [disabled]="!!aiBusy()">
+          <tp-icon [name]="a.icon" [size]="15" />
+          <span class="bubble__txt">{{ a.label }}</span>
+          @if (aiBusy() === a.key) { <span class="bubble__spin"></span> }
+        </button>
+      }
+    </div>
+  }
+
+  <!-- "Turn into" nested submenu (sibling so the scroll container can't clip it) -->
+  @if (bubble() && turnIntoSub(); as sp) {
+    <div class="bubble bubble--sub" [style.left.px]="sp.x" [style.top.px]="sp.y"
+         (mouseenter)="keepSub()" (mouseleave)="turnIntoSub.set(null)" (mousedown)="$event.preventDefault()">
+      @for (t of TYPE_MENU; track t) {
+        <button class="bubble__item" (click)="turnIntoFromSub(t)">
+          <span class="pop__glyph">{{ typeGlyph(t) }}</span>
+          <span class="bubble__txt">{{ BLOCK_TYPE_LABELS[t] }}</span>
+          @if (mdHint(t)) { <span class="pop__hint">{{ mdHint(t) }}</span> }
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Backdrop for popovers -->
+  @if (anyMenuOpen()) { <div class="menu-backdrop" (click)="closeMenus()"></div> }
+
+  <!-- Slash command menu -->
+  @if (slashFor()) {
+    <div class="pop pop--slash" [style.left.px]="slashPos().x" [style.top.px]="slashPos().y">
+      <p class="pop__label">Basic blocks</p>
+      @for (t of slashOptions(); track t) {
+        <button class="pop__item" (click)="chooseSlash(t)">
+          <span class="pop__glyph">{{ typeGlyph(t) }}</span>
+          <span class="pop__text">
+            <span class="pop__name">{{ BLOCK_TYPE_LABELS[t] }}</span>
+            <span class="pop__desc">{{ typeDesc(t) }}</span>
+          </span>
+          @if (mdHint(t)) { <span class="pop__hint">{{ mdHint(t) }}</span> }
+        </button>
+      } @empty {
+        <p class="pop__empty">No matching block</p>
+      }
+      <button class="pop__footer" (click)="slashFor.set(null)"><span>Close menu</span><span class="pop__hint">esc</span></button>
+    </div>
+  }
+
+  <!-- ⋮⋮ block menu -->
+  @if (blockMenuFor(); as bid) {
+    <div class="pop" [style.left.px]="blockMenuPos().x" [style.top.px]="blockMenuPos().y">
+      <p class="pop__label">Turn into</p>
+      @for (t of TYPE_MENU; track t) {
+        <button class="pop__item" (click)="turnInto(bid, t)">
+          <span class="pop__glyph">{{ typeGlyph(t) }}</span>
+          <span class="pop__name">{{ BLOCK_TYPE_LABELS[t] }}</span>
+          @if (mdHint(t)) { <span class="pop__hint">{{ mdHint(t) }}</span> }
+        </button>
+      }
+      <span class="pop__sep"></span>
+      <button class="pop__item" (click)="openComments(bid)"><tp-icon name="message-square" [size]="15" /><span>Comment</span></button>
+      <button class="pop__item" (click)="openDate(bid, $event)"><tp-icon name="calendar" [size]="15" /><span>Set date</span></button>
+      @if (members().length) {
+        <button class="pop__item" (click)="openAssign(bid, $event)"><tp-icon name="user-plus" [size]="15" /><span>Assign to…</span></button>
+      }
+      <button class="pop__item pop__item--danger" (click)="deleteBlock(bid)"><tp-icon name="trash-2" [size]="15" /><span>Delete</span></button>
+      <button class="pop__footer" (click)="blockMenuFor.set(null)"><span>Close menu</span><span class="pop__hint">esc</span></button>
+    </div>
+  }
+
+  <!-- Assign + per-line access popover -->
+  @if (assignFor(); as aid) {
+    <div class="pop pop--assign" [style.left.px]="assignPos().x" [style.top.px]="assignPos().y">
+      <p class="pop__label">Line access</p>
+      @for (m of members(); track m.userId) {
+        <div class="arow">
+          <span class="avatar avatar--sm">
+            @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+          </span>
+          <span class="arow__name">{{ m.displayName }}</span>
+          <div class="seg">
+            <button class="seg__btn" [class.on]="roleOnBlock(aid, m.userId) === 'viewer'" (click)="assign(aid, m.userId, 'viewer')">Viewer</button>
+            <button class="seg__btn" [class.on]="roleOnBlock(aid, m.userId) === 'editor'" (click)="assign(aid, m.userId, 'editor')">Editor</button>
+          </div>
+        </div>
+      }
+      <p class="pop__note">Viewers can read &amp; comment this line; editors can also change it.</p>
+    </div>
+  }
+
+  <!-- Date picker popover -->
+  @if (dateFor(); as did) {
+    <div class="pop pop--date" [style.left.px]="datePos().x" [style.top.px]="datePos().y">
+      <p class="pop__label">Line date</p>
+      <input type="date" class="date-input" [value]="blockDateValue(did)"
+             (change)="setBlockDate(did, $any($event.target).value)">
+      <button class="pop__item pop__item--danger" (click)="setBlockDate(did, null)">
+        <tp-icon name="x" [size]="14" /><span>Clear date</span>
+      </button>
+    </div>
+  }
+}

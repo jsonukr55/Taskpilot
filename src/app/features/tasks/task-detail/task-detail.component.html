@@ -1,0 +1,225 @@
+<div class="task-detail fade-in">
+  <div class="task-detail__breadcrumb">
+    <a routerLink="/tasks" class="breadcrumb-link">
+      <tp-icon name="arrow-left" [size]="16" /> Tasks
+    </a>
+  </div>
+
+  @if (!task()) {
+    <div class="task-detail__not-found">
+      <h2>Task not found</h2>
+      <a routerLink="/tasks" class="btn btn-primary">Back to Tasks</a>
+    </div>
+  } @else {
+    <div class="task-detail__layout">
+
+      <!-- Main Content -->
+      <div class="task-detail__main">
+
+        @if (!isEditing()) {
+          <!-- View Mode -->
+          <div class="task-view">
+            <div class="task-view__header">
+              <div class="task-view__status-row">
+                <span class="badge" [class]="'badge-status-' + task()!.status">{{ task()!.status }}</span>
+                <span class="badge" [class]="'badge-priority-' + task()!.priority">{{ task()!.priority }}</span>
+                @if (task()!.aiMetadata?.extractionMethod !== 'manual') {
+                  <span class="badge ai-badge">
+                    <tp-icon name="sparkles" [size]="10" /> AI-created
+                  </span>
+                }
+              </div>
+              <div class="task-view__actions">
+                <button class="btn btn-secondary btn-sm" (click)="startEdit()">
+                  <tp-icon name="edit-2" [size]="14" /> Edit
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="deleteTask()">
+                  <tp-icon name="trash-2" [size]="14" />
+                </button>
+              </div>
+            </div>
+
+            <h1 class="task-view__title">{{ task()!.title }}</h1>
+            @if (task()!.description) {
+              <p class="task-view__desc">{{ task()!.description }}</p>
+            }
+
+            <!-- Meta -->
+            <div class="task-meta">
+              @if (task()!.dueDate) {
+                <div class="task-meta__item">
+                  <tp-icon name="calendar" [size]="16" />
+                  <span>Due {{ task()!.dueDate!.toDate() | date:'MMM d, y' }}
+                    @if (task()!.dueTime) { at {{ task()!.dueTime }} }
+                  </span>
+                </div>
+              }
+              @if (task()!.estimatedHours) {
+                <div class="task-meta__item">
+                  <tp-icon name="clock" [size]="16" />
+                  <span>{{ task()!.estimatedHours }}h estimated</span>
+                </div>
+              }
+              @if (taskCategories().length > 0) {
+                <div class="task-meta__item">
+                  <tp-icon name="folder" [size]="16" />
+                  <div class="task-meta__cats">
+                    @for (cat of taskCategories(); track cat!.id) {
+                      <span class="tag" [style.color]="cat!.color">{{ cat!.icon }} {{ cat!.name }}</span>
+                    }
+                  </div>
+                </div>
+              }
+              @if (task()!.tags.length > 0) {
+                <div class="task-meta__item">
+                  <tp-icon name="tag" [size]="16" />
+                  <div class="task-meta__tags">
+                    @for (tag of task()!.tags; track tag) {
+                      <span class="tag">{{ tag }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- AI Scheduling Suggestion -->
+            @if (task()!.aiMetadata?.schedulingSuggestion) {
+              <div class="ai-suggestion">
+                <tp-icon name="sparkles" [size]="14" />
+                <span>AI suggests: {{ task()!.aiMetadata!.schedulingSuggestion }}</span>
+                <button class="btn btn-secondary btn-sm" (click)="autoSchedule()" [disabled]="isSaving()">
+                  Auto-schedule
+                </button>
+              </div>
+            }
+          </div>
+
+        } @else {
+          <!-- Edit Mode -->
+          <form [formGroup]="editForm" (ngSubmit)="saveEdit()" class="task-edit-form">
+            <div class="form-group">
+              <label class="form-label">Title</label>
+              <input formControlName="title" class="form-input form-input--lg">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea formControlName="description" class="form-textarea" rows="4"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select formControlName="status" class="form-input">
+                  <option value="todo">To Do</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select formControlName="priority" class="form-input">
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Due Date</label>
+                <input formControlName="dueDate" type="date" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Due Time</label>
+                <input formControlName="dueTime" type="time" class="form-input">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Est. Hours</label>
+                <input formControlName="estimatedHours" type="number" min="0.5" step="0.5" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tags</label>
+                <input formControlName="tags" class="form-input" placeholder="tag1, tag2">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-ghost" (click)="cancelEdit()">Cancel</button>
+              <button type="submit" class="btn btn-primary" [disabled]="isSaving()">
+                {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        }
+
+        <!-- Checklist -->
+        <div class="checklist-section">
+          <h3 class="checklist-section__title">
+            <tp-icon name="check-square" [size]="16" />
+            Checklist
+            @if (task()!.checklist.length > 0) {
+              <span class="checklist-section__progress">
+                {{ completedChecklistCount() }}/{{ task()!.checklist.length }}
+              </span>
+            }
+          </h3>
+
+          @for (item of task()!.checklist; track item.id) {
+            <div class="checklist-item" [class.done]="item.completed">
+              <button class="checklist-item__check" (click)="toggleChecklist(item.id)" [class.checked]="item.completed">
+                @if (item.completed) { <tp-icon name="check" [size]="10" /> }
+              </button>
+              <span class="checklist-item__text">{{ item.text }}</span>
+              @if (item.completed && item.completedAt) {
+                <span class="checklist-item__time">{{ item.completedAt.toDate() | date:'MMM d' }}</span>
+              }
+            </div>
+          }
+
+          <div class="checklist-add">
+            <input
+              class="form-input"
+              placeholder="Add checklist item..."
+              [value]="newItemText()"
+              (input)="newItemText.set($any($event.target).value)"
+              (keydown.enter)="addChecklistItem()"
+            >
+            <button class="btn btn-secondary btn-sm" (click)="addChecklistItem()" [disabled]="!newItemText().trim()">
+              <tp-icon name="plus" [size]="14" /> Add
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Info -->
+      <aside class="task-detail__aside">
+        <div class="aside-card">
+          <h3 class="aside-card__title">Details</h3>
+          <dl class="aside-dl">
+            <dt>Created</dt>
+            <dd>{{ task()!.createdAt.toDate() | date:'MMM d, y' }}</dd>
+            <dt>Last Updated</dt>
+            <dd>{{ task()!.updatedAt.toDate() | date:'MMM d, y' }}</dd>
+            @if (task()!.aiMetadata?.confidence) {
+              <dt>AI Confidence</dt>
+              <dd>{{ (task()!.aiMetadata!.confidence * 100 | number:'1.0-0') }}%</dd>
+            }
+          </dl>
+        </div>
+
+        @if (!task()!.isScheduled && task()!.estimatedHours) {
+          <div class="aside-card aside-card--action">
+            <h3 class="aside-card__title">Smart Scheduling</h3>
+            <p class="aside-card__text">This task isn't scheduled yet. Let AI find the best time slot.</p>
+            <button class="btn btn-primary btn-block" (click)="autoSchedule()" [disabled]="isSaving()">
+              <tp-icon name="calendar" [size]="16" />
+              Auto-Schedule
+            </button>
+          </div>
+        }
+      </aside>
+
+    </div>
+  }
+</div>

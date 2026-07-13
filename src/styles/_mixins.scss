@@ -1,0 +1,166 @@
+@use 'variables' as *;
+
+// ============================================================
+// TaskPilot Design System — Mixins
+// ============================================================
+
+// Responsive
+@mixin sm { @media (min-width: #{$bp-sm}) { @content; } }
+@mixin md { @media (min-width: #{$bp-md}) { @content; } }
+@mixin lg { @media (min-width: #{$bp-lg}) { @content; } }
+@mixin xl { @media (min-width: #{$bp-xl}) { @content; } }
+
+@mixin mobile-only { @media (max-width: #{$bp-md - 1px}) { @content; } }
+@mixin tablet-only { @media (min-width: #{$bp-md}) and (max-width: #{$bp-lg - 1px}) { @content; } }
+
+// Flex utilities
+@mixin flex-center { display: flex; align-items: center; justify-content: center; }
+@mixin flex-between { display: flex; align-items: center; justify-content: space-between; }
+@mixin flex-start { display: flex; align-items: center; justify-content: flex-start; }
+@mixin flex-col { display: flex; flex-direction: column; }
+
+// Typography
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-clamp($lines) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Glassmorphism
+@mixin glass($blur: 12px, $opacity: 0.7) {
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+}
+
+// Card
+@mixin card($hover: true) {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: $radius-xl;
+  box-shadow: var(--card-shadow);
+  transition: transform $transition-normal, box-shadow $transition-normal;
+
+  @if $hover {
+    &:hover {
+      box-shadow: var(--card-shadow-hover);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// Focus ring
+@mixin focus-ring($color: $indigo-500) {
+  &:focus-visible {
+    outline: 2px solid $color;
+    outline-offset: 2px;
+  }
+}
+
+// Button base
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  border-radius: $radius-lg;
+  font-family: $font-sans;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: 1px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @include focus-ring;
+}
+
+// Input base
+@mixin input-base {
+  width: 100%;
+  padding: $space-3 $space-4;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: $radius-lg;
+  font-family: $font-sans;
+  font-size: $font-size-sm;
+  color: var(--text-primary);
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+  outline: none;
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  &:focus {
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+}
+
+// Scrollbar
+@mixin custom-scrollbar($size: 4px) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+
+  &::-webkit-scrollbar {
+    width: $size;
+    height: $size;
+  }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: $radius-full;
+
+    &:hover { background: var(--text-tertiary); }
+  }
+}
+
+// Gradient text
+@mixin gradient-text($from: $indigo-400, $to: $violet-400) {
+  background: linear-gradient(135deg, $from 0%, $to 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// Shimmer loading
+@mixin shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-elevated) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+// Pulse animation
+@mixin pulse-dot($color) {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: $color;
+    animation: pulse-ring 1.5s ease-out infinite;
+  }
+}

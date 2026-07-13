@@ -1,0 +1,43 @@
+<div class="ct">
+  <div class="ct__head">
+    <div>
+      <h3>Comments</h3>
+      @if (blockPreview()) { <p class="ct__anchor">on “{{ blockPreview() }}”</p> }
+    </div>
+    <button class="btn-icon" (click)="close.emit()"><tp-icon name="x" [size]="18" /></button>
+  </div>
+
+  <div class="ct__list">
+    @for (c of threadComments(); track c.id) {
+      <div class="comment" [class.resolved]="c.resolved">
+        <span class="avatar avatar--sm">
+          @if (c.authorPhoto) { <img [src]="c.authorPhoto" alt=""> } @else { {{ initial(c.authorName) }} }
+        </span>
+        <div class="comment__body">
+          <div class="comment__meta">
+            <span class="comment__author">{{ c.authorName }}</span>
+            <span class="comment__time">{{ timeAgo(c) }}</span>
+          </div>
+          <p class="comment__text">{{ c.body }}</p>
+          @if (canModify(c)) {
+            <div class="comment__actions">
+              <button (click)="toggleResolve(c)">{{ c.resolved ? 'Reopen' : 'Resolve' }}</button>
+              <button (click)="remove(c)">Delete</button>
+            </div>
+          }
+        </div>
+      </div>
+    } @empty {
+      <p class="ct__empty">No comments yet. Start the discussion.</p>
+    }
+  </div>
+
+  <div class="ct__compose">
+    <textarea class="form-textarea" placeholder="Add a comment…"
+              [ngModel]="draft()" (ngModelChange)="draft.set($event)"
+              (keydown.enter)="$event.preventDefault(); add()"></textarea>
+    <button class="btn-primary btn-sm" (click)="add()" [disabled]="!draft().trim()">
+      <tp-icon name="send" [size]="14" /> Comment
+    </button>
+  </div>
+</div>

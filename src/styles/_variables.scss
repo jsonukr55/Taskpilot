@@ -1,0 +1,215 @@
+// ============================================================
+// TaskPilot Design System — Variables
+// ============================================================
+
+// Color Palette — Base
+$indigo-50:  #eef2ff;
+$indigo-100: #e0e7ff;
+$indigo-200: #c7d2fe;
+$indigo-300: #a5b4fc;
+$indigo-400: #818cf8;
+$indigo-500: #6366f1;
+$indigo-600: #4f46e5;
+$indigo-700: #4338ca;
+$indigo-800: #3730a3;
+$indigo-900: #312e81;
+
+$violet-400: #a78bfa;
+$violet-500: #8b5cf6;
+$violet-600: #7c3aed;
+
+$emerald-400: #34d399;
+$emerald-500: #10b981;
+$emerald-600: #059669;
+
+$amber-400:  #fbbf24;
+$amber-500:  #f59e0b;
+$amber-600:  #d97706;
+
+$rose-400:   #fb7185;
+$rose-500:   #f43f5e;
+$rose-600:   #e11d48;
+
+$sky-400:    #38bdf8;
+$sky-500:    #0ea5e9;
+
+$slate-50:   #f8fafc;
+$slate-100:  #f1f5f9;
+$slate-200:  #e2e8f0;
+$slate-300:  #cbd5e1;
+$slate-400:  #94a3b8;
+$slate-500:  #64748b;
+$slate-600:  #475569;
+$slate-700:  #334155;
+$slate-800:  #1e293b;
+$slate-900:  #0f172a;
+$slate-950:  #020617;
+
+// Brand
+$brand-primary:   $indigo-500;
+$brand-secondary: $violet-500;
+$brand-accent:    $emerald-500;
+
+// Priority Colors
+$priority-low:    $emerald-500;
+$priority-medium: $amber-500;
+$priority-high:   $rose-500;
+$priority-urgent: #ff4444;
+
+// Typography
+$font-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+$font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+$font-size-xs:   0.75rem;   // 12px
+$font-size-sm:   0.875rem;  // 14px
+$font-size-base: 1rem;      // 16px
+$font-size-lg:   1.125rem;  // 18px
+$font-size-xl:   1.25rem;   // 20px
+$font-size-2xl:  1.5rem;    // 24px
+$font-size-3xl:  1.875rem;  // 30px
+$font-size-4xl:  2.25rem;   // 36px
+
+$font-weight-normal:   400;
+$font-weight-medium:   500;
+$font-weight-semibold: 600;
+$font-weight-bold:     700;
+
+$line-height-tight:  1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// Spacing
+$space-1:  0.25rem;
+$space-2:  0.5rem;
+$space-3:  0.75rem;
+$space-4:  1rem;
+$space-5:  1.25rem;
+$space-6:  1.5rem;
+$space-8:  2rem;
+$space-10: 2.5rem;
+$space-12: 3rem;
+$space-16: 4rem;
+$space-20: 5rem;
+
+// Border Radius
+$radius-sm:   4px;
+$radius-md:   8px;
+$radius-lg:   12px;
+$radius-xl:   16px;
+$radius-2xl:  20px;
+$radius-full: 9999px;
+
+// Shadows
+$shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.05);
+$shadow-md:  0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+$shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+$shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+$shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+
+// Transitions
+$transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow:   350ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+// Z-index Scale
+$z-dropdown:  100;
+$z-sticky:    200;
+$z-overlay:   300;
+$z-modal:     400;
+$z-popover:   500;
+$z-tooltip:   600;
+$z-toast:     700;
+
+// Layout
+$sidebar-width:         260px;
+$sidebar-collapsed:     72px;
+$topbar-height:         64px;
+$content-max-width:     1200px;
+
+// Breakpoints
+$bp-sm:  640px;
+$bp-md:  768px;
+$bp-lg:  1024px;
+$bp-xl:  1280px;
+$bp-2xl: 1536px;
+
+// CSS Custom Properties (for runtime theme switching)
+:root {
+  // Light Theme
+  --bg-primary:     #{$slate-50};
+  --bg-secondary:   #ffffff;
+  --bg-tertiary:    #{$slate-100};
+  --bg-elevated:    #ffffff;
+  --bg-overlay:     rgba(0, 0, 0, 0.4);
+
+  --text-primary:   #{$slate-900};
+  --text-secondary: #{$slate-600};
+  --text-tertiary:  #{$slate-400};
+  --text-inverse:   #ffffff;
+  --text-brand:     #{$indigo-600};
+
+  --border-subtle:  #{$slate-200};
+  --border-default: #{$slate-300};
+  --border-strong:  #{$slate-400};
+  --border-brand:   #{$indigo-400};
+
+  --surface-brand:  #{$indigo-50};
+  --surface-success: #ecfdf5;
+  --surface-warning: #fffbeb;
+  --surface-danger:  #fff1f2;
+
+  --sidebar-bg:     #ffffff;
+  --topbar-bg:      rgba(255, 255, 255, 0.85);
+
+  --card-bg:        #ffffff;
+  --card-border:    #{$slate-200};
+  --card-shadow:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --card-shadow-hover: 0 4px 12px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+
+  --input-bg:       #ffffff;
+  --input-border:   #{$slate-300};
+  --input-focus:    #{$indigo-500};
+
+  --scrollbar-bg:   #{$slate-100};
+  --scrollbar-thumb: #{$slate-300};
+}
+
+[data-theme='dark'] {
+  --bg-primary:     #0f0f14;
+  --bg-secondary:   #161621;
+  --bg-tertiary:    #1c1c2a;
+  --bg-elevated:    #1e1e2e;
+  --bg-overlay:     rgba(0, 0, 0, 0.6);
+
+  --text-primary:   #e8e8f0;
+  --text-secondary: #9494aa;
+  --text-tertiary:  #5c5c6e;
+  --text-inverse:   #0f0f14;
+  --text-brand:     #{$indigo-400};
+
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.16);
+  --border-brand:   #{$indigo-500};
+
+  --surface-brand:  rgba(99, 102, 241, 0.12);
+  --surface-success: rgba(16, 185, 129, 0.10);
+  --surface-warning: rgba(245, 158, 11, 0.10);
+  --surface-danger:  rgba(244, 63, 94, 0.10);
+
+  --sidebar-bg:     #161621;
+  --topbar-bg:      rgba(15, 15, 20, 0.85);
+
+  --card-bg:        #1e1e2e;
+  --card-border:    rgba(255,255,255,0.08);
+  --card-shadow:    0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --card-shadow-hover: 0 4px 16px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+
+  --input-bg:       #1c1c2a;
+  --input-border:   rgba(255,255,255,0.12);
+  --input-focus:    #{$indigo-400};
+
+  --scrollbar-bg:   #1c1c2a;
+  --scrollbar-thumb: rgba(255,255,255,0.12);
+}

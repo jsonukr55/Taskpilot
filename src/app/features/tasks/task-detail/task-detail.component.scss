@@ -1,0 +1,255 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.task-detail {
+  max-width: $content-max-width;
+  margin: 0 auto;
+
+  &__breadcrumb {
+    margin-bottom: $space-6;
+  }
+
+  &__layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: $space-6;
+    align-items: start;
+
+    @media (max-width: 900px) { grid-template-columns: 1fr; }
+  }
+
+  &__not-found {
+    @include flex-col;
+    align-items: center;
+    gap: $space-4;
+    padding: $space-20;
+    text-align: center;
+  }
+}
+
+.breadcrumb-link {
+  @include flex-start;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  color: var(--text-secondary);
+  transition: color $transition-fast;
+
+  &:hover { color: var(--text-primary); }
+}
+
+// ---- View Mode ----
+.task-view {
+  @include card(false);
+  padding: $space-6;
+
+  &__header {
+    @include flex-between;
+    margin-bottom: $space-4;
+    flex-wrap: wrap;
+    gap: $space-3;
+  }
+
+  &__status-row {
+    @include flex-start;
+    gap: $space-2;
+    flex-wrap: wrap;
+  }
+
+  &__actions {
+    @include flex-start;
+    gap: $space-2;
+  }
+
+  &__title {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: var(--text-primary);
+    margin-bottom: $space-3;
+  }
+
+  &__desc {
+    font-size: $font-size-base;
+    color: var(--text-secondary);
+    line-height: $line-height-relaxed;
+    margin-bottom: $space-5;
+  }
+}
+
+.ai-badge {
+  @include flex-start;
+  gap: $space-1;
+  background: var(--surface-brand);
+  color: var(--text-brand);
+}
+
+// ---- Task Meta ----
+.task-meta {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__item {
+    @include flex-start;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
+
+  &__cats, &__tags { @include flex-start; gap: $space-2; flex-wrap: wrap; }
+}
+
+// ---- AI Suggestion ----
+.ai-suggestion {
+  @include flex-start;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  background: var(--surface-brand);
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  color: var(--text-brand);
+  margin-top: $space-4;
+  flex-wrap: wrap;
+
+  span { flex: 1; }
+}
+
+// ---- Edit Form ----
+.task-edit-form {
+  @include card(false);
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+  @include mobile-only { grid-template-columns: 1fr; }
+}
+
+.form-actions {
+  @include flex-start;
+  gap: $space-3;
+  justify-content: flex-end;
+}
+
+.form-input--lg {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+}
+
+// ---- Checklist ----
+.checklist-section {
+  @include card(false);
+  padding: $space-5;
+  margin-top: $space-4;
+
+  &__title {
+    @include flex-start;
+    gap: $space-2;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+    margin-bottom: $space-4;
+  }
+
+  &__progress {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    padding: 1px $space-2;
+    background: var(--bg-tertiary);
+    border-radius: $radius-full;
+  }
+}
+
+.checklist-item {
+  @include flex-start;
+  gap: $space-3;
+  padding: $space-2 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-of-type { border-bottom: none; }
+
+  &.done .checklist-item__text {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+  }
+
+  &__check {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border-default);
+    background: transparent;
+    @include flex-center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all $transition-fast;
+    color: white;
+    font-size: 10px;
+
+    &.checked { background: $emerald-500; border-color: $emerald-500; }
+    &:hover   { border-color: $emerald-500; }
+  }
+
+  &__text { flex: 1; font-size: $font-size-sm; color: var(--text-primary); }
+  &__time { font-size: $font-size-xs; color: var(--text-tertiary); }
+}
+
+.checklist-add {
+  @include flex-start;
+  gap: $space-3;
+  margin-top: $space-4;
+
+  .form-input { flex: 1; }
+}
+
+// ---- Aside ----
+.aside-card {
+  @include card(false);
+  padding: $space-5;
+  margin-bottom: $space-4;
+
+  &__title {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: $space-4;
+  }
+
+  &__text {
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    margin-bottom: $space-4;
+    line-height: $line-height-relaxed;
+  }
+
+  &--action {
+    border: 1px solid var(--border-brand);
+    background: var(--surface-brand);
+  }
+}
+
+.aside-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: $space-2 $space-4;
+
+  dt {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    font-weight: $font-weight-medium;
+    align-self: center;
+  }
+
+  dd {
+    font-size: $font-size-sm;
+    color: var(--text-primary);
+  }
+}
+
+.btn-block { width: 100%; }

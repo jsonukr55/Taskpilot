@@ -1,0 +1,463 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// ============================================================
+// Google Fonts
+// ============================================================
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+// ============================================================
+// Reset & Base
+// ============================================================
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: $font-sans;
+  font-size: $font-size-base;
+  line-height: $line-height-normal;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color $transition-slow, color $transition-slow;
+
+  @include custom-scrollbar(6px);
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+img { display: block; max-width: 100%; }
+ul, ol { list-style: none; }
+input, textarea, select { font-family: inherit; }
+
+// Fix native input icons (date, time, select arrows) visibility in dark theme
+[data-theme='dark'] {
+  input[type='date'],
+  input[type='time'],
+  input[type='datetime-local'],
+  select {
+    color-scheme: dark;
+  }
+}
+
+// ============================================================
+// Animations
+// ============================================================
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+  to   { width: var(--progress); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+  50%       { box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); }
+}
+
+// ============================================================
+// Utility Classes
+// ============================================================
+.fade-in    { animation: fade-in $transition-normal both; }
+.slide-in   { animation: slide-in-left $transition-normal both; }
+.scale-in   { animation: scale-in $transition-normal both; }
+.slide-up   { animation: slide-up $transition-normal both; }
+
+.text-truncate { @include text-truncate; }
+.text-gradient { @include gradient-text; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ============================================================
+// Button System
+// ============================================================
+.btn {
+  @include btn-base;
+
+  &-primary {
+    @include btn-base;
+    background: $indigo-500;
+    color: white;
+
+    &:hover:not(:disabled) { background: $indigo-600; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+    &:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+  }
+
+  &-secondary {
+    @include btn-base;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+
+    &:hover:not(:disabled) { background: var(--bg-elevated); border-color: var(--border-strong); }
+  }
+
+  &-ghost {
+    @include btn-base;
+    background: transparent;
+    color: var(--text-secondary);
+
+    &:hover:not(:disabled) { background: var(--bg-tertiary); color: var(--text-primary); }
+  }
+
+  &-danger {
+    @include btn-base;
+    background: $rose-500;
+    color: white;
+
+    &:hover:not(:disabled) { background: $rose-600; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4); }
+  }
+
+  &-sm { padding: $space-1 $space-3; font-size: $font-size-xs; border-radius: $radius-md; }
+  &-lg { padding: $space-3 $space-6; font-size: $font-size-base; border-radius: $radius-xl; }
+  &-icon {
+    @include btn-base;
+    @include flex-center;
+    padding: $space-2;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: $radius-lg;
+    width: 36px;
+    height: 36px;
+
+    &:hover:not(:disabled) { background: var(--bg-tertiary); color: var(--text-primary); }
+  }
+}
+
+// ============================================================
+// Form Elements
+// ============================================================
+.form-input    { @include input-base; }
+.form-textarea {
+  @include input-base;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-label {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--text-secondary);
+  margin-bottom: $space-2;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.form-error {
+  font-size: $font-size-xs;
+  color: $rose-500;
+  margin-top: $space-1;
+}
+
+// ============================================================
+// Badge / Chip System
+// ============================================================
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 2px $space-2;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  line-height: 1.5;
+
+  &-priority-low    { background: rgba(16, 185, 129, 0.12); color: $emerald-600; }
+  &-priority-medium { background: rgba(245, 158, 11, 0.12); color: $amber-600; }
+  &-priority-high   { background: rgba(244, 63, 94, 0.12);  color: $rose-500;   }
+
+  &-status-todo       { background: var(--bg-tertiary);                        color: var(--text-secondary); }
+  &-status-in_progress { background: rgba(99, 102, 241, 0.12);                 color: $indigo-500; }
+  &-status-completed  { background: rgba(16, 185, 129, 0.12);                  color: $emerald-600; }
+  &-status-overdue    { background: rgba(244, 63, 94, 0.12);                   color: $rose-500; }
+}
+
+// ============================================================
+// Card
+// ============================================================
+.card {
+  @include card;
+  padding: $space-6;
+
+  &-hover { @include card(true); }
+  &-sm    { padding: $space-4; border-radius: $radius-lg; }
+}
+
+// ============================================================
+// Priority Dot
+// ============================================================
+.priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &-low    { background: $emerald-500; }
+  &-medium { background: $amber-500; }
+  &-high   { background: $rose-500; }
+}
+
+// ============================================================
+// Loading Skeleton
+// ============================================================
+.skeleton {
+  @include shimmer;
+  border-radius: $radius-md;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+
+  &-text   { height: 1em; border-radius: $radius-sm; }
+  &-circle { border-radius: 50%; }
+}
+
+// ============================================================
+// Divider
+// ============================================================
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: $space-4 0;
+
+  &-vertical {
+    width: 1px;
+    height: 100%;
+    background: var(--border-subtle);
+    margin: 0 $space-4;
+  }
+}
+
+// ============================================================
+// Tag
+// ============================================================
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 2px 10px;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+// ============================================================
+// Tooltip — rendered into document.body by TooltipDirective
+// ============================================================
+.tp-tooltip {
+  position: fixed;
+  background: $slate-900;
+  color: white;
+  font-size: $font-size-xs;
+  padding: $space-1 $space-2;
+  border-radius: $radius-md;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: $z-tooltip;
+
+  &--visible { opacity: 1; }
+}
+
+// ============================================================
+// Scrollbar
+// ============================================================
+* { @include custom-scrollbar; }
+
+// ============================================================
+// Avatar (shared: members, assignees, comments)
+// ============================================================
+.avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: $radius-full;
+  overflow: hidden;
+  @include flex-center;
+  background: var(--surface-brand);
+  color: var(--text-brand);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  border: 2px solid var(--bg-elevated);
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+
+  &--sm { width: 24px; height: 24px; font-size: 10px; }
+  &--lg { width: 44px; height: 44px; font-size: $font-size-base; }
+  &--more { background: var(--bg-tertiary); color: var(--text-secondary); }
+}
+
+// Overlapping avatar stack
+.avatars-stack {
+  display: flex;
+  .avatar { margin-left: -8px; &:first-child { margin-left: 0; } }
+}
+
+// ============================================================
+// Modal (shared across feature dialogs)
+// ============================================================
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  @include glass(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+  z-index: $z-modal;
+  animation: fade-in $transition-fast both;
+}
+
+.modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-xl;
+  box-shadow: $shadow-xl;
+  animation: scale-in $transition-normal both;
+  @include custom-scrollbar;
+
+  &__header {
+    @include flex-between;
+    padding: $space-5 $space-6;
+    border-bottom: 1px solid var(--border-subtle);
+
+    h2 { font-size: $font-size-lg; font-weight: $font-weight-semibold; }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
+    padding: $space-6;
+  }
+
+  &__footer {
+    @include flex-between;
+    justify-content: flex-end;
+    gap: $space-3;
+    padding-top: $space-2;
+  }
+
+  .optional { color: var(--text-tertiary); font-weight: $font-weight-normal; }
+}
+
+// Emoji / color pickers
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+
+  &__item {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $font-size-lg;
+    border-radius: $radius-lg;
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover { background: var(--bg-elevated); }
+    &.active { border-color: $indigo-500; background: var(--surface-brand); }
+  }
+
+  &__swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-full;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform $transition-fast;
+
+    &:hover { transform: scale(1.1); }
+    &.active { border-color: var(--text-primary); transform: scale(1.1); }
+  }
+}
+
+// ============================================================
+// Angular CDK Overlay
+// ============================================================
+.cdk-overlay-container { z-index: $z-modal; }
+.cdk-overlay-backdrop { background: var(--bg-overlay); }

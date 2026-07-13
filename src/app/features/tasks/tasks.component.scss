@@ -1,0 +1,274 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.tasks-page {
+  max-width: $content-max-width;
+  margin: 0 auto;
+
+  &__header {
+    @include flex-between;
+    margin-bottom: $space-3;
+    gap: $space-3;
+    flex-wrap: wrap;
+  }
+
+  &__title-group {
+    @include flex-start;
+    gap: $space-2;
+    align-items: baseline;
+  }
+
+  &__title {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+  }
+
+  &__count {
+    font-size: $font-size-sm;
+    color: var(--text-tertiary);
+  }
+
+  &__actions { @include flex-start; gap: $space-2; }
+
+  &__filters {
+    @include flex-start;
+    gap: $space-2;
+    flex-wrap: wrap;
+    margin-bottom: $space-5;
+
+    @include mobile-only {
+      margin-bottom: $space-3;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+      @include custom-scrollbar;
+    }
+  }
+}
+
+// Compact pill filters
+.filter-pill {
+  height: 32px;
+  padding: 0 $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+
+  // For <select> elements: custom dropdown arrow
+  &:is(select) {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: $space-6;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+
+  &:hover { border-color: var(--border-default); color: var(--text-primary); }
+
+  &--sort { display: inline-flex; align-items: center; gap: $space-1; }
+
+  &--overdue {
+    border-color: rgba($rose-500, 0.3);
+    color: $rose-500;
+    background: rgba($rose-500, 0.05);
+    &.active { background: $rose-500; color: white; border-color: $rose-500; }
+  }
+
+  &--clear {
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-tertiary);
+    &:hover { color: var(--text-primary); }
+  }
+}
+
+// ---- Status groups (ClickUp style) ----
+.status-groups {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+}
+
+.status-group {
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    margin-bottom: $space-1;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover .status-badge { opacity: 0.85; }
+  }
+
+  &__count {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+
+  &__line {
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  &__tasks {
+    border: 1px solid var(--border-subtle);
+    border-radius: $radius-lg;
+    overflow: hidden;
+    background: var(--card-bg);
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 3px $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &--todo        { background: var(--bg-tertiary); color: var(--text-secondary); }
+  &--in_progress { background: rgba($indigo-500, 0.12); color: $indigo-400; }
+  &--completed   { background: rgba($emerald-500, 0.12); color: $emerald-500; }
+}
+
+// Column header — must match task-card grid: 28px 1fr 44px 106px 90px 110px
+.task-list-header {
+  display: grid;
+  grid-template-columns: 28px 1fr 44px 106px 90px 110px;
+  gap: $space-2;
+  padding: $space-1 $space-4;
+  border-bottom: 1px solid var(--border-subtle);
+
+  span {
+    font-size: 10px;
+    font-weight: $font-weight-semibold;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  @include mobile-only {
+    grid-template-columns: 28px 1fr 44px 90px;
+    // Hide status & category columns on mobile
+    span:nth-child(4) { display: none; } // status
+    span:nth-child(6) { display: none; } // category
+  }
+}
+
+.task-add-row {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-2 $space-4;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: $font-size-xs;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border-top: 1px solid var(--border-subtle);
+
+  &:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+}
+
+// ---- Loading ----
+.tasks-loading {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.skeleton-task {
+  height: 40px;
+  @include shimmer;
+  border-radius: $radius-lg;
+}
+
+// ---- Empty ----
+.tasks-empty {
+  @include flex-col;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-20 $space-8;
+  text-align: center;
+
+  &__icon  { font-size: 2.5rem; }
+  &__title { font-size: $font-size-lg; font-weight: $font-weight-semibold; color: var(--text-primary); }
+  &__desc  { font-size: $font-size-sm; color: var(--text-secondary); max-width: 280px; }
+}
+
+// ---- Board ----
+.tasks-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-4;
+  align-items: start;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+
+.board-column {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-xl;
+  padding: $space-3;
+  overflow: hidden;
+
+  &__header {
+    @include flex-between;
+    margin-bottom: $space-2;
+    padding: 0 $space-1;
+  }
+
+  &__title {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__count { font-size: $font-size-xs; color: var(--text-tertiary); }
+
+  &__tasks {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-subtle);
+    border-radius: $radius-md;
+    overflow: hidden;
+    background: var(--card-bg);
+  }
+}
+
+.board-add-btn {
+  @include flex-start;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-2 $space-3;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: $font-size-xs;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+}

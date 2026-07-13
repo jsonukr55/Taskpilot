@@ -1,0 +1,101 @@
+<div class="groups-page">
+
+  <header class="groups-page__header">
+    <div>
+      <h1 class="groups-page__title">Groups</h1>
+      <p class="groups-page__subtitle">Shared spaces for notes and tasks with your team.</p>
+    </div>
+    <button class="btn-primary" (click)="startCreate()">
+      <tp-icon name="plus" [size]="16" />
+      New group
+    </button>
+  </header>
+
+  @if (groups.isLoading()) {
+    <div class="groups-grid">
+      @for (i of [1,2,3]; track i) {
+        <div class="skeleton" style="height: 128px; border-radius: 16px;"></div>
+      }
+    </div>
+  } @else if (groups.groups().length === 0) {
+    <div class="groups-empty card">
+      <div class="groups-empty__icon">👥</div>
+      <h2>No groups yet</h2>
+      <p>Create a group to share notes and tasks, and invite people with a link.</p>
+      <button class="btn-primary" (click)="startCreate()">
+        <tp-icon name="plus" [size]="16" />
+        Create your first group
+      </button>
+    </div>
+  } @else {
+    <div class="groups-grid">
+      @for (g of groups.groups(); track g.id) {
+        <a class="group-card card-hover" [routerLink]="['/groups', g.id]">
+          <div class="group-card__top">
+            <span class="group-card__icon" [style.background]="g.color + '22'" [style.color]="g.color">{{ g.icon }}</span>
+            <span class="badge group-card__role">{{ roleLabel(g) }}</span>
+          </div>
+          <h3 class="group-card__name">{{ g.name }}</h3>
+          @if (g.description) {
+            <p class="group-card__desc">{{ g.description }}</p>
+          }
+          <div class="group-card__footer">
+            <tp-icon name="users" [size]="14" />
+            <span>{{ memberCount(g) }} {{ memberCount(g) === 1 ? 'member' : 'members' }}</span>
+          </div>
+        </a>
+      }
+    </div>
+  }
+</div>
+
+<!-- Create modal -->
+@if (showForm()) {
+  <div class="modal-backdrop" (click)="showForm.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>New group</h2>
+        <button class="btn-icon" (click)="showForm.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" formControlName="name" placeholder="e.g. Product Team" autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description <span class="optional">(optional)</span></label>
+          <textarea class="form-textarea" formControlName="description" placeholder="What is this group for?"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <div class="picker">
+            @for (ic of ICONS; track ic) {
+              <button type="button" class="picker__item" [class.active]="form.value.icon === ic"
+                      (click)="form.patchValue({ icon: ic })">{{ ic }}</button>
+            }
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="picker">
+            @for (c of COLORS; track c) {
+              <button type="button" class="picker__swatch" [class.active]="form.value.color === c"
+                      [style.background]="c" (click)="form.patchValue({ color: c })"></button>
+            }
+          </div>
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="form.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Creating…' : 'Create group' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

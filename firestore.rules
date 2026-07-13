@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helpers ---------------------------------------------------------
+    function signedIn() {
+      return request.auth != null;
+    }
+    function groupData(groupId) {
+      return get(/databases/$(database)/documents/groups/$(groupId)).data;
+    }
+    function isMember(groupId) {
+      return signedIn() && request.auth.uid in groupData(groupId).memberIds;
+    }
+    // Guarded by isMember so roles[uid] is always present when reached.
+    function canEditGroup(groupId) {
+      return isMember(groupId)
+        && groupData(groupId).roles[request.auth.uid] in ['owner', 'editor'];
+    }
+
+    // ---- Users: only own profile ----------------------------------------
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    // ---- Categories: user-isolated --------------------------------------
+    match /categories/{categoryId} {
+      allow read, write: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // ---- Schedules: user-isolated ---------------------------------------
+    match /schedules/{scheduleId} {
+      allow read, write: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // ---- Insights: user-scoped, written by Cloud Functions --------------
+    match /insights/{insightId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // ---- Tasks: personal (userId) OR shared with a group ----------------
+    // The 'groupId' existence guard keeps pre-existing personal tasks
+    // (which have no groupId field) working exactly as before.
+    match /tasks/{taskId} {
+      allow read: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (('groupId' in resource.data) && resource.data.groupId != null
+          && isMember(resource.data.groupId))
+      );
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (
+          !('groupId' in request.resource.data) || request.resource.data.groupId == null
+          || canEditGroup(request.resource.data.groupId)
+        );
+      allow update, delete: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (('groupId' in resource.data) && resource.data.groupId != null
+          && canEditGroup(resource.data.groupId))
+      );
+    }
+
+    // ---- Personal notes: owner-scoped (top-level) -----------------------
+    match /notes/{noteId} {
+      allow read, write: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+
+      match /comments/{commentId} {
+        allow read, write, create: if signedIn()
+          && get(/databases/$(database)/documents/notes/$(noteId)).data.ownerId == request.auth.uid;
+      }
+    }
+
+    // ---- Groups: membership-based ---------------------------------------
+    match /groups/{groupId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberIds;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.auth.uid in request.resource.data.memberIds;
+      // Owner manages name/members/roles. (Joins happen server-side via the
+      // joinGroup Cloud Function, since a non-owner can't self-add here.)
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+
+      // Notes: members read; editors/owner write.
+      match /notes/{noteId} {
+        allow read: if isMember(groupId);
+        allow create, update, delete: if canEditGroup(groupId);
+
+        // Comments: any member (incl. viewers) may add & anchor to a block;
+        // authors and the group owner may edit/resolve/delete.
+        match /comments/{commentId} {
+          allow read: if isMember(groupId);
+          allow create: if isMember(groupId)
+            && request.resource.data.authorId == request.auth.uid;
+          allow update, delete: if signedIn() && (
+            resource.data.authorId == request.auth.uid ||
+            groupData(groupId).ownerId == request.auth.uid
+          );
+        }
+      }
+    }
+
+    // ---- Invites: doc id IS the secret token ----------------------------
+    // get(): anyone signed-in can preview a link they were given.
+    // list(): only editors of that group (prevents token enumeration).
+    match /invites/{token} {
+      allow get:    if signedIn();
+      allow list:   if signedIn() && canEditGroup(resource.data.groupId);
+      allow create: if signedIn() && canEditGroup(request.resource.data.groupId);
+      allow update, delete: if signedIn() && canEditGroup(resource.data.groupId);
+    }
+  }
+}

@@ -1,0 +1,45 @@
+<div
+  class="task-row"
+  [class.task-row--done]="task().status === 'completed'"
+  [class.task-row--overdue]="isOverdue()"
+  (click)="taskOpen.emit(task())"
+>
+  <button class="task-row__check" (click)="$event.stopPropagation(); toggleStatus()"
+    [class.checked]="task().status === 'completed'"
+    [class.in-progress]="task().status === 'in_progress'">
+    @if (task().status === 'completed') { <tp-icon name="check" [size]="9" /> }
+    @else if (task().status === 'in_progress') { <span class="ip-dot"></span> }
+  </button>
+
+  <span class="task-row__title">{{ task().title }}</span>
+
+  <div class="task-row__priority">
+    <span class="task-row__flag task-row__flag--{{ task().priority }}">
+      <tp-icon name="flag" [size]="12" />
+    </span>
+  </div>
+
+  <div class="task-row__status-col">
+    <span class="task-row__status task-row__status--{{ task().status }}">
+      @if (task().status === 'in_progress') { In Progress }
+      @else if (task().status === 'completed') { Done }
+      @else { Open }
+    </span>
+  </div>
+
+  <div class="task-row__due-col">
+    @if (isOverdue()) {
+      <span class="task-row__due task-row__due--overdue">{{ dueDateLabel() }}</span>
+    } @else if (dueDateLabel()) {
+      <span class="task-row__due">{{ dueDateLabel() }}</span>
+    }
+  </div>
+
+  <div class="task-row__cat-col">
+    @if (taskCategories()[0]; as cat) {
+      <span class="task-row__cat" [style.color]="cat!.color">
+        <span class="task-row__cat-dot" [style.background]="cat!.color"></span>{{ cat!.name }}
+      </span>
+    }
+  </div>
+</div>

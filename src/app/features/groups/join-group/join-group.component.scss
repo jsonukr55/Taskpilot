@@ -1,0 +1,42 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.join {
+  min-height: 70vh;
+  @include flex-center;
+  padding: $space-6;
+
+  &__card {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    padding: $space-8 $space-6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-3;
+  }
+
+  &__state { display: flex; flex-direction: column; align-items: center; gap: $space-4; }
+
+  &__icon {
+    width: 64px;
+    height: 64px;
+    @include flex-center;
+    font-size: 2rem;
+    border-radius: $radius-xl;
+
+    &--bad { font-size: 2.5rem; }
+  }
+
+  &__eyebrow { color: var(--text-tertiary); font-size: $font-size-sm; }
+  h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; }
+  &__role { color: var(--text-secondary); font-size: $font-size-sm; max-width: 320px; }
+  &__error { color: $rose-500; font-size: $font-size-sm; }
+
+  &__actions {
+    display: flex;
+    gap: $space-3;
+    margin-top: $space-4;
+  }
+}

@@ -1,0 +1,220 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.categories-page {
+  max-width: $content-max-width;
+  margin: 0 auto;
+
+  &__header {
+    @include flex-between;
+    margin-bottom: $space-8;
+    flex-wrap: wrap;
+    gap: $space-4;
+  }
+
+  &__title { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: var(--text-primary); }
+  &__subtitle { font-size: $font-size-sm; color: var(--text-secondary); margin-top: $space-1; }
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: $space-5;
+}
+
+.category-card {
+  @include card(true);
+  padding: $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__header {
+    @include flex-between;
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-xl;
+    @include flex-center;
+    font-size: 1.5rem;
+  }
+
+  &__actions {
+    @include flex-start;
+    gap: $space-1;
+    opacity: 0;
+    transition: opacity $transition-fast;
+  }
+
+  &:hover .category-card__actions { opacity: 1; }
+
+  &__name {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+  }
+
+  &__desc {
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    @include text-clamp(2);
+  }
+
+  &__stats {
+    @include flex-between;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
+
+  &__rate { color: $emerald-600; font-weight: $font-weight-medium; }
+
+  &__bar {
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: $radius-full;
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    border-radius: $radius-full;
+    transition: width $transition-slow;
+  }
+
+  &__rules {
+    @include flex-start;
+    gap: $space-2;
+    flex-wrap: wrap;
+  }
+
+  &__children {
+    @include flex-start;
+    gap: $space-2;
+    flex-wrap: wrap;
+    padding-top: $space-2;
+    border-top: 1px solid var(--border-subtle);
+  }
+}
+
+.category-child {
+  font-size: $font-size-xs;
+  padding: 1px $space-2;
+  background: var(--bg-tertiary);
+  border-radius: $radius-full;
+}
+
+.category-add-card {
+  @include flex-col;
+  @include flex-center;
+  gap: $space-3;
+  min-height: 160px;
+  border: 2px dashed var(--border-default);
+  border-radius: $radius-xl;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $indigo-500;
+    color: $indigo-500;
+    background: var(--surface-brand);
+  }
+}
+
+// ---- Form ----
+.cat-form { display: flex; flex-direction: column; gap: $space-4; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+  @include mobile-only { grid-template-columns: 1fr; }
+}
+
+.icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-1;
+}
+
+.icon-option {
+  width: 34px;
+  height: 34px;
+  @include flex-center;
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-md;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all $transition-fast;
+  background: transparent;
+
+  &:hover { background: var(--bg-tertiary); }
+  &.selected { border-color: $indigo-500; background: var(--surface-brand); }
+}
+
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform $transition-fast;
+
+  &:hover { transform: scale(1.15); }
+  &.selected { border-color: var(--text-primary); outline: 2px solid var(--card-bg); outline-offset: -1px; }
+}
+
+// ---- Modal ----
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg-overlay);
+  z-index: $z-modal;
+  @include flex-center;
+  padding: $space-4;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-xl;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  &__header {
+    @include flex-between;
+    padding: $space-5 $space-6;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+  }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: $space-6;
+    @include custom-scrollbar;
+  }
+}
+
+.btn-block { width: 100%; }

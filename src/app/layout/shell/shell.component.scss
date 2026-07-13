@@ -1,0 +1,52 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-primary);
+
+  &__main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-left: $sidebar-width;
+    transition: margin-left $transition-normal;
+  }
+
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: $space-6;
+    @include custom-scrollbar;
+
+    @include mobile-only {
+      padding: $space-3;
+    }
+  }
+
+  &.sidebar-collapsed .shell__main {
+    margin-left: $sidebar-collapsed;
+  }
+
+  // Mobile: sidebar is an overlay, main always starts at 0
+  @include mobile-only {
+    .shell__main { margin-left: 0 !important; }
+  }
+}
+
+// Mobile backdrop (shown when sidebar is open on mobile)
+.shell__mobile-backdrop {
+  display: none;
+
+  @include mobile-only {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: $z-overlay;
+    animation: fade-in 150ms ease both;
+  }
+}

@@ -1,0 +1,241 @@
+@if (group(); as g) {
+  <div class="gd">
+
+    <!-- Header -->
+    <header class="gd__header">
+      <a routerLink="/groups" class="btn-icon gd__back" data-tooltip="All groups"><tp-icon name="arrow-left" [size]="18" /></a>
+      <span class="gd__icon" [style.background]="g.color + '22'" [style.color]="g.color">{{ g.icon }}</span>
+      <div class="gd__titles">
+        <h1>{{ g.name }}</h1>
+        @if (g.description) { <p>{{ g.description }}</p> }
+      </div>
+
+      <div class="gd__avatars">
+        @for (m of members().slice(0, 5); track m.userId) {
+          <span class="avatar avatar--sm" [attr.data-tooltip]="m.displayName + ' · ' + ROLE_LABELS[m.role]" data-tooltip>
+            @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+          </span>
+        }
+        @if (members().length > 5) { <span class="avatar avatar--sm avatar--more">+{{ members().length - 5 }}</span> }
+      </div>
+
+      <div class="gd__actions">
+        @if (canEdit()) {
+          <button class="btn-secondary" (click)="openInvite()"><tp-icon name="user-plus" [size]="16" /> Invite</button>
+        }
+        @if (isOwner()) {
+          <button class="btn-icon" (click)="openSettings()" data-tooltip="Group settings"><tp-icon name="settings" [size]="18" /></button>
+        }
+      </div>
+    </header>
+
+    <!-- Members -->
+    <section class="card gd-section">
+      <div class="gd-section__head">
+        <h2><tp-icon name="users" [size]="16" /> Members ({{ members().length }})</h2>
+      </div>
+      <ul class="member-list">
+        @for (m of members(); track m.userId) {
+          <li class="member">
+            <span class="avatar">
+              @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+            </span>
+            <div class="member__info">
+              <span class="member__name">{{ m.displayName }} @if (m.userId === auth.userId()) { <span class="member__you">you</span> }</span>
+            </div>
+            @if (isOwner() && m.role !== 'owner') {
+              <select class="member__role" [value]="m.role" (change)="changeRole(m.userId, $any($event.target).value)">
+                @for (r of ROLE_OPTIONS; track r) { <option [value]="r">{{ ROLE_LABELS[r] }}</option> }
+              </select>
+              <button class="btn-icon" (click)="removeMember(m.userId)" data-tooltip="Remove"><tp-icon name="x" [size]="16" /></button>
+            } @else {
+              <span class="badge member__badge">{{ ROLE_LABELS[m.role] }}</span>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    <!-- Notes -->
+    <section class="card gd-section">
+      <div class="gd-section__head">
+        <h2><tp-icon name="file-text" [size]="16" /> Notes</h2>
+        @if (canEdit()) {
+          <button class="btn-sm btn-primary" (click)="newNote()"><tp-icon name="plus" [size]="14" /> New note</button>
+        }
+      </div>
+
+      @if (notes.notesLoading()) {
+        <div class="skeleton skeleton-text" style="height:44px;"></div>
+      } @else if (notes.notes().length === 0) {
+        <p class="gd-empty">No notes yet.@if (canEdit()) { Create one to start writing together.}</p>
+      } @else {
+        <ul class="note-list">
+          @for (n of notes.notes(); track n.id) {
+            <li class="note-row" (click)="openNote(n.id)">
+              <span class="note-row__icon">{{ n.icon || '📄' }}</span>
+              <span class="note-row__title">{{ n.title || 'Untitled' }}</span>
+              <span class="note-row__meta">edited by {{ memberName(n.updatedBy) }}</span>
+              @if (canEdit()) {
+                <button class="btn-icon note-row__del" (click)="deleteNote($event, n.id)" data-tooltip="Delete"><tp-icon name="trash-2" [size]="15" /></button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Tasks -->
+    <section class="card gd-section">
+      <div class="gd-section__head">
+        <h2><tp-icon name="check-square" [size]="16" /> Tasks</h2>
+      </div>
+
+      @if (canEdit()) {
+        <div class="task-add">
+          <input class="form-input" placeholder="Add a task and press Enter…"
+                 [ngModel]="newTaskTitle()" (ngModelChange)="newTaskTitle.set($event)"
+                 (keydown.enter)="addTask()">
+          <button class="btn-primary" (click)="addTask()" [disabled]="!newTaskTitle().trim()">Add</button>
+        </div>
+      }
+
+      @if (openTasks().length === 0) {
+        <p class="gd-empty">No tasks yet.</p>
+      } @else {
+        <ul class="task-list">
+          @for (t of openTasks(); track t.id) {
+            <li class="task-row" [class.done]="t.status === 'completed'">
+              <button class="task-row__check" (click)="toggleTask(t)" [disabled]="!canEdit()">
+                <tp-icon [name]="t.status === 'completed' ? 'check-circle' : 'circle'" [size]="20" />
+              </button>
+              <span class="task-row__title">{{ t.title }}</span>
+              <span class="priority-dot" [class]="'priority-dot-' + (t.priority === 'urgent' ? 'high' : t.priority)"></span>
+
+              <!-- Assignees -->
+              <div class="task-row__assignees">
+                @for (uid of (t.assigneeIds ?? []); track uid) {
+                  <span class="avatar avatar--sm" [attr.data-tooltip]="memberName(uid)" data-tooltip>
+                    @if (memberPhoto(uid)) { <img [src]="memberPhoto(uid)!" alt=""> } @else { {{ initial(memberName(uid)) }} }
+                  </span>
+                }
+                @if (canEdit()) {
+                  <div class="assign">
+                    <button class="btn-icon assign__btn" (click)="toggleAssignMenu(t.id)" data-tooltip="Assign"><tp-icon name="user-plus" [size]="15" /></button>
+                    @if (assignMenuFor() === t.id) {
+                      <div class="assign__menu" (click)="$event.stopPropagation()">
+                        <p class="assign__label">Assign to</p>
+                        @for (m of members(); track m.userId) {
+                          <button class="assign__item" [class.on]="isAssigned(t, m.userId)" (click)="toggleAssignee(t, m.userId)">
+                            <span class="avatar avatar--sm">
+                              @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+                            </span>
+                            <span>{{ m.displayName }}</span>
+                            @if (isAssigned(t, m.userId)) { <tp-icon name="check" [size]="14" /> }
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (canEdit()) {
+                <button class="btn-icon task-row__del" (click)="deleteTask(t)" data-tooltip="Delete"><tp-icon name="trash-2" [size]="15" /></button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+} @else if (notFound()) {
+  <div class="gd-missing card">
+    <div class="gd-missing__icon">🔍</div>
+    <h2>Group not found</h2>
+    <p>You may not have access, or it may have been deleted.</p>
+    <a routerLink="/groups" class="btn-secondary">Back to groups</a>
+  </div>
+} @else {
+  <div class="gd"><div class="skeleton" style="height:120px;border-radius:16px;"></div></div>
+}
+
+<!-- Invite modal -->
+@if (showInvite()) {
+  <div class="modal-backdrop" (click)="showInvite.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>Invite to group</h2>
+        <button class="btn-icon" (click)="showInvite.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Role for people who join with this link</label>
+          <div class="role-toggle">
+            <button type="button" [class.active]="inviteRole() === 'editor'" (click)="inviteRole.set('editor')">
+              <strong>Editor</strong><span>Can create & edit notes and tasks</span>
+            </button>
+            <button type="button" [class.active]="inviteRole() === 'viewer'" (click)="inviteRole.set('viewer')">
+              <strong>Viewer</strong><span>Can view and comment</span>
+            </button>
+          </div>
+        </div>
+
+        @if (inviteLink(); as link) {
+          <div class="form-group">
+            <label class="form-label">Shareable link (expires in 7 days)</label>
+            <div class="link-row">
+              <input class="form-input" [value]="link" readonly>
+              <button class="btn-primary" (click)="copyLink(link)">
+                <tp-icon [name]="copied() ? 'check' : 'copy'" [size]="16" /> {{ copied() ? 'Copied' : 'Copy' }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <button class="btn-primary" (click)="generateLink()"><tp-icon name="link" [size]="16" /> Generate invite link</button>
+        }
+
+        @if (activeInvites().length) {
+          <div class="divider"></div>
+          <p class="form-label">Active links</p>
+          <ul class="invite-list">
+            @for (inv of activeInvites(); track inv.id) {
+              <li class="invite-list__item">
+                <tp-icon name="link" [size]="14" />
+                <span class="badge">{{ ROLE_LABELS[inv.role] }}</span>
+                <button class="btn-icon" (click)="copyLink(inviteBase + inv.token)" data-tooltip="Copy"><tp-icon name="copy" [size]="14" /></button>
+                <button class="btn-icon" (click)="revoke(inv.token)" data-tooltip="Revoke"><tp-icon name="trash-2" [size]="14" /></button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Settings modal (owner) -->
+@if (showSettings()) {
+  <div class="modal-backdrop" (click)="showSettings.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>Group settings</h2>
+        <button class="btn-icon" (click)="showSettings.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" [ngModel]="editName()" (ngModelChange)="editName.set($event)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" [ngModel]="editDesc()" (ngModelChange)="editDesc.set($event)"></textarea>
+        </div>
+        <div class="modal__footer">
+          <button class="btn-danger" (click)="deleteGroup()"><tp-icon name="trash-2" [size]="16" /> Delete group</button>
+          <button class="btn-primary" (click)="saveSettings()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

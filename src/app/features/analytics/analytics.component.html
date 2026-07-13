@@ -1,0 +1,140 @@
+<div class="analytics-page fade-in">
+
+  <div class="analytics-page__header">
+    <h1 class="analytics-page__title">Analytics</h1>
+    <p class="analytics-page__subtitle">Track your productivity and task completion trends</p>
+  </div>
+
+  <!-- Top Metrics -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <span class="metric-card__icon">✅</span>
+      <span class="metric-card__value">{{ completionRate() }}%</span>
+      <span class="metric-card__label">Completion Rate</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-card__icon">📋</span>
+      <span class="metric-card__value">{{ tasks.tasks().length }}</span>
+      <span class="metric-card__label">Total Tasks</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-card__icon">⏰</span>
+      <span class="metric-card__value">{{ totalHoursEstimated() | number:'1.0-0' }}h</span>
+      <span class="metric-card__label">Hours Estimated</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-card__icon">🤖</span>
+      <span class="metric-card__value">{{ aiCreatedTasks() }}</span>
+      <span class="metric-card__label">AI-Created Tasks</span>
+    </div>
+    <div class="metric-card" [class.metric-card--danger]="tasks.overdueTasks().length > 0">
+      <span class="metric-card__icon">⚠️</span>
+      <span class="metric-card__value">{{ tasks.overdueTasks().length }}</span>
+      <span class="metric-card__label">Overdue</span>
+    </div>
+    <div class="metric-card metric-card--streak">
+      <span class="metric-card__icon">🔥</span>
+      <span class="metric-card__value">{{ auth.userProfile()?.stats?.currentStreak ?? 0 }}</span>
+      <span class="metric-card__label">Day Streak</span>
+    </div>
+  </div>
+
+  <div class="analytics-grid">
+
+    <!-- Weekly Activity Chart -->
+    <div class="chart-card">
+      <h2 class="chart-card__title">
+        <tp-icon name="bar-chart-2" [size]="18" /> Weekly Activity
+      </h2>
+      <div class="bar-chart">
+        @for (day of weeklyData(); track day.label) {
+          <div class="bar-chart__col">
+            <div class="bar-chart__bars">
+              <div class="bar-chart__bar bar-chart__bar--total"
+                [style.height.%]="(day.count / maxWeeklyCount()) * 100">
+              </div>
+              <div class="bar-chart__bar bar-chart__bar--done"
+                [style.height.%]="(day.done / maxWeeklyCount()) * 100">
+              </div>
+            </div>
+            <span class="bar-chart__label">{{ day.label }}</span>
+            <span class="bar-chart__count">{{ day.count }}</span>
+          </div>
+        }
+      </div>
+      <div class="chart-legend">
+        <span class="legend-dot legend-dot--total"></span> Created
+        <span class="legend-dot legend-dot--done"></span> Completed
+      </div>
+    </div>
+
+    <!-- Priority Breakdown -->
+    <div class="chart-card">
+      <h2 class="chart-card__title">
+        <tp-icon name="flag" [size]="18" /> Priority Breakdown
+      </h2>
+      @if (priorityBreakdown().length > 0) {
+        <div class="priority-chart">
+          @for (p of priorityBreakdown(); track p.label) {
+            <div class="priority-row">
+              <span class="priority-row__label">{{ p.label }}</span>
+              <div class="priority-row__bar">
+                <div class="priority-row__fill"
+                  [style.width.%]="(p.value / tasks.tasks().length) * 100"
+                  [style.background]="p.color">
+                </div>
+              </div>
+              <span class="priority-row__count">{{ p.value }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="chart-empty">No tasks to analyze</p>
+      }
+    </div>
+
+    <!-- Category Stats Table -->
+    <div class="chart-card chart-card--wide">
+      <h2 class="chart-card__title">
+        <tp-icon name="layers" [size]="18" /> Performance by Category
+      </h2>
+      @if (categoryStats().length > 0) {
+        <table class="category-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Tasks</th>
+              <th>Done</th>
+              <th>Overdue</th>
+              <th>Est. Hours</th>
+              <th>Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (stat of categoryStats(); track stat.category.id) {
+              <tr>
+                <td class="category-table__name">
+                  <span [style.color]="stat.category.color">{{ stat.category.icon }}</span>
+                  {{ stat.category.name }}
+                </td>
+                <td>{{ stat.total }}</td>
+                <td class="text-success">{{ stat.done }}</td>
+                <td [class.text-danger]="stat.overdue > 0">{{ stat.overdue }}</td>
+                <td>{{ stat.totalHours | number:'1.0-1' }}h</td>
+                <td>
+                  <div class="rate-bar">
+                    <div class="rate-bar__fill" [style.width.%]="stat.rate" [style.background]="stat.category.color"></div>
+                  </div>
+                  {{ stat.rate }}%
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <p class="chart-empty">Create tasks and organize them into categories to see stats here.</p>
+      }
+    </div>
+
+  </div>
+</div>

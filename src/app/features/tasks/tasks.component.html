@@ -1,0 +1,143 @@
+<div class="tasks-page fade-in">
+
+  <!-- Header -->
+  <div class="tasks-page__header">
+    <div class="tasks-page__title-group">
+      <h1 class="tasks-page__title">Tasks</h1>
+      <span class="tasks-page__count">{{ taskService.filteredTasks().length }}</span>
+    </div>
+    <div class="tasks-page__actions">
+      <button class="btn btn-ghost btn-icon" (click)="toggleView()" data-tooltip [attr.data-tooltip]="viewMode() === 'list' ? 'Board view' : 'List view'">
+        <tp-icon [name]="viewMode() === 'list' ? 'grid' : 'list'" [size]="16" />
+      </button>
+      <button class="btn btn-primary btn-sm" (click)="showCreateModal.set(true)">
+        <tp-icon name="plus" [size]="14" /> New Task
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="tasks-page__filters">
+    <select class="filter-pill" (change)="onCategoryFilter($any($event.target).value)">
+      <option value="">All categories</option>
+      @for (cat of categories.rootCategories(); track cat.id) {
+        <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+      }
+    </select>
+
+    <select class="filter-pill" (change)="onPriorityFilter($any($event.target).value)">
+      <option value="">All priorities</option>
+      @for (p of priorityOptions; track p.value) {
+        <option [value]="p.value">{{ p.label }}</option>
+      }
+    </select>
+
+    <button class="filter-pill filter-pill--sort" (click)="updateSort('dueDate')">
+      Due @if (taskService.sort().field === 'dueDate') {
+        <tp-icon [name]="taskService.sort().direction === 'asc' ? 'chevron-up' : 'chevron-down'" [size]="11" />
+      }
+    </button>
+
+    <button class="filter-pill filter-pill--sort" (click)="updateSort('priority')">
+      Priority @if (taskService.sort().field === 'priority') {
+        <tp-icon [name]="taskService.sort().direction === 'asc' ? 'chevron-up' : 'chevron-down'" [size]="11" />
+      }
+    </button>
+
+    @if (taskService.overdueTasks().length > 0) {
+      <button class="filter-pill filter-pill--overdue" [class.active]="taskService.filter().isOverdue" (click)="toggleOverdue()">
+        ⚠ {{ taskService.overdueTasks().length }} overdue
+      </button>
+    }
+    @if (taskService.searchQuery() || taskService.filter().categoryIds?.length || taskService.filter().priority?.length) {
+      <button class="filter-pill filter-pill--clear" (click)="clearFilter()">✕ Clear</button>
+    }
+  </div>
+
+  @if (taskService.isLoading()) {
+    <div class="tasks-loading">
+      @for (n of [1,2,3,4,5]; track n) { <div class="skeleton skeleton-task"></div> }
+    </div>
+
+  } @else if (viewMode() === 'list') {
+    @if (taskService.filteredTasks().length === 0) {
+      <div class="tasks-empty">
+        <div class="tasks-empty__icon">📋</div>
+        <h3 class="tasks-empty__title">No tasks found</h3>
+        <p class="tasks-empty__desc">
+          @if (taskService.searchQuery()) { No tasks match "{{ taskService.searchQuery() }}" }
+          @else { Get started by creating your first task. }
+        </p>
+        <button class="btn btn-primary btn-sm" (click)="showCreateModal.set(true)">
+          <tp-icon name="plus" [size]="14" /> Create Task
+        </button>
+      </div>
+    } @else {
+      <!-- Grouped by status -->
+      <div class="status-groups">
+        @for (group of statusGroups(); track group.status) {
+          @if (group.tasks.length > 0) {
+            <div class="status-group">
+              <div class="status-group__header" (click)="toggleGroup(group.status)">
+                <span class="status-badge status-badge--{{ group.status }}">
+                  @if (group.status === 'completed') { ✓ }
+                  @else if (group.status === 'in_progress') { ◉ }
+                  @else { ○ }
+                  {{ group.label }}
+                </span>
+                <span class="status-group__count">{{ group.tasks.length }}</span>
+                <span class="status-group__line"></span>
+              </div>
+              @if (!collapsedGroups().has(group.status)) {
+                <div class="status-group__tasks">
+                  <div class="task-list-header">
+                    <span></span>
+                    <span>Name</span>
+                    <span>Priority</span>
+                    <span>Status</span>
+                    <span>Due date</span>
+                    <span>Category</span>
+                  </div>
+                  @for (task of group.tasks; track task.id; let i = $index) {
+                    <tp-task-card [task]="task" [style.animation-delay]="(i * 15) + 'ms'" (taskOpen)="selectedTask.set($event)" />
+                  }
+                  <button class="task-add-row" (click)="showCreateModal.set(true)">
+                    <tp-icon name="plus" [size]="13" /> Add task
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
+
+  } @else {
+    <!-- Board view -->
+    <div class="tasks-board">
+      @for (group of statusGroups(); track group.status) {
+        <div class="board-column">
+          <div class="board-column__header">
+            <h3 class="board-column__title">{{ group.label }}</h3>
+            <span class="board-column__count">{{ group.tasks.length }}</span>
+          </div>
+          <div class="board-column__tasks">
+            @for (task of group.tasks; track task.id) {
+              <tp-task-card [task]="task" (taskOpen)="selectedTask.set($event)" />
+            }
+            <button class="board-add-btn" (click)="showCreateModal.set(true)">
+              <tp-icon name="plus" [size]="13" /> Add task
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+@if (showCreateModal()) {
+  <tp-create-task-modal (close)="showCreateModal.set(false)" />
+}
+@if (selectedTask()) {
+  <tp-task-drawer [task]="selectedTask()!" (closed)="selectedTask.set(null)" />
+}

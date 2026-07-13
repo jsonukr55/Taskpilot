@@ -1,0 +1,223 @@
+<div class="drawer-backdrop" (click)="close()"></div>
+
+<aside class="drawer">
+
+  <!-- Top bar: save indicator + close only -->
+  <div class="drawer__topbar">
+    <span class="save-indicator" [class]="'save-indicator--' + saveState()">
+      @if (saveState() === 'saving') { Saving… }
+      @else if (saveState() === 'saved') { Saved }
+      @else if (saveState() === 'error') { Error saving }
+    </span>
+    <button class="drawer__close" (click)="close()"><tp-icon name="x" [size]="16" /></button>
+  </div>
+
+  <!-- Scrollable body -->
+  <div class="drawer__body">
+
+    <!-- Title -->
+    <input
+      class="drawer__title"
+      [value]="editTitle()"
+      (input)="editTitle.set($any($event.target).value); scheduleAutoSave()"
+      placeholder="Task title"
+      autocomplete="off"
+    />
+
+    <!-- Property rows (ClickUp style) -->
+    <div class="drawer__props">
+
+      <!-- Status -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="circle" [size]="13" /> Status
+        </span>
+        <div class="drawer__prop-value">
+          @for (s of [['todo','Open'],['in_progress','In Progress'],['completed','Done']]; track s[0]) {
+            <button class="status-chip" [class.active]="editStatus() === s[0]" [attr.data-s]="s[0]"
+              (click)="saveImmediate('status', $any(s[0]))">{{ s[1] }}</button>
+          }
+        </div>
+      </div>
+
+      <!-- Priority -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="flag" [size]="13" /> Priority
+        </span>
+        <div class="drawer__prop-value">
+          @for (p of [['low','Low'],['medium','Medium'],['high','High'],['urgent','Urgent']]; track p[0]) {
+            <button class="priority-chip" [class.active]="editPriority() === p[0]" [attr.data-p]="p[0]"
+              (click)="saveImmediate('priority', $any(p[0]))">{{ p[1] }}</button>
+          }
+        </div>
+      </div>
+
+      <!-- Start date -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="play-circle" [size]="13" /> Start date
+        </span>
+        <div class="drawer__prop-value">
+          <input type="date" class="drawer__input drawer__input--inline" [value]="editStartDate()"
+            (change)="editStartDate.set($any($event.target).value); scheduleAutoSave()" />
+        </div>
+      </div>
+
+      <!-- Due date -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="calendar" [size]="13" /> Due date
+        </span>
+        <div class="drawer__prop-value">
+          <input type="date" class="drawer__input drawer__input--inline" [value]="editDueDate()"
+            (change)="editDueDate.set($any($event.target).value); scheduleAutoSave()"
+            [class.is-overdue]="isOverdue()" />
+        </div>
+      </div>
+
+      <!-- Time -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="clock" [size]="13" /> Due time
+        </span>
+        <div class="drawer__prop-value">
+          <input type="time" class="drawer__input drawer__input--inline" [value]="editDueTime()"
+            (change)="editDueTime.set($any($event.target).value); scheduleAutoSave()" />
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="tag" [size]="13" /> Tags
+        </span>
+        <div class="drawer__prop-value">
+          <input class="drawer__input drawer__input--inline" placeholder="design, backend…"
+            [value]="editTags()"
+            (input)="editTags.set($any($event.target).value); scheduleAutoSave()" />
+        </div>
+      </div>
+
+      <!-- Category selector — click to toggle -->
+      <div class="drawer__prop drawer__prop--wrap">
+        <span class="drawer__prop-label">
+          <tp-icon name="folder" [size]="13" /> Categories
+        </span>
+        <div class="drawer__prop-value drawer__cats-grid">
+          @for (cat of allCategories(); track cat.id) {
+            <button
+              class="cat-btn"
+              [class.cat-btn--active]="editCategoryIds().includes(cat.id)"
+              [style.--cat-color]="cat.color"
+              (click)="toggleCategory(cat.id)">
+              {{ cat.icon }} {{ cat.name }}
+            </button>
+          }
+        </div>
+      </div>
+
+    </div>
+
+    <div class="drawer__divider"></div>
+
+    <!-- Description -->
+    <textarea class="drawer__textarea" rows="4" placeholder="Add a description…"
+      [value]="editDesc()"
+      (input)="editDesc.set($any($event.target).value); scheduleAutoSave()"></textarea>
+
+    <!-- Checklist -->
+    <div class="drawer__checklist-section">
+      <div class="drawer__section-title">
+        <tp-icon name="check-square" [size]="13" />
+        Checklist
+        @if (checklistProgress(); as cp) {
+          <span class="drawer__cl-count">{{ cp.done }}/{{ cp.total }}</span>
+        }
+      </div>
+
+      @if (task().checklist.length > 0) {
+        @if (checklistProgress(); as cp) {
+          <div class="drawer__cl-bar"><div class="drawer__cl-fill" [style.width.%]="cp.pct"></div></div>
+        }
+        @for (item of task().checklist; track item.id) {
+          <div class="cl-item" [class.done]="item.completed">
+            <button class="cl-check" [class.checked]="item.completed" (click)="toggleChecklist(item.id)">
+              @if (item.completed) { <tp-icon name="check" [size]="9" /> }
+            </button>
+            <span class="cl-text">{{ item.text }}</span>
+          </div>
+        }
+      }
+
+      <div class="cl-add">
+        <input class="drawer__input" placeholder="Add checklist item…"
+          [value]="newItemText()"
+          (input)="newItemText.set($any($event.target).value)"
+          (keydown.enter)="addChecklistItem()" />
+        <button class="cl-add-btn" (click)="addChecklistItem()" [disabled]="!newItemText().trim()">
+          <tp-icon name="plus" [size]="13" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Subtasks -->
+    <div class="drawer__subtask-section">
+      <div class="drawer__section-title">
+        <tp-icon name="list" [size]="13" />
+        Subtasks
+        @if (subtaskProgress(); as sp) {
+          <span class="drawer__cl-count">{{ sp.done }}/{{ sp.total }}</span>
+        }
+      </div>
+
+      @if (subtasks().length > 0) {
+        @if (subtaskProgress(); as sp) {
+          <div class="drawer__cl-bar"><div class="drawer__cl-fill" [style.width.%]="sp.pct"></div></div>
+        }
+        @for (sub of subtasks(); track sub.id) {
+          <div class="subtask-item" [class.done]="sub.status === 'completed'">
+            <button class="cl-check" [class.checked]="sub.status === 'completed'" (click)="toggleSubtaskStatus(sub)">
+              @if (sub.status === 'completed') { <tp-icon name="check" [size]="9" /> }
+            </button>
+            <span class="subtask-item__title">{{ sub.title }}</span>
+            <span class="subtask-item__priority" [attr.data-p]="sub.priority">
+              <tp-icon name="flag" [size]="10" />
+            </span>
+            <button class="subtask-item__delete" (click)="deleteSubtask(sub.id)">
+              <tp-icon name="x" [size]="10" />
+            </button>
+          </div>
+        }
+      }
+
+      <div class="cl-add">
+        <input class="drawer__input" placeholder="Add subtask…"
+          [value]="newSubtaskTitle()"
+          (input)="newSubtaskTitle.set($any($event.target).value)"
+          (keydown.enter)="addSubtask()" />
+        <button class="cl-add-btn" (click)="addSubtask()" [disabled]="!newSubtaskTitle().trim()">
+          <tp-icon name="plus" [size]="13" />
+        </button>
+      </div>
+    </div>
+
+    <!-- AI suggestion -->
+    @if (task().aiMetadata?.schedulingSuggestion) {
+      <div class="drawer__ai-hint">
+        <tp-icon name="sparkles" [size]="13" />
+        {{ task().aiMetadata!.schedulingSuggestion }}
+      </div>
+    }
+
+  </div>
+
+  <!-- Footer -->
+  <div class="drawer__footer">
+    <button class="drawer__delete" (click)="deleteTask()">
+      <tp-icon name="trash-2" [size]="14" /> Delete
+    </button>
+    <button class="drawer__close-btn" (click)="close()">Close</button>
+  </div>
+
+</aside>

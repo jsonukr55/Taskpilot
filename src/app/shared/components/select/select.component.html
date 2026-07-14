@@ -1,0 +1,48 @@
+<button
+  type="button"
+  class="tp-select__control"
+  [class.tp-select__control--pill]="pill()"
+  [class.open]="open()"
+  [disabled]="disabled()"
+  [attr.aria-expanded]="open()"
+  aria-haspopup="listbox"
+  (click)="toggle()"
+>
+  @if (selected(); as s) {
+    <span class="tp-select__value">
+      @if (s.color) { <span class="tp-select__swatch" [style.background]="s.color"></span> }
+      @if (s.icon) { <span class="tp-select__icon">{{ s.icon }}</span> }
+      <span class="tp-select__text">{{ s.label }}</span>
+    </span>
+  } @else {
+    <span class="tp-select__placeholder">{{ placeholder() }}</span>
+  }
+  <svg class="tp-select__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 9l6 6 6-6"/>
+  </svg>
+</button>
+
+@if (open()) {
+  <ul class="tp-select__panel" role="listbox">
+    @for (o of options(); track o.value; let i = $index) {
+      <li
+        class="tp-select__option"
+        [class.selected]="isSelected(o)"
+        [class.active]="i === activeIndex()"
+        role="option"
+        [attr.aria-selected]="isSelected(o)"
+        (mouseenter)="activeIndex.set(i)"
+        (click)="pick(o)"
+      >
+        @if (o.color) { <span class="tp-select__swatch" [style.background]="o.color"></span> }
+        @if (o.icon) { <span class="tp-select__icon">{{ o.icon }}</span> }
+        <span class="tp-select__text">{{ o.label }}</span>
+        @if (isSelected(o)) {
+          <svg class="tp-select__check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        }
+      </li>
+    }
+  </ul>
+}

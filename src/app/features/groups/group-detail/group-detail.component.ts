@@ -7,6 +7,7 @@ import { TaskService } from '@core/services/task.service';
 import { AuthService } from '@core/services/auth.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import {
   Group, GroupInvite, GroupRole, groupMembers, ROLE_LABELS
 } from '@shared/models/group.model';
@@ -15,7 +16,7 @@ import { Task } from '@shared/models/task.model';
 @Component({
   selector:   'tp-group-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective],
+  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective, SelectComponent],
   templateUrl: './group-detail.component.html',
   styleUrl:    './group-detail.component.scss'
 })
@@ -30,6 +31,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
 
   readonly ROLE_LABELS = ROLE_LABELS;
   readonly ROLE_OPTIONS: GroupRole[] = ['editor', 'viewer'];
+  readonly roleOptions: SelectOption[] = this.ROLE_OPTIONS.map(r => ({ value: r, label: ROLE_LABELS[r] }));
   readonly inviteBase = `${window.location.origin}/join/`;
 
   // ---- Derived group state ----

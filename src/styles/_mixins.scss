@@ -56,7 +56,7 @@
 }
 
 // Focus ring
-@mixin focus-ring($color: $indigo-500) {
+@mixin focus-ring($color: var(--accent-500)) {
   &:focus-visible {
     outline: 2px solid $color;
     outline-offset: 2px;
@@ -95,7 +95,7 @@
 @mixin input-base {
   width: 100%;
   padding: $space-3 $space-4;
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: $radius-lg;
   font-family: $font-sans;
@@ -110,7 +110,7 @@
 
   &:focus {
     border-color: var(--input-focus);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
   }
 }
 
@@ -133,7 +133,7 @@
 }
 
 // Gradient text
-@mixin gradient-text($from: $indigo-400, $to: $violet-400) {
+@mixin gradient-text($from: var(--accent-400), $to: #{$violet-400}) {
   background: linear-gradient(135deg, $from 0%, $to 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

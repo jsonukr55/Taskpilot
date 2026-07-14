@@ -7,6 +7,7 @@ import { CategoryService } from '@core/services/category.service';
 import { SchedulingService } from '@core/services/scheduling.service';
 import { AuthService } from '@core/services/auth.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
 import { Task, TaskStatus, TaskPriority, ChecklistItem } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
@@ -14,7 +15,7 @@ import { Timestamp } from '@angular/fire/firestore';
 @Component({
   selector:   'tp-task-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, ReactiveFormsModule, DatePipe, DecimalPipe, IconComponent, ShowPickerDirective],
+  imports:    [RouterLink, FormsModule, ReactiveFormsModule, DatePipe, DecimalPipe, IconComponent, ShowPickerDirective, SelectComponent],
   templateUrl: './task-detail.component.html',
   styleUrl:    './task-detail.component.scss'
 })
@@ -38,6 +39,18 @@ export class TaskDetailComponent implements OnInit {
   );
 
   readonly allCategories = computed(() => this.categories.rootCategories());
+
+  readonly statusOptions: SelectOption[] = [
+    { value: 'todo',        label: 'To Do' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed',   label: 'Completed' },
+  ];
+  readonly priorityOptions: SelectOption[] = [
+    { value: 'low',    label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high',   label: 'High' },
+    { value: 'urgent', label: 'Urgent' },
+  ];
   readonly completedChecklistCount = computed(() =>
     this.task()?.checklist.filter(i => i.completed).length ?? 0
   );

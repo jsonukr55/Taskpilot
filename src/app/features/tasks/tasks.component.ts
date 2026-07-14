@@ -7,6 +7,7 @@ import { TaskCardComponent } from '@shared/components/task-card/task-card.compon
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.component';
 import { Task, TaskPriority, TaskStatus } from '@shared/models/task.model';
 
@@ -15,7 +16,7 @@ type ViewMode = 'list' | 'board';
 @Component({
   selector:   'tp-tasks',
   standalone: true,
-  imports:    [FormsModule, TaskCardComponent, TaskDrawerComponent, IconComponent, TooltipDirective, CreateTaskModalComponent],
+  imports:    [FormsModule, TaskCardComponent, TaskDrawerComponent, IconComponent, TooltipDirective, CreateTaskModalComponent, SelectComponent],
   templateUrl: './tasks.component.html',
   styleUrl:    './tasks.component.scss'
 })
@@ -75,6 +76,18 @@ export class TasksComponent implements OnInit {
     { value: 'medium', label: 'Medium' },
     { value: 'low',    label: 'Low' }
   ];
+
+  // ---- Filter dropdown options (tp-select) ----
+  readonly categoryFilterOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'All categories' },
+    ...this.categories.rootCategories().map(c => ({ value: c.id, label: c.name, icon: c.icon })),
+  ]);
+  readonly priorityFilterOptions: SelectOption[] = [
+    { value: '', label: 'All priorities' },
+    ...this.priorityOptions,
+  ];
+  readonly currentCategoryFilter = computed(() => this.taskService.filter().categoryIds?.[0] ?? '');
+  readonly currentPriorityFilter = computed(() => this.taskService.filter().priority?.[0] ?? '');
 
   ngOnInit(): void {
     // Open create modal if ?new=true

@@ -4,7 +4,7 @@
 // ============================================================
 // Google Fonts
 // ============================================================
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 // ============================================================
 // Reset & Base
@@ -50,6 +50,24 @@ input, textarea, select { font-family: inherit; }
   select {
     color-scheme: dark;
   }
+}
+
+// Native <select> — strip the OS control, add a custom chevron, and make the
+// dropdown popup + highlight follow the theme accent. (.filter-pill handles
+// its own arrow, so it's excluded here.)
+select:not(.filter-pill) {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: $space-8;
+  accent-color: var(--accent-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right $space-3 center;
+  background-size: 16px;
+
+  &:hover { border-color: var(--border-strong); }
 }
 
 // ============================================================
@@ -106,8 +124,8 @@ input, textarea, select { font-family: inherit; }
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
-  50%       { box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); }
+  0%, 100% { box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.3); }
+  50%       { box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.6); }
 }
 
 // ============================================================
@@ -141,11 +159,12 @@ input, textarea, select { font-family: inherit; }
 
   &-primary {
     @include btn-base;
-    background: $indigo-500;
+    background: var(--accent-500);
     color: white;
+    font-weight: $font-weight-semibold;
 
-    &:hover:not(:disabled) { background: $indigo-600; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
-    &:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+    &:hover:not(:disabled) { background: var(--accent-600); }
+    &:active:not(:disabled) { background: var(--accent-600); transform: translateY(1px); }
   }
 
   &-secondary {
@@ -169,8 +188,10 @@ input, textarea, select { font-family: inherit; }
     @include btn-base;
     background: $rose-500;
     color: white;
+    font-weight: $font-weight-semibold;
 
-    &:hover:not(:disabled) { background: $rose-600; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4); }
+    &:hover:not(:disabled) { background: $rose-600; }
+    &:active:not(:disabled) { background: $rose-600; transform: translateY(1px); }
   }
 
   &-sm { padding: $space-1 $space-3; font-size: $font-size-xs; border-radius: $radius-md; }
@@ -237,7 +258,7 @@ input, textarea, select { font-family: inherit; }
   &-priority-high   { background: rgba(244, 63, 94, 0.12);  color: $rose-500;   }
 
   &-status-todo       { background: var(--bg-tertiary);                        color: var(--text-secondary); }
-  &-status-in_progress { background: rgba(99, 102, 241, 0.12);                 color: $indigo-500; }
+  &-status-in_progress { background: var(--surface-brand);                     color: var(--text-brand); }
   &-status-completed  { background: rgba(16, 185, 129, 0.12);                  color: $emerald-600; }
   &-status-overdue    { background: rgba(244, 63, 94, 0.12);                   color: $rose-500; }
 }
@@ -440,7 +461,7 @@ input, textarea, select { font-family: inherit; }
     transition: all $transition-fast;
 
     &:hover { background: var(--bg-elevated); }
-    &.active { border-color: $indigo-500; background: var(--surface-brand); }
+    &.active { border-color: var(--accent-500); background: var(--surface-brand); }
   }
 
   &__swatch {

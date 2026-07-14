@@ -17,6 +17,13 @@ service cloud.firestore {
       return isMember(groupId)
         && groupData(groupId).roles[request.auth.uid] in ['owner', 'editor'];
     }
+    // The group owner == the team "manager" for the daily report.
+    function isManager(groupId) {
+      return isMember(groupId) && groupData(groupId).ownerId == request.auth.uid;
+    }
+    function dailyReport(reportId) {
+      return get(/databases/$(database)/documents/dailyReports/$(reportId)).data;
+    }
 
     // ---- Users: only own profile ----------------------------------------
     match /users/{userId} {
@@ -100,6 +107,37 @@ service cloud.firestore {
             groupData(groupId).ownerId == request.auth.uid
           );
         }
+      }
+    }
+
+    // ---- Working calendar: global, read-only from the client ------------
+    // Everyone reads the mandatory-holiday config; the app also ships a code
+    // default, so an absent doc is fine. Edited out-of-band (console / admin
+    // tooling) until an in-app manager editor lands.
+    match /settings/{docId} {
+      allow read:  if signedIn();
+      allow write: if false;
+    }
+
+    // ---- Daily reports: one per (team, working-day) ---------------------
+    // Parent doc = metadata + lock. Any member may lazily create it (so their
+    // entry can attach); only the manager updates it (lock, order).
+    match /dailyReports/{reportId} {
+      allow read:   if signedIn() && isMember(resource.data.groupId);
+      allow create: if signedIn()
+        && isMember(request.resource.data.groupId)
+        && request.resource.data.status == 'draft';
+      allow update, delete: if signedIn() && isManager(resource.data.groupId);
+
+      // Per-member entry. Decision #7: a member writes ONLY their own entry
+      // (doc id == uid); the manager may write anyone's. No writes once locked
+      // (manager included — lock is final).
+      match /entries/{uid} {
+        allow read: if signedIn() && isMember(dailyReport(reportId).groupId);
+        allow create, update: if signedIn()
+          && dailyReport(reportId).status != 'locked'
+          && (request.auth.uid == uid || isManager(dailyReport(reportId).groupId));
+        allow delete: if signedIn() && isManager(dailyReport(reportId).groupId);
       }
     }
 

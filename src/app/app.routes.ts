@@ -34,6 +34,11 @@ export const routes: Routes = [
         title: 'Task Detail — TaskPilot'
       },
       {
+        path: 'daily',
+        loadComponent: () => import('./features/daily-report/daily-report.component').then(m => m.DailyReportComponent),
+        title: 'Daily Report — TaskPilot'
+      },
+      {
         path: 'calendar',
         loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent),
         title: 'Calendar — TaskPilot'

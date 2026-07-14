@@ -5,6 +5,7 @@ import { CategoryService } from '@core/services/category.service';
 import { TaskService } from '@core/services/task.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { Category } from '@shared/models/category.model';
 
 const CATEGORY_ICONS = ['💼', '🏠', '🏃', '📚', '💰', '🎯', '🎨', '🔧', '🌱', '✈️', '💊', '🎵', '🍳', '📱', '🏋️'];
@@ -13,7 +14,7 @@ const CATEGORY_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea
 @Component({
   selector:   'tp-categories',
   standalone: true,
-  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DecimalPipe, TooltipDirective],
+  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DecimalPipe, TooltipDirective, SelectComponent],
   templateUrl: './categories.component.html',
   styleUrl:    './categories.component.scss'
 })
@@ -28,6 +29,16 @@ export class CategoriesComponent {
 
   readonly ICONS  = CATEGORY_ICONS;
   readonly COLORS = CATEGORY_COLORS;
+
+  readonly priorityBiasOptions: SelectOption[] = [
+    { value: 'low',    label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high',   label: 'High' },
+  ];
+  readonly parentOptions = computed<SelectOption[]>(() => [
+    { value: null, label: 'None (root)' },
+    ...this.categories.rootCategories().map(c => ({ value: c.id, label: c.name, icon: c.icon })),
+  ]);
 
   readonly form = this.fb.group({
     name:        ['', [Validators.required, Validators.minLength(2)]],

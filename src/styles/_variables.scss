@@ -57,7 +57,7 @@ $priority-high:   $rose-500;
 $priority-urgent: #ff4444;
 
 // Typography
-$font-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+$font-sans:  'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 $font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
 $font-size-xs:   0.75rem;   // 12px
@@ -136,6 +136,15 @@ $bp-2xl: 1536px;
 
 // CSS Custom Properties (for runtime theme switching)
 :root {
+  // Accent color — set at runtime by ThemeService (ClickUp-style).
+  // Only --accent-500 and --accent-rgb are overridden in JS; the rest derive.
+  --accent-500: #{$indigo-500};
+  --accent-rgb: 99, 102, 241;
+  --accent-300: color-mix(in srgb, var(--accent-500), white 45%);
+  --accent-400: color-mix(in srgb, var(--accent-500), white 26%);
+  --accent-600: color-mix(in srgb, var(--accent-500), black 16%);
+  --accent-700: color-mix(in srgb, var(--accent-500), black 30%);
+
   // Light Theme
   --bg-primary:     #{$slate-50};
   --bg-secondary:   #ffffff;
@@ -147,14 +156,14 @@ $bp-2xl: 1536px;
   --text-secondary: #{$slate-600};
   --text-tertiary:  #{$slate-400};
   --text-inverse:   #ffffff;
-  --text-brand:     #{$indigo-600};
+  --text-brand:     var(--accent-600);
 
   --border-subtle:  #{$slate-200};
   --border-default: #{$slate-300};
   --border-strong:  #{$slate-400};
-  --border-brand:   #{$indigo-400};
+  --border-brand:   var(--accent-400);
 
-  --surface-brand:  #{$indigo-50};
+  --surface-brand:  rgba(var(--accent-rgb), 0.10);
   --surface-success: #ecfdf5;
   --surface-warning: #fffbeb;
   --surface-danger:  #fff1f2;
@@ -169,47 +178,48 @@ $bp-2xl: 1536px;
 
   --input-bg:       #ffffff;
   --input-border:   #{$slate-300};
-  --input-focus:    #{$indigo-500};
+  --input-focus:    var(--accent-500);
 
   --scrollbar-bg:   #{$slate-100};
   --scrollbar-thumb: #{$slate-300};
 }
 
 [data-theme='dark'] {
-  --bg-primary:     #0f0f14;
-  --bg-secondary:   #161621;
-  --bg-tertiary:    #1c1c2a;
-  --bg-elevated:    #1e1e2e;
+  // Charcoal — neutral dark gray, no color tint.
+  --bg-primary:     #18181a;
+  --bg-secondary:   #1f1f22;
+  --bg-tertiary:    #27272b;
+  --bg-elevated:    #2c2c30;
   --bg-overlay:     rgba(0, 0, 0, 0.6);
 
-  --text-primary:   #e8e8f0;
-  --text-secondary: #9494aa;
-  --text-tertiary:  #5c5c6e;
-  --text-inverse:   #0f0f14;
-  --text-brand:     #{$indigo-400};
+  --text-primary:   #eaeaec;
+  --text-secondary: #a1a1a8;
+  --text-tertiary:  #68686f;
+  --text-inverse:   #18181a;
+  --text-brand:     var(--accent-400);
 
   --border-subtle:  rgba(255,255,255,0.06);
   --border-default: rgba(255,255,255,0.10);
   --border-strong:  rgba(255,255,255,0.16);
-  --border-brand:   #{$indigo-500};
+  --border-brand:   var(--accent-500);
 
-  --surface-brand:  rgba(99, 102, 241, 0.12);
+  --surface-brand:  rgba(var(--accent-rgb), 0.14);
   --surface-success: rgba(16, 185, 129, 0.10);
   --surface-warning: rgba(245, 158, 11, 0.10);
   --surface-danger:  rgba(244, 63, 94, 0.10);
 
-  --sidebar-bg:     #161621;
-  --topbar-bg:      rgba(15, 15, 20, 0.85);
+  --sidebar-bg:     #1f1f22;
+  --topbar-bg:      rgba(24, 24, 26, 0.85);
 
-  --card-bg:        #1e1e2e;
-  --card-border:    rgba(255,255,255,0.08);
-  --card-shadow:    0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
-  --card-shadow-hover: 0 4px 16px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  --card-bg:        #29292d;
+  --card-border:    rgba(255,255,255,0.07);
+  --card-shadow:    0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --card-shadow-hover: 0 4px 16px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
 
-  --input-bg:       #1c1c2a;
+  --input-bg:       #27272b;
   --input-border:   rgba(255,255,255,0.12);
-  --input-focus:    #{$indigo-400};
+  --input-focus:    var(--accent-400);
 
-  --scrollbar-bg:   #1c1c2a;
+  --scrollbar-bg:   #27272b;
   --scrollbar-thumb: rgba(255,255,255,0.12);
 }

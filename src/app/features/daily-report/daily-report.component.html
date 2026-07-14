@@ -1,0 +1,174 @@
+<div class="daily">
+
+  <!-- Header -->
+  <header class="daily__header">
+    <div class="daily__title-wrap">
+      <h1 class="daily__title">
+        <tp-icon name="check-square" [size]="22" />
+        Daily Report
+      </h1>
+      <p class="daily__date">{{ daily.dateHeader() }}</p>
+    </div>
+
+    @if (groups.groups().length > 1) {
+      <label class="daily__team">
+        <span>Team</span>
+        <tp-select
+          [options]="teamOptions()"
+          [value]="selectedGroupId()"
+          (changed)="selectGroup($event)"
+        />
+      </label>
+    }
+  </header>
+
+  <!-- No team -->
+  @if (!groups.isLoading() && groups.groups().length === 0) {
+    <div class="daily__empty">
+      <tp-icon name="users" [size]="40" />
+      <h2>You're not on a team yet</h2>
+      <p>Create or join a group to start posting daily updates.</p>
+      <a routerLink="/groups" class="btn btn-primary">Go to Groups</a>
+    </div>
+  } @else if (selectedGroup()) {
+
+    <!-- Off-day / locked banners -->
+    @if (!isWorkingToday()) {
+      <div class="daily__banner daily__banner--info">
+        <tp-icon name="calendar" [size]="16" />
+        <span>
+          Today is off{{ todayHolidayName() ? ' — ' + todayHolidayName() : ' (weekend)' }}.
+          Next working day: <strong>{{ calendar.formatHeader(daily.planForDate()) }}</strong>.
+        </span>
+      </div>
+    }
+    @if (daily.isLocked()) {
+      <div class="daily__banner daily__banner--locked">
+        <tp-icon name="check-circle" [size]="16" />
+        <span>This report is <strong>locked</strong>. It can no longer be edited.</span>
+      </div>
+    }
+
+    <div class="daily__grid" [class.daily__grid--solo]="!isManager()">
+
+      <!-- ============ My Update ============ -->
+      <section class="card daily__mine">
+        <div class="card__head">
+          <h2>My update</h2>
+          <label class="daily__leave-toggle">
+            <input type="checkbox" [checked]="onLeave()" (change)="toggleOnLeave()"
+                   [disabled]="daily.isLocked()" />
+            <span>On leave today</span>
+          </label>
+        </div>
+
+        @if (onLeave()) {
+          <p class="daily__leave-note">
+            You're marked <strong>on leave</strong> — you'll show as “On leave” in the report.
+          </p>
+        } @else {
+          <!-- Progress -->
+          <div class="daily__section">
+            <h3 class="daily__section-title">Progress today</h3>
+            @for (line of progressLines(); track trackLine($index, line)) {
+              <div class="daily__line">
+                <input type="text" class="daily__line-input" [value]="line.text"
+                       placeholder="What did you work on?"
+                       (input)="onLineInput('progress', line.id, $any($event.target).value)"
+                       [disabled]="daily.isLocked()" />
+                <button class="daily__line-remove btn-icon" (click)="removeLine('progress', line.id)"
+                        [disabled]="daily.isLocked()" aria-label="Remove line">
+                  <tp-icon name="x" [size]="14" />
+                </button>
+              </div>
+            }
+            <button class="daily__add btn-ghost" (click)="addLine('progress')" [disabled]="daily.isLocked()">
+              <tp-icon name="plus" [size]="14" /> Add line
+            </button>
+          </div>
+
+          <!-- Plan -->
+          <div class="daily__section">
+            <h3 class="daily__section-title">
+              Plan for next working day
+              <span class="daily__section-sub">{{ calendar.formatShort(daily.planForDate()) }}</span>
+            </h3>
+            @for (line of planLines(); track trackLine($index, line)) {
+              <div class="daily__line">
+                <input type="text" class="daily__line-input" [value]="line.text"
+                       placeholder="What will you work on next?"
+                       (input)="onLineInput('plan', line.id, $any($event.target).value)"
+                       [disabled]="daily.isLocked()" />
+                <button class="daily__line-remove btn-icon" (click)="removeLine('plan', line.id)"
+                        [disabled]="daily.isLocked()" aria-label="Remove line">
+                  <tp-icon name="x" [size]="14" />
+                </button>
+              </div>
+            }
+            <button class="daily__add btn-ghost" (click)="addLine('plan')" [disabled]="daily.isLocked()">
+              <tp-icon name="plus" [size]="14" /> Add line
+            </button>
+          </div>
+        }
+
+        @if (saveError()) {
+          <div class="daily__banner daily__banner--error">
+            <tp-icon name="alert-circle" [size]="16" />
+            <span>{{ saveError() }}</span>
+          </div>
+        }
+
+        <div class="card__foot">
+          @if (daily.myEntry()?.submitted) {
+            <span class="daily__submitted"><tp-icon name="check" [size]="14" /> Submitted</span>
+          }
+          <button class="btn btn-ghost" (click)="save(false)"
+                  [disabled]="daily.isLocked() || isSaving()">Save draft</button>
+          <button class="btn btn-primary" (click)="save(true)"
+                  [disabled]="daily.isLocked() || isSaving()">
+            <tp-icon name="send" [size]="14" /> Submit
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ Team panel (manager only) ============ -->
+      @if (isManager()) {
+        <section class="card daily__team-panel">
+          <div class="card__head">
+            <h2>Team report</h2>
+            @if (!daily.isLocked()) {
+              <button class="btn btn-secondary" (click)="lock()">Lock &amp; finalize</button>
+            }
+          </div>
+
+          <!-- Roster -->
+          <ul class="daily__roster">
+            @for (m of roster(); track m.userId) {
+              <li class="daily__roster-row">
+                <span class="daily__roster-name">{{ m.displayName }}</span>
+                <span class="daily__chip" [attr.data-status]="statusOf(m.userId)">
+                  {{ statusLabel(m.userId) }}
+                </span>
+                @if (!daily.isLocked()) {
+                  <button class="daily__leave-btn btn-ghost" (click)="toggleMemberLeave(m)">
+                    {{ statusOf(m.userId) === 'onLeave' ? 'Clear leave' : 'Mark on leave' }}
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+
+          <!-- Preview + copy -->
+          <div class="daily__preview-head">
+            <h3 class="daily__section-title">Preview</h3>
+            <button class="btn btn-primary" (click)="copyReport()">
+              <tp-icon name="copy" [size]="14" />
+              {{ copied() ? 'Copied!' : 'Copy for Teams' }}
+            </button>
+          </div>
+          <pre class="daily__preview">{{ daily.reportText() }}</pre>
+        </section>
+      }
+    </div>
+  }
+</div>

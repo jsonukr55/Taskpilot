@@ -18,19 +18,19 @@
 
   <!-- Filters -->
   <div class="tasks-page__filters">
-    <select class="filter-pill" (change)="onCategoryFilter($any($event.target).value)">
-      <option value="">All categories</option>
-      @for (cat of categories.rootCategories(); track cat.id) {
-        <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
-      }
-    </select>
+    <tp-select
+      pill
+      [options]="categoryFilterOptions()"
+      [value]="currentCategoryFilter()"
+      (changed)="onCategoryFilter($event)"
+    />
 
-    <select class="filter-pill" (change)="onPriorityFilter($any($event.target).value)">
-      <option value="">All priorities</option>
-      @for (p of priorityOptions; track p.value) {
-        <option [value]="p.value">{{ p.label }}</option>
-      }
-    </select>
+    <tp-select
+      pill
+      [options]="priorityFilterOptions"
+      [value]="currentPriorityFilter()"
+      (changed)="onPriorityFilter($event)"
+    />
 
     <button class="filter-pill filter-pill--sort" (click)="updateSort('dueDate')">
       Due @if (taskService.sort().field === 'dueDate') {

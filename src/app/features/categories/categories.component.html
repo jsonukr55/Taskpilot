@@ -148,11 +148,7 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Priority Bias</label>
-              <select formControlName="priorityBias" class="form-input">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+              <tp-select formControlName="priorityBias" [options]="priorityBiasOptions" />
             </div>
             <div class="form-group">
               <label class="form-label">Remind me (minutes before)</label>
@@ -162,12 +158,7 @@
 
           <div class="form-group">
             <label class="form-label">Parent Category</label>
-            <select formControlName="parentId" class="form-input">
-              <option [value]="null">None (root)</option>
-              @for (cat of categories.rootCategories(); track cat.id) {
-                <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
-              }
-            </select>
+            <tp-select formControlName="parentId" [options]="parentOptions()" />
           </div>
 
           <button type="submit" class="btn btn-primary btn-block" [disabled]="form.invalid || isSubmitting()">

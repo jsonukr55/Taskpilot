@@ -1,0 +1,218 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.daily {
+  max-width: $content-max-width;
+  margin: 0 auto;
+  padding: $space-6;
+
+  // ---- Header ----
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $space-4;
+    flex-wrap: wrap;
+    margin-bottom: $space-6;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: var(--text-primary);
+  }
+
+  &__date {
+    margin-top: $space-1;
+    color: var(--text-secondary);
+    font-size: $font-size-sm;
+  }
+
+  &__team {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+
+    tp-select {
+      width: 200px;
+    }
+  }
+
+  // ---- Empty state ----
+  &__empty {
+    @include flex-center;
+    flex-direction: column;
+    gap: $space-3;
+    text-align: center;
+    padding: $space-16 $space-6;
+    color: var(--text-secondary);
+
+    h2 { font-size: $font-size-lg; font-weight: $font-weight-semibold; color: var(--text-primary); }
+    .btn { margin-top: $space-2; }
+  }
+
+  // ---- Banners ----
+  &__banner {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-3 $space-4;
+    border-radius: $radius-lg;
+    font-size: $font-size-sm;
+    margin-bottom: $space-4;
+
+    &--info   { background: rgba(99, 102, 241, 0.10); color: $indigo-500; }
+    &--locked { background: rgba(16, 185, 129, 0.12); color: $emerald-600; }
+    &--error  { background: rgba(244, 63, 94, 0.12);  color: $rose-500; align-items: flex-start; }
+  }
+
+  // ---- Layout ----
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $space-6;
+    align-items: start;
+
+    &--solo { grid-template-columns: minmax(0, 640px); }
+
+    @media (max-width: 900px) { grid-template-columns: 1fr; }
+  }
+
+  // ---- Cards / sections ----
+  .card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-3;
+    margin-bottom: $space-4;
+
+    h2 { font-size: $font-size-lg; font-weight: $font-weight-semibold; color: var(--text-primary); }
+  }
+
+  .card__foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $space-2;
+    margin-top: $space-5;
+    padding-top: $space-4;
+    border-top: 1px solid var(--border-default);
+  }
+
+  &__section { margin-bottom: $space-5; }
+
+  &__section-title {
+    display: flex;
+    align-items: baseline;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+    margin-bottom: $space-3;
+  }
+  &__section-sub {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-normal;
+    color: var(--text-tertiary, var(--text-secondary));
+  }
+
+  // ---- Editable lines ----
+  &__line {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    margin-bottom: $space-2;
+  }
+  &__line-input {
+    @include input-base;
+    flex: 1;
+  }
+  &__line-remove { width: 32px; height: 32px; flex-shrink: 0; }
+
+  &__add {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    font-size: $font-size-sm;
+    margin-top: $space-1;
+  }
+
+  // ---- On leave ----
+  &__leave-toggle {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    cursor: pointer;
+    input { width: 16px; height: 16px; cursor: pointer; }
+  }
+  &__leave-note {
+    padding: $space-4;
+    border-radius: $radius-lg;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: $font-size-sm;
+  }
+
+  &__submitted {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    margin-right: auto;
+    font-size: $font-size-sm;
+    color: $emerald-600;
+  }
+
+  // ---- Roster ----
+  &__roster { display: flex; flex-direction: column; gap: $space-2; margin-bottom: $space-5; }
+  &__roster-row {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: $space-2 $space-3;
+    border-radius: $radius-md;
+    background: var(--bg-tertiary);
+  }
+  &__roster-name { font-size: $font-size-sm; color: var(--text-primary); font-weight: $font-weight-medium; }
+
+  &__chip {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    padding: 2px $space-2;
+    border-radius: $radius-full;
+
+    &[data-status='submitted'] { background: rgba(16, 185, 129, 0.12); color: $emerald-600; }
+    &[data-status='pending']   { background: rgba(245, 158, 11, 0.14); color: $amber-600; }
+    &[data-status='onLeave']   { background: var(--bg-elevated); color: var(--text-secondary); }
+  }
+
+  &__leave-btn { margin-left: auto; font-size: $font-size-xs; }
+
+  // ---- Preview ----
+  &__preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-3;
+    margin-bottom: $space-3;
+  }
+  &__preview {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: $radius-lg;
+    padding: $space-4;
+    font-family: $font-mono, monospace;
+    font-size: $font-size-xs;
+    line-height: 1.6;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    overflow-x: auto;
+    max-height: 460px;
+  }
+}

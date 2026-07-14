@@ -15,6 +15,7 @@ export interface CalendarIntegration {
 
 export interface UserPreferences {
   theme:              'light' | 'dark' | 'system';
+  accentColor:        string;        // hex, e.g. '#6366f1' — drives the app accent
   timezone:           string;       // IANA timezone e.g. 'America/New_York'
   weekStartsOn:       0 | 1;        // 0=Sun, 1=Mon
   defaultView:        'list' | 'board' | 'calendar';
@@ -56,6 +57,7 @@ export interface UserProfile {
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   theme:              'system',
+  accentColor:        '#6366f1',
   timezone:           Intl.DateTimeFormat().resolvedOptions().timeZone,
   weekStartsOn:       1,
   defaultView:        'list',

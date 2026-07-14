@@ -6,6 +6,7 @@ import { CategoryService } from '@core/services/category.service';
 import { AiService } from '@core/services/ai.service';
 import { AuthService } from '@core/services/auth.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { AiExtractedTask, TaskPriority } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
 
@@ -14,7 +15,7 @@ type InputMode = 'text' | 'ai' | 'image' | 'file' | 'form';
 @Component({
   selector:   'tp-create-task-modal',
   standalone: true,
-  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DatePipe, DecimalPipe],
+  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DatePipe, DecimalPipe, SelectComponent],
   templateUrl: './create-task-modal.component.html',
   styleUrl:    './create-task-modal.component.scss'
 })
@@ -38,6 +39,17 @@ export class CreateTaskModalComponent {
   readonly fileName      = signal<string | null>(null);
 
   readonly categories$ = computed(() => this.categories.rootCategories());
+
+  readonly priorityOptions: SelectOption[] = [
+    { value: 'low',    label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high',   label: 'High' },
+    { value: 'urgent', label: 'Urgent' },
+  ];
+  readonly categoryOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'None' },
+    ...this.categories$().map(c => ({ value: c.id, label: c.name, icon: c.icon })),
+  ]);
 
   // ---- Subtask drafts (manual mode) ----
   readonly subtaskDrafts   = signal<string[]>([]);

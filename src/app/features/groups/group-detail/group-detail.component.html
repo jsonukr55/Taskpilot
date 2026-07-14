@@ -44,9 +44,13 @@
               <span class="member__name">{{ m.displayName }} @if (m.userId === auth.userId()) { <span class="member__you">you</span> }</span>
             </div>
             @if (isOwner() && m.role !== 'owner') {
-              <select class="member__role" [value]="m.role" (change)="changeRole(m.userId, $any($event.target).value)">
-                @for (r of ROLE_OPTIONS; track r) { <option [value]="r">{{ ROLE_LABELS[r] }}</option> }
-              </select>
+              <tp-select
+                pill
+                class="member__role"
+                [options]="roleOptions"
+                [value]="m.role"
+                (changed)="changeRole(m.userId, $event)"
+              />
               <button class="btn-icon" (click)="removeMember(m.userId)" data-tooltip="Remove"><tp-icon name="x" [size]="16" /></button>
             } @else {
               <span class="badge member__badge">{{ ROLE_LABELS[m.role] }}</span>

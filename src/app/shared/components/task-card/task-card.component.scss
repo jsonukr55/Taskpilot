@@ -47,9 +47,9 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
     color: white;
     justify-self: center;
 
-    &:hover { border-color: $indigo-400; }
+    &:hover { border-color: var(--accent-400); }
     &.checked  { background: $emerald-500; border-color: $emerald-500; }
-    &.in-progress { border-color: $indigo-500; }
+    &.in-progress { border-color: var(--accent-500); }
   }
 
   &__main {
@@ -177,5 +177,5 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: $indigo-500;
+  background: var(--accent-500);
 }

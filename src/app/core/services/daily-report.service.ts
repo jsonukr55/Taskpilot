@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import {
-  Firestore, collection, doc, getDoc, onSnapshot,
-  setDoc, updateDoc, serverTimestamp, Timestamp
+  Firestore, collection, doc, getDoc, getDocs, onSnapshot,
+  query, where, setDoc, updateDoc, serverTimestamp, Timestamp
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { WorkingCalendarService } from './working-calendar.service';
@@ -188,6 +188,36 @@ export class DailyReportService {
     } catch {
       return [];
     }
+  }
+
+  // ---- History ----
+
+  /** Recent reports for a group, newest first. Sorted client-side so no
+   *  composite index is required (one doc per working day → small set). */
+  async listRecentReports(groupId: string, max = 20): Promise<DailyReport[]> {
+    const snap = await getDocs(query(
+      collection(this.firestore, 'dailyReports'),
+      where('groupId', '==', groupId)
+    ));
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as DailyReport))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, max);
+  }
+
+  /** Load a past report's full content as a read-only ReportView. */
+  async loadHistoricalView(groupId: string, date: string): Promise<ReportView | null> {
+    const reportId = this.reportId(groupId, date);
+    const reportSnap = await getDoc(doc(this.firestore, 'dailyReports', reportId));
+    if (!reportSnap.exists()) return null;
+    const report = reportSnap.data() as DailyReport;
+    const entriesSnap = await getDocs(collection(this.firestore, 'dailyReports', reportId, 'entries'));
+    const entries = entriesSnap.docs.map(d => d.data() as DailyEntry);
+    return buildReportView({
+      dateHeader: this.calendar.formatHeader(date),
+      entries,
+      order: report.memberOrder ?? entries.map(e => e.userId)
+    });
   }
 
   // ---- Helpers ----

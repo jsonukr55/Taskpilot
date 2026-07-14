@@ -62,6 +62,13 @@
           </label>
         </div>
 
+        @if (needsSubmit()) {
+          <div class="daily__banner daily__banner--nudge">
+            <tp-icon name="clock" [size]="16" />
+            <span>You haven't submitted today's update yet.</span>
+          </div>
+        }
+
         <div class="daily__name-field">
           <label class="daily__name-label">Name shown on the report</label>
           <input type="text" class="daily__name-input" [value]="displayName()"
@@ -174,7 +181,7 @@
       @if (isManager()) {
         <section class="card daily__team-panel">
           <div class="card__head">
-            <h2>Team report</h2>
+            <h2>Team report <span class="daily__count">{{ submittedCount() }}/{{ roster().length }} in</span></h2>
             @if (!daily.isLocked()) {
               <button class="btn btn-secondary" (click)="lock()">Lock &amp; finalize</button>
             }
@@ -262,5 +269,68 @@
         </section>
       }
     </div>
+
+    <!-- Past reports -->
+    @if (history().length || historyView()) {
+      <section class="card daily__history">
+        @if (historyView(); as hv) {
+          <div class="card__head">
+            <button class="btn btn-ghost" (click)="closeHistory()">
+              <tp-icon name="arrow-left" [size]="14" /> Back
+            </button>
+            <button class="btn btn-primary" (click)="copyHistory()">
+              <tp-icon name="copy" [size]="14" /> Copy for Teams
+            </button>
+          </div>
+          <div class="daily__report">
+            <div class="daily__report-head">
+              <div class="daily__report-greeting">Hi Everyone,</div>
+              <div class="daily__report-title">Daily Task Report</div>
+              <div class="daily__report-date"><tp-icon name="calendar" [size]="13" /> {{ hv.dateHeader }}</div>
+            </div>
+            <div class="daily__report-section">
+              <div class="daily__report-section-title">Progress Update</div>
+              @for (row of hv.progress; track row.userId) {
+                <div class="daily__report-row">
+                  <div class="daily__report-name">{{ row.displayName }}</div>
+                  @if (row.onLeave) {
+                    <span class="daily__report-leave">On leave</span>
+                  } @else {
+                    <ul class="daily__report-lines">
+                      @for (l of row.lines; track $index) { <li>{{ l }}</li> }
+                    </ul>
+                  }
+                </div>
+              } @empty { <p class="daily__report-empty">No progress.</p> }
+            </div>
+            <div class="daily__report-section">
+              <div class="daily__report-section-title">Plan for Tomorrow</div>
+              @for (row of hv.plan; track row.userId) {
+                <div class="daily__report-row">
+                  <div class="daily__report-name">{{ row.displayName }}</div>
+                  <ul class="daily__report-lines">
+                    @for (l of row.lines; track $index) { <li>{{ l }}</li> }
+                  </ul>
+                </div>
+              } @empty { <p class="daily__report-empty">No plans.</p> }
+            </div>
+          </div>
+        } @else {
+          <div class="card__head"><h2>Past reports</h2></div>
+          <ul class="daily__history-list">
+            @for (r of history(); track r.id) {
+              <li class="daily__history-row" (click)="openHistory(r.date)">
+                <tp-icon name="calendar" [size]="14" />
+                <span class="daily__history-date">{{ calendar.formatHeader(r.date) }}</span>
+                <span class="daily__chip" [attr.data-status]="r.status === 'locked' ? 'submitted' : 'pending'">
+                  {{ r.status === 'locked' ? 'Locked' : 'Draft' }}
+                </span>
+                <tp-icon name="chevron-right" [size]="14" class="daily__history-arrow" />
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
   }
 </div>

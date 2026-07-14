@@ -69,6 +69,7 @@
     &--info   { background: rgba(99, 102, 241, 0.10); color: $indigo-500; }
     &--locked { background: rgba(16, 185, 129, 0.12); color: $emerald-600; }
     &--error  { background: rgba(244, 63, 94, 0.12);  color: $rose-500; align-items: flex-start; }
+    &--nudge  { background: rgba(245, 158, 11, 0.14); color: $amber-600; }
   }
 
   // ---- Layout ----
@@ -369,4 +370,40 @@
     color: var(--text-tertiary, var(--text-secondary));
     font-style: italic;
   }
+
+  // ---- Manager submitted count ----
+  &__count {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    color: var(--text-secondary);
+    margin-left: $space-2;
+    padding: 1px $space-2;
+    border-radius: $radius-full;
+    background: var(--bg-tertiary);
+  }
+
+  // ---- History ----
+  &__history { margin-top: $space-6; }
+  &__history-list {
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+  }
+  &__history-row {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-2 $space-3;
+    border-radius: $radius-md;
+    cursor: pointer;
+    color: var(--text-secondary);
+
+    &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  }
+  &__history-date {
+    flex: 1;
+    font-size: $font-size-sm;
+    color: var(--text-primary);
+  }
+  &__history-arrow { color: var(--text-tertiary, var(--text-secondary)); }
 }

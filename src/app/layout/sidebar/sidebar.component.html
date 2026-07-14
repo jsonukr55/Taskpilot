@@ -51,8 +51,10 @@
                 <span class="sidebar__nav-label">{{ item.label }}</span>
                 @if (item.badge && item.badge() > 0) {
                   <span class="sidebar__badge">{{ item.badge() }}</span>
+                } @else if (item.dot && item.dot()) {
+                  <span class="sidebar__new">New</span>
                 }
-              } @else if (item.badge && item.badge() > 0) {
+              } @else if ((item.badge && item.badge() > 0) || (item.dot && item.dot())) {
                 <span class="sidebar__badge sidebar__badge--dot"></span>
               }
             </a>

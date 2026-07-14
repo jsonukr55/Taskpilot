@@ -160,6 +160,21 @@
     }
   }
 
+  // "New" pill for the What's New nav item
+  &__new {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px $space-2;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #fff;
+    background: var(--accent-500);
+    border-radius: $radius-full;
+    flex-shrink: 0;
+  }
+
   // ---- Section ----
   &__section {
     padding: 0 $space-3;

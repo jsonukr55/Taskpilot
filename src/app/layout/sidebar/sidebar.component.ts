@@ -4,6 +4,7 @@ import { AuthService } from '@core/services/auth.service';
 import { TaskService } from '@core/services/task.service';
 import { ThemeService, Theme } from '@core/services/theme.service';
 import { CategoryService } from '@core/services/category.service';
+import { ReleaseNotesService } from '@core/services/release-notes.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 
@@ -12,6 +13,7 @@ interface NavItem {
   route:   string;
   icon:    string;
   badge?:  () => number;
+  dot?:    () => boolean;   // small "New" indicator
   comingSoon?: boolean;
 }
 
@@ -30,6 +32,7 @@ export class SidebarComponent {
   readonly tasks      = inject(TaskService);
   readonly theme      = inject(ThemeService);
   readonly categories = inject(CategoryService);
+  readonly release    = inject(ReleaseNotesService);
 
   readonly navItems: NavItem[] = [
     { label: 'Dashboard',    route: '/dashboard',  icon: 'grid' },
@@ -40,7 +43,8 @@ export class SidebarComponent {
     { label: 'Calendar',     route: '/calendar',   icon: 'calendar' },
     { label: 'Categories',   route: '/categories', icon: 'folder' },
     { label: 'AI Assistant', route: '/ai-chat',    icon: 'cpu', comingSoon: true },
-    { label: 'Analytics',    route: '/analytics',  icon: 'bar-chart-2' }
+    { label: 'Analytics',    route: '/analytics',  icon: 'bar-chart-2' },
+    { label: "What's New",   route: '/whats-new',  icon: 'sparkles', dot: () => this.release.hasUnseen() }
   ];
 
   readonly topCategories = computed(() =>

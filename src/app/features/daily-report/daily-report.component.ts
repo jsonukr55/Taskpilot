@@ -15,7 +15,8 @@ import { Group, groupMembers, GroupMember } from '@shared/models/group.model';
 import { TaskStatus } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
 import {
-  ReportLine, ReportView, newLine, entryStatus, EntryStatus, ENTRY_STATUS_LABELS
+  ReportLine, ReportView, DailyReport, newLine, entryStatus, EntryStatus, ENTRY_STATUS_LABELS,
+  reportViewToText, reportViewToHtml
 } from '@shared/models/daily-report.model';
 
 /** A one-click line drawn from one of the user's tasks (hybrid pre-fill). */
@@ -75,6 +76,21 @@ export class DailyReportComponent implements OnDestroy {
 
   readonly isSaving  = signal(false);
   readonly showRaw   = signal(false);   // preview: formatted card vs raw paste text
+
+  // ---- Phase 3: history + nudges ----
+  readonly history      = signal<DailyReport[]>([]);
+  readonly historyView  = signal<ReportView | null>(null);
+  readonly historyDate  = signal<string | null>(null);
+
+  /** How many roster members have submitted (or are on leave) today. */
+  readonly submittedCount = computed(() =>
+    this.daily.entries().filter(e => e.submitted).length
+  );
+
+  /** Nudge: it's a working day, not locked, and I haven't submitted yet. */
+  readonly needsSubmit = computed(() =>
+    this.isWorkingToday() && !this.daily.isLocked() && !this.daily.myEntry()?.submitted
+  );
 
   readonly isWorkingToday = computed(() => this.calendar.isWorkingDay(this.daily.date()));
   readonly todayHolidayName = computed(() => this.calendar.holidayName(this.daily.date()));
@@ -152,6 +168,10 @@ export class DailyReportComponent implements OnDestroy {
     // Carry-over: pull the previous working day's plan for a "did you do these?" prompt.
     this.carryOverPlan.set([]);
     this.daily.getPreviousPlan(id).then(lines => this.carryOverPlan.set(lines));
+    // History list for this team.
+    this.historyView.set(null);
+    this.history.set([]);
+    this.daily.listRecentReports(id).then(r => this.history.set(r));
   }
 
   // ---- Line editing ----
@@ -309,15 +329,25 @@ export class DailyReportComponent implements OnDestroy {
     }
   }
 
+  /** Copy today's report for Teams. */
+  copyReport(): Promise<void> {
+    return this.copyView(this.daily.reportView());
+  }
+
+  /** Copy a historical report for Teams. */
+  copyHistory(): Promise<void> {
+    const v = this.historyView();
+    return v ? this.copyView(v) : Promise.resolve();
+  }
+
   /**
-   * Copy the report for Teams. Writes BOTH rich HTML and plain text to the
-   * clipboard: Teams (and most editors) take the HTML, so the paste renders
-   * bold headers/names + bulleted lists; anything plain-text-only falls back
-   * to the flat version.
+   * Copy a report for Teams. Writes BOTH rich HTML and plain text: Teams (and
+   * most editors) take the HTML, so the paste renders bold headers/names +
+   * bulleted lists; plain-text-only targets fall back to the flat version.
    */
-  async copyReport(): Promise<void> {
-    const html = this.daily.reportHtml();
-    const text = this.daily.reportText();
+  private async copyView(view: ReportView): Promise<void> {
+    const html = reportViewToHtml(view);
+    const text = reportViewToText(view);
     try {
       if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
         await navigator.clipboard.write([new ClipboardItem({
@@ -328,8 +358,7 @@ export class DailyReportComponent implements OnDestroy {
         await navigator.clipboard.writeText(text);
       }
       this.toast.success('Report copied — paste into Teams');
-    } catch (err) {
-      // Rich copy unsupported/blocked → fall back to plain text.
+    } catch {
       try {
         await navigator.clipboard.writeText(text);
         this.toast.info('Copied as plain text');
@@ -337,6 +366,29 @@ export class DailyReportComponent implements OnDestroy {
         this.toast.error('Could not access the clipboard');
       }
     }
+  }
+
+  /** Open a past report in the read-only viewer. */
+  async openHistory(date: string): Promise<void> {
+    const group = this.selectedGroup();
+    if (!group) return;
+    try {
+      const view = await this.daily.loadHistoricalView(group.id, date);
+      this.historyView.set(view);
+      this.historyDate.set(date);
+    } catch (err: any) {
+      console.error('[daily] load history failed', err);
+      this.toast.error('Could not load that report');
+    }
+  }
+
+  closeHistory(): void {
+    this.historyView.set(null);
+    this.historyDate.set(null);
+  }
+
+  shortDate(date: string): string {
+    return this.calendar.formatShort(date);
   }
 
   /** Import the report into a new personal Note the user can freely edit. */

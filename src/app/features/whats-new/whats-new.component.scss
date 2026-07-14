@@ -1,0 +1,159 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.whats-new {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: $space-6;
+
+  &__header { margin-bottom: $space-8; }
+
+  &__title-wrap {
+    display: flex;
+    align-items: center;
+    gap: $space-4;
+  }
+
+  &__logo {
+    @include flex-center;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: $radius-lg;
+    background: var(--surface-brand);
+    color: var(--text-brand);
+  }
+
+  &__title {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: var(--text-primary);
+  }
+
+  &__subtitle {
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: $font-size-sm;
+  }
+
+  &__timeline {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.release {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: $space-4;
+
+  &__marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+
+    // vertical connector line
+    &::after {
+      content: '';
+      flex: 1;
+      width: 2px;
+      margin-top: $space-2;
+      background: var(--border-subtle);
+    }
+  }
+
+  &:last-child &__marker::after { display: none; }
+
+  &__dot {
+    width: 12px;
+    height: 12px;
+    border-radius: $radius-full;
+    background: var(--border-strong);
+    flex-shrink: 0;
+  }
+
+  &--latest &__dot {
+    background: var(--accent-500);
+    box-shadow: 0 0 0 4px var(--surface-brand);
+  }
+
+  &__body {
+    padding-bottom: $space-8;
+    min-width: 0;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    margin-bottom: $space-2;
+  }
+
+  &__version {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: var(--text-primary);
+  }
+
+  &__badge {
+    font-size: 10px;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px $space-2;
+    border-radius: $radius-full;
+    background: var(--surface-brand);
+    color: var(--text-brand);
+  }
+
+  &__date {
+    margin-left: auto;
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+  }
+
+  &__headline {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+    margin-bottom: $space-3;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-3;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    line-height: $line-height-normal;
+  }
+
+  &__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 2px $space-2;
+    border-radius: $radius-full;
+    font-size: 11px;
+    font-weight: $font-weight-semibold;
+    line-height: 1.4;
+
+    &--added    { background: rgba(16, 185, 129, 0.14); color: $emerald-600; }
+    &--improved { background: var(--surface-brand);      color: var(--text-brand); }
+    &--fixed    { background: rgba(245, 158, 11, 0.16);  color: $amber-600; }
+  }
+
+  &__text { padding-top: 1px; }
+}
+
+// Emerald reads too dark on charcoal — lift it in dark mode.
+[data-theme='dark'] .release__tag--added    { color: $emerald-400; }
+[data-theme='dark'] .release__tag--fixed    { color: $amber-400; }

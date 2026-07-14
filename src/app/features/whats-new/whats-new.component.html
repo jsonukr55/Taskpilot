@@ -1,0 +1,47 @@
+<div class="whats-new">
+  <header class="whats-new__header">
+    <div class="whats-new__title-wrap">
+      <div class="whats-new__logo">
+        <tp-icon name="sparkles" [size]="22" />
+      </div>
+      <div>
+        <h1 class="whats-new__title">What's New</h1>
+        <p class="whats-new__subtitle">The latest updates and improvements to TaskPilot.</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="whats-new__timeline">
+    @for (note of release.notes; track note.version; let first = $first) {
+      <article class="release" [class.release--latest]="first">
+        <div class="release__marker">
+          <span class="release__dot"></span>
+        </div>
+
+        <div class="release__body">
+          <div class="release__head">
+            <span class="release__version">{{ note.version }}</span>
+            @if (first) { <span class="release__badge">Latest</span> }
+            <span class="release__date">{{ note.date }}</span>
+          </div>
+
+          @if (note.title) {
+            <h2 class="release__headline">{{ note.title }}</h2>
+          }
+
+          <ul class="release__items">
+            @for (item of note.items; track item.text) {
+              <li class="release__item">
+                <span class="release__tag release__tag--{{ item.type }}">
+                  <tp-icon [name]="typeMeta[item.type].icon" [size]="12" />
+                  {{ typeMeta[item.type].label }}
+                </span>
+                <span class="release__text">{{ item.text }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      </article>
+    }
+  </div>
+</div>

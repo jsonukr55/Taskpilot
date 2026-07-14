@@ -165,11 +165,16 @@ _ⓦ = already falls on a weekend (Sat/Sun)._
   *own* (`userId == uid`). Group tasks assigned to you but created by someone
   else aren't surfaced yet — revisit if needed.
 
-#### Phase 3 — Reminders & archive
-- EOD reminder to members to submit; "all submitted" ping to manager.
-- Searchable history/archive of past reports.
-- Optional rich-text copy variant.
-- "On leave" marker per member.
+#### Phase 3 — Reminders & archive 🟢 built (in-app nudges)
+- **In-app nudge**: amber "you haven't submitted today's update" banner when it's
+  a working day, unlocked, and you haven't submitted.
+- **Manager submitted-count**: "X/Y in" on the Team report header.
+- **History/archive**: "Past reports" list per team; open any past report in a
+  read-only viewer with Copy for Teams (rich HTML). Sorted client-side (no
+  Firestore composite index needed).
+- Reminder delivery = **in-app only** for now. Scheduled push/email (Cloud
+  Function at a set IST time) deferred — needs FCM/email infra + a deployed fn.
+- "On leave" marker + rich-text copy already shipped earlier.
 
 ---
 

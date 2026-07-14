@@ -88,6 +88,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/analytics/analytics.component').then(m => m.AnalyticsComponent),
         title: 'Analytics — TaskPilot'
       },
+      {
+        path: 'whats-new',
+        loadComponent: () => import('./features/whats-new/whats-new.component').then(m => m.WhatsNewComponent),
+        title: "What's New — TaskPilot"
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

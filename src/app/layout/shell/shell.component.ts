@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { TopbarComponent } from '../topbar/topbar.component';
+import { ToastComponent } from '@shared/components/toast/toast.component';
 import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
 import { SchedulingService } from '@core/services/scheduling.service';
@@ -10,7 +11,7 @@ import { GroupService } from '@core/services/group.service';
 @Component({
   selector:   'tp-shell',
   standalone: true,
-  imports:    [RouterOutlet, SidebarComponent, TopbarComponent],
+  imports:    [RouterOutlet, SidebarComponent, TopbarComponent, ToastComponent],
   template: `
     <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
       @if (!sidebarCollapsed()) {
@@ -27,6 +28,7 @@ import { GroupService } from '@core/services/group.service';
         </main>
       </div>
     </div>
+    <tp-toast />
   `,
   styleUrl: './shell.component.scss'
 })

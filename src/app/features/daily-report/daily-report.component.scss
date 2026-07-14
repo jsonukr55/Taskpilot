@@ -142,6 +142,42 @@
     margin-top: $space-1;
   }
 
+  // ---- Task / carry-over suggestions ----
+  &__suggest {
+    margin-top: $space-3;
+    padding-top: $space-3;
+    border-top: 1px dashed var(--border-default);
+  }
+  &__suggest-label {
+    font-size: $font-size-xs;
+    color: var(--text-secondary);
+    margin-bottom: $space-2;
+    & + .daily__chips { margin-bottom: $space-3; }
+  }
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-2;
+  }
+  &__suggest-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    max-width: 100%;
+    padding: $space-1 $space-2;
+    border: 1px solid var(--border-default);
+    border-radius: $radius-full;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: $font-size-xs;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover { border-color: $indigo-500; color: var(--text-primary); }
+  }
+
   // ---- On leave ----
   &__leave-toggle {
     display: flex;
@@ -202,7 +238,15 @@
     gap: $space-3;
     margin-bottom: $space-3;
   }
-  &__preview {
+  &__preview-actions {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+  }
+  &__raw-toggle { font-size: $font-size-xs; }
+
+  // Raw plain-text (toggle) — exactly what gets pasted.
+  &__preview-raw {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-default);
     border-radius: $radius-lg;
@@ -214,5 +258,102 @@
     white-space: pre-wrap;
     overflow-x: auto;
     max-height: 460px;
+  }
+
+  // Formatted card preview.
+  &__report {
+    border: 1px solid var(--border-default);
+    border-radius: $radius-lg;
+    background: var(--bg-secondary, var(--bg-tertiary));
+    overflow: hidden;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  &__report-head {
+    padding: $space-4 $space-5;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(99, 102, 241, 0.04));
+    border-bottom: 1px solid var(--border-default);
+  }
+  &__report-greeting { font-size: $font-size-xs; color: var(--text-secondary); }
+  &__report-title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: var(--text-primary);
+    margin-top: 2px;
+  }
+  &__report-date {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    margin-top: $space-2;
+    padding: 2px $space-2;
+    border-radius: $radius-full;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+  }
+
+  &__report-section {
+    padding: $space-4 $space-5;
+    & + & { border-top: 1px solid var(--border-default); }
+  }
+  &__report-section-title {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $indigo-500;
+    margin-bottom: $space-3;
+  }
+  &__report-row {
+    padding-left: $space-3;
+    border-left: 2px solid var(--border-default);
+    margin-bottom: $space-3;
+    &:last-child { margin-bottom: 0; }
+  }
+  &__report-name {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+    margin-bottom: $space-1;
+  }
+  &__report-lines {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    li {
+      position: relative;
+      padding-left: $space-3;
+      font-size: $font-size-sm;
+      color: var(--text-secondary);
+      line-height: 1.5;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 2px;
+        top: 8px;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--text-tertiary, var(--text-secondary));
+      }
+    }
+  }
+  &__report-leave {
+    display: inline-block;
+    padding: 1px $space-2;
+    border-radius: $radius-full;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-size: $font-size-xs;
+  }
+  &__report-empty {
+    font-size: $font-size-sm;
+    color: var(--text-tertiary, var(--text-secondary));
+    font-style: italic;
   }
 }

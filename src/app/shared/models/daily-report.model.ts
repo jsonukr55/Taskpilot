@@ -82,46 +82,115 @@ export const ENTRY_STATUS_LABELS: Record<EntryStatus, string> = {
   pending:   'Pending'
 };
 
+// ---- Structured report (single source of truth for text + UI) ----
+
+/** One person's block within a section. `onLeave` rows carry no lines. */
+export interface ReportRow {
+  userId:      string;
+  displayName: string;
+  onLeave:     boolean;
+  lines:       string[];
+}
+
+export interface ReportView {
+  dateHeader: string;
+  progress:   ReportRow[];
+  plan:       ReportRow[];
+}
+
 /**
- * Build the exact Teams-paste text. Pure — no Firestore, no dates beyond the
- * pre-formatted header — so it's trivially testable and always matches format.
- *
- * Ordering: `order` first (roster), then any stragglers not in it.
+ * Reduce the raw entries to the exact rows that appear in the report.
+ * Ordering: `order` first (roster), then any stragglers.
  * Omission: members with no lines are dropped so the post stays clean.
- * On leave: shown once under Progress as "On leave"; skipped under Plan.
+ * On leave: a row under Progress ("On leave"); skipped under Plan.
+ * This is the ONE place those rules live — both the text and the pretty
+ * preview render from it, so they can never drift apart.
  */
-export function buildReportText(opts: {
+export function buildReportView(opts: {
   dateHeader: string;          // e.g. '13 July 2026 (Monday)'
   entries:    DailyEntry[];
   order:      string[];        // uid order
-}): string {
+}): ReportView {
   const byId = new Map(opts.entries.map(e => [e.userId, e]));
   const ordered: DailyEntry[] = [
     ...opts.order.map(uid => byId.get(uid)).filter((e): e is DailyEntry => !!e),
     ...opts.entries.filter(e => !opts.order.includes(e.userId))
   ];
 
-  const section = (pick: (e: DailyEntry) => ReportLine[], showLeave: boolean): string => {
-    const blocks: string[] = [];
+  const rows = (pick: (e: DailyEntry) => ReportLine[], showLeave: boolean): ReportRow[] => {
+    const out: ReportRow[] = [];
     for (const e of ordered) {
       if (e.onLeave) {
-        if (showLeave) blocks.push(`${e.displayName}\n  On leave`);
+        if (showLeave) out.push({ userId: e.userId, displayName: e.displayName, onLeave: true, lines: [] });
         continue;
       }
       const lines = pick(e).map(l => l.text.trim()).filter(Boolean);
       if (!lines.length) continue;
-      blocks.push([e.displayName, ...lines.map(t => `  ${t}`)].join('\n'));
+      out.push({ userId: e.userId, displayName: e.displayName, onLeave: false, lines });
     }
-    return blocks.join('\n');
+    return out;
   };
+
+  return {
+    dateHeader: opts.dateHeader,
+    progress:   rows(e => e.progress, true),
+    plan:       rows(e => e.plan, false)
+  };
+}
+
+/** Render a ReportView to the exact Teams-paste plain text. */
+export function reportViewToText(view: ReportView): string {
+  const section = (rows: ReportRow[]): string =>
+    rows.map(r => r.onLeave
+      ? `${r.displayName}\n  On leave`
+      : [r.displayName, ...r.lines.map(t => `  ${t}`)].join('\n')
+    ).join('\n');
 
   return [
     'Hi Everyone,',
     'Daily Task Report',
-    `Date: ${opts.dateHeader}`,
+    `Date: ${view.dateHeader}`,
     'Progress Update',
-    section(e => e.progress, true),
+    section(view.progress),
     'Plan for Tomorrow',
-    section(e => e.plan, false)
+    section(view.plan)
   ].join('\n');
+}
+
+/** The exact Teams-paste text, straight from entries. */
+export function buildReportText(opts: {
+  dateHeader: string;
+  entries:    DailyEntry[];
+  order:      string[];
+}): string {
+  return reportViewToText(buildReportView(opts));
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Rich-HTML version of the report — this is what goes on the clipboard as
+ * `text/html` so pasting into Teams renders **bold** headers/names and bulleted
+ * lists (matching the manager's target format), not flat text.
+ */
+export function reportViewToHtml(view: ReportView): string {
+  const rowHtml = (r: ReportRow): string => {
+    const name = `<p><strong>${escapeHtml(r.displayName)}</strong></p>`;
+    if (r.onLeave) return `${name}<p>On leave</p>`;
+    const items = r.lines.map(l => `<li>${escapeHtml(l)}</li>`).join('');
+    return `${name}<ul>${items}</ul>`;
+  };
+  const section = (title: string, rows: ReportRow[]): string =>
+    `<p><strong>${title}</strong></p>${rows.map(rowHtml).join('')}`;
+
+  return [
+    `<p>Hi Everyone,<br><strong>Daily Task Report</strong><br>`,
+    `<strong>Date:</strong> ${escapeHtml(view.dateHeader)}</p>`,
+    `<hr>`,
+    section('Progress Update', view.progress),
+    `<hr>`,
+    section('Plan for Tomorrow', view.plan)
+  ].join('');
 }

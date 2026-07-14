@@ -85,6 +85,31 @@
             <button class="daily__add btn-ghost" (click)="addLine('progress')" [disabled]="daily.isLocked()">
               <tp-icon name="plus" [size]="14" /> Add line
             </button>
+
+            @if (!daily.isLocked() && (carryOverSuggestions().length || progressSuggestions().length)) {
+              <div class="daily__suggest">
+                @if (carryOverSuggestions().length) {
+                  <p class="daily__suggest-label">From yesterday's plan — did you do these?</p>
+                  <div class="daily__chips">
+                    @for (l of carryOverSuggestions(); track l.id) {
+                      <button class="daily__suggest-chip" (click)="addCarryOver(l)">
+                        <tp-icon name="plus" [size]="12" /> {{ l.text }}
+                      </button>
+                    }
+                  </div>
+                }
+                @if (progressSuggestions().length) {
+                  <p class="daily__suggest-label">From your tasks</p>
+                  <div class="daily__chips">
+                    @for (s of progressSuggestions(); track s.taskId) {
+                      <button class="daily__suggest-chip" (click)="addTaskSuggestion('progress', s)">
+                        <tp-icon name="plus" [size]="12" /> {{ s.text }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
           </div>
 
           <!-- Plan -->
@@ -108,13 +133,19 @@
             <button class="daily__add btn-ghost" (click)="addLine('plan')" [disabled]="daily.isLocked()">
               <tp-icon name="plus" [size]="14" /> Add line
             </button>
-          </div>
-        }
 
-        @if (saveError()) {
-          <div class="daily__banner daily__banner--error">
-            <tp-icon name="alert-circle" [size]="16" />
-            <span>{{ saveError() }}</span>
+            @if (!daily.isLocked() && planSuggestions().length) {
+              <div class="daily__suggest">
+                <p class="daily__suggest-label">From your tasks</p>
+                <div class="daily__chips">
+                  @for (s of planSuggestions(); track s.taskId) {
+                    <button class="daily__suggest-chip" (click)="addTaskSuggestion('plan', s)">
+                      <tp-icon name="plus" [size]="12" /> {{ s.text }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
           </div>
         }
 
@@ -161,12 +192,62 @@
           <!-- Preview + copy -->
           <div class="daily__preview-head">
             <h3 class="daily__section-title">Preview</h3>
-            <button class="btn btn-primary" (click)="copyReport()">
-              <tp-icon name="copy" [size]="14" />
-              {{ copied() ? 'Copied!' : 'Copy for Teams' }}
-            </button>
+            <div class="daily__preview-actions">
+              <button class="daily__raw-toggle btn-ghost" (click)="showRaw.set(!showRaw())">
+                {{ showRaw() ? 'Formatted' : 'Raw text' }}
+              </button>
+              <button class="btn btn-primary" (click)="copyReport()">
+                <tp-icon name="copy" [size]="14" /> Copy for Teams
+              </button>
+            </div>
           </div>
-          <pre class="daily__preview">{{ daily.reportText() }}</pre>
+
+          @if (showRaw()) {
+            <pre class="daily__preview-raw">{{ daily.reportText() }}</pre>
+          } @else {
+            <div class="daily__report">
+              <div class="daily__report-head">
+                <div class="daily__report-greeting">Hi Everyone,</div>
+                <div class="daily__report-title">Daily Task Report</div>
+                <div class="daily__report-date">
+                  <tp-icon name="calendar" [size]="13" />
+                  {{ daily.dateHeader() }}
+                </div>
+              </div>
+
+              <div class="daily__report-section">
+                <div class="daily__report-section-title">Progress Update</div>
+                @for (row of daily.reportView().progress; track row.userId) {
+                  <div class="daily__report-row">
+                    <div class="daily__report-name">{{ row.displayName }}</div>
+                    @if (row.onLeave) {
+                      <span class="daily__report-leave">On leave</span>
+                    } @else {
+                      <ul class="daily__report-lines">
+                        @for (l of row.lines; track $index) { <li>{{ l }}</li> }
+                      </ul>
+                    }
+                  </div>
+                } @empty {
+                  <p class="daily__report-empty">No progress submitted yet.</p>
+                }
+              </div>
+
+              <div class="daily__report-section">
+                <div class="daily__report-section-title">Plan for Tomorrow</div>
+                @for (row of daily.reportView().plan; track row.userId) {
+                  <div class="daily__report-row">
+                    <div class="daily__report-name">{{ row.displayName }}</div>
+                    <ul class="daily__report-lines">
+                      @for (l of row.lines; track $index) { <li>{{ l }}</li> }
+                    </ul>
+                  </div>
+                } @empty {
+                  <p class="daily__report-empty">No plans submitted yet.</p>
+                }
+              </div>
+            </div>
+          }
         </section>
       }
     </div>

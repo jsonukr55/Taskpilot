@@ -131,6 +131,21 @@ export class WorkingCalendarService {
     return d;
   }
 
+  /** The previous working day strictly before `date` (Monday → Friday). */
+  previousWorkingDay(date: string = this.today()): string {
+    let d = this.addDays(date, -1);
+    for (let i = 0; i < 30 && !this.isWorkingDay(d); i++) {
+      d = this.addDays(d, -1);
+    }
+    return d;
+  }
+
+  /** IST calendar date ('YYYY-MM-DD') for an absolute instant (e.g. a Firestore
+   *  Timestamp's Date) — so "completed today" compares in the team's timezone. */
+  toDateStr(d: Date): string {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: this.timezone }).format(d);
+  }
+
   // ---- Formatting ----
 
   /** '2026-07-13' → '13 July 2026 (Monday)'. */

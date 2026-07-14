@@ -1,13 +1,14 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import {
-  Firestore, collection, doc, onSnapshot,
+  Firestore, collection, doc, getDoc, onSnapshot,
   setDoc, updateDoc, serverTimestamp, Timestamp
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { WorkingCalendarService } from './working-calendar.service';
 import { Group } from '@shared/models/group.model';
 import {
-  DailyReport, DailyEntry, ReportLine, buildReportText
+  DailyReport, DailyEntry, ReportLine, ReportView,
+  buildReportView, reportViewToText, reportViewToHtml
 } from '@shared/models/daily-report.model';
 
 // ============================================================
@@ -45,12 +46,18 @@ export class DailyReportService {
   readonly dateHeader     = computed(() => this.calendar.formatHeader(this.date()));
   readonly planDateHeader = computed(() => this.calendar.formatHeader(this.planForDate()));
 
-  /** Exact Teams-paste text, kept live from the entries. */
-  readonly reportText = computed(() => buildReportText({
+  /** Structured report — drives both the pretty preview and the copied text. */
+  readonly reportView = computed<ReportView>(() => buildReportView({
     dateHeader: this.dateHeader(),
     entries:    this.entries(),
     order:      this.report()?.memberOrder ?? this.entries().map(e => e.userId)
   }));
+
+  /** Exact Teams-paste text, kept live from the entries. */
+  readonly reportText = computed(() => reportViewToText(this.reportView()));
+
+  /** Rich HTML for the clipboard — pastes into Teams as formatted text. */
+  readonly reportHtml = computed(() => reportViewToHtml(this.reportView()));
 
   private unsubReport?:  () => void;
   private unsubEntries?: () => void;
@@ -161,6 +168,23 @@ export class DailyReportService {
       lockedAt:  serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+  }
+
+  /** Carry-over: the current user's Plan lines from the previous working day's
+   *  report, offered as today's Progress suggestions. Empty if there's none. */
+  async getPreviousPlan(groupId: string): Promise<ReportLine[]> {
+    const uid = this.auth.userId();
+    if (!uid) return [];
+    const prev = this.calendar.previousWorkingDay(this.date());
+    try {
+      const snap = await getDoc(
+        doc(this.firestore, 'dailyReports', this.reportId(groupId, prev), 'entries', uid)
+      );
+      if (!snap.exists()) return [];
+      return ((snap.data() as DailyEntry).plan ?? []).filter(l => l.text.trim());
+    } catch {
+      return [];
+    }
   }
 
   // ---- Helpers ----

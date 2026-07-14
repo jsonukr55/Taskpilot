@@ -5,6 +5,7 @@ import { GroupService } from '@core/services/group.service';
 import { NoteService } from '@core/services/note.service';
 import { TaskService } from '@core/services/task.service';
 import { AuthService } from '@core/services/auth.service';
+import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
@@ -12,6 +13,9 @@ import {
   Group, GroupInvite, GroupRole, groupMembers, ROLE_LABELS
 } from '@shared/models/group.model';
 import { Task } from '@shared/models/task.model';
+
+const GROUP_ICONS  = ['👥','🚀','📁','🎯','💼','🧩','🏗️','🌐','🔬','🎨','📊','🛠️'];
+const GROUP_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 
 @Component({
   selector:   'tp-group-detail',
@@ -27,6 +31,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   readonly notes  = inject(NoteService);
   readonly tasks  = inject(TaskService);
   readonly auth   = inject(AuthService);
+  private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
   readonly ROLE_LABELS = ROLE_LABELS;
@@ -56,6 +61,10 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   readonly showSettings = signal(false);
   readonly editName     = signal('');
   readonly editDesc     = signal('');
+  readonly editIcon     = signal('👥');
+  readonly editColor    = signal('#6366f1');
+  readonly ICONS  = GROUP_ICONS;
+  readonly COLORS = GROUP_COLORS;
 
   readonly newTaskTitle = signal('');
   readonly assignMenuFor = signal<string | null>(null); // taskId whose assignee menu is open
@@ -160,13 +169,26 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     if (!g) return;
     this.editName.set(g.name);
     this.editDesc.set(g.description ?? '');
+    this.editIcon.set(g.icon);
+    this.editColor.set(g.color);
     this.showSettings.set(true);
   }
   async saveSettings(): Promise<void> {
     const name = this.editName().trim();
     if (name.length < 2) return;
-    await this.groups.updateGroup(this.groupId(), { name, description: this.editDesc().trim() });
-    this.showSettings.set(false);
+    try {
+      await this.groups.updateGroup(this.groupId(), {
+        name,
+        description: this.editDesc().trim(),
+        icon:        this.editIcon(),
+        color:       this.editColor()
+      });
+      this.showSettings.set(false);
+      this.toast.success('Group updated');
+    } catch (err: any) {
+      console.error('[group] update failed', err);
+      this.toast.error(err?.message ?? 'Could not update the group');
+    }
   }
   async deleteGroup(): Promise<void> {
     const g = this.group();

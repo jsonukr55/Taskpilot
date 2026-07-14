@@ -268,3 +268,39 @@
     span:first-of-type { margin-right: auto; }
   }
 }
+
+// ---- Icon / color pickers (group settings) ----
+.gd-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    border-radius: $radius-lg;
+    border: 1px solid var(--border-default);
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    transition: border-color .15s, transform .1s;
+
+    &:hover { transform: translateY(-1px); }
+    &.selected { border-color: $indigo-500; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3); }
+  }
+
+  &__color {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform .1s;
+
+    &:hover { transform: scale(1.08); }
+    &.selected { border-color: var(--text-primary); box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px currentColor; }
+  }
+}

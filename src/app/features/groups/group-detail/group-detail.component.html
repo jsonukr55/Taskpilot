@@ -235,6 +235,24 @@
           <label class="form-label">Description</label>
           <textarea class="form-textarea" [ngModel]="editDesc()" (ngModelChange)="editDesc.set($event)"></textarea>
         </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <div class="gd-picker">
+            @for (ic of ICONS; track ic) {
+              <button type="button" class="gd-picker__icon" [class.selected]="editIcon() === ic"
+                      (click)="editIcon.set(ic)">{{ ic }}</button>
+            }
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="gd-picker">
+            @for (c of COLORS; track c) {
+              <button type="button" class="gd-picker__color" [class.selected]="editColor() === c"
+                      [style.background]="c" (click)="editColor.set(c)" [attr.aria-label]="c"></button>
+            }
+          </div>
+        </div>
         <div class="modal__footer">
           <button class="btn-danger" (click)="deleteGroup()"><tp-icon name="trash-2" [size]="16" /> Delete group</button>
           <button class="btn-primary" (click)="saveSettings()">Save</button>

@@ -154,11 +154,16 @@ _ⓦ = already falls on a weekend (Sat/Sun)._
 - Absent handling: *Pending* chips in manager view, omit-from-paste default.
 - Lock/finalize (manager) → report becomes read-only + archived.
 
-#### Phase 2 — Hybrid auto pre-fill (Decision C)
-- Pre-fill Progress from tasks worked/completed today.
-- Pre-fill Plan from tasks due the next working day.
-- Editable / override; add manual (non-task) lines; link line ↔ task.
-- Carry-over: yesterday's Plan seeds today's Progress draft.
+#### Phase 2 — Hybrid auto pre-fill (Decision C) 🟢 built
+- Progress suggestions = your tasks **completed today** (IST) or **in progress**.
+- Plan suggestions = your tasks **due the next working day** or **in progress**.
+- **Carry-over**: your previous working day's Plan offered under Progress
+  ("did you do these?"), fetched on team select.
+- Rendered as **click-to-add suggestion chips**; each adds an editable line with
+  a `taskId` link. Nothing auto-commits; already-added items drop out.
+- **v1 limitation:** suggestions come from `TaskService.tasks()` = tasks you
+  *own* (`userId == uid`). Group tasks assigned to you but created by someone
+  else aren't surfaced yet — revisit if needed.
 
 #### Phase 3 — Reminders & archive
 - EOD reminder to members to submit; "all submitted" ping to manager.

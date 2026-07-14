@@ -11,7 +11,7 @@ import { AuthService } from './auth.service';
 import {
   Group, GroupRole, GroupInvite, InvitePreview, canEdit
 } from '@shared/models/group.model';
-import { inviteToken } from '@shared/utils/id.util';
+import { inviteToken, slugId } from '@shared/utils/id.util';
 
 // ============================================================
 // GroupService — collaborative groups, members, invites
@@ -89,7 +89,8 @@ export class GroupService {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
 
-    const ref = await addDoc(collection(this.firestore, 'groups'), {
+    const id = slugId(data.name);
+    await setDoc(doc(this.firestore, 'groups', id), {
       name:        data.name.trim(),
       description: data.description?.trim() ?? '',
       icon:        data.icon,
@@ -106,7 +107,7 @@ export class GroupService {
       createdAt:   serverTimestamp(),
       updatedAt:   serverTimestamp()
     });
-    return ref.id;
+    return id;
   }
 
   async updateGroup(id: string, changes: Partial<Pick<Group, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {

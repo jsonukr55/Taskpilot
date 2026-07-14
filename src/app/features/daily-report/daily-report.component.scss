@@ -178,6 +178,19 @@
     &:hover { border-color: $indigo-500; color: var(--text-primary); }
   }
 
+  // ---- Name field ----
+  &__name-field {
+    display: flex;
+    flex-direction: column;
+    gap: $space-1;
+    margin-bottom: $space-4;
+  }
+  &__name-label {
+    font-size: $font-size-xs;
+    color: var(--text-secondary);
+  }
+  &__name-input { @include input-base; }
+
   // ---- On leave ----
   &__leave-toggle {
     display: flex;

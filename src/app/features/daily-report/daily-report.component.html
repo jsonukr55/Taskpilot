@@ -62,6 +62,14 @@
           </label>
         </div>
 
+        <div class="daily__name-field">
+          <label class="daily__name-label">Name shown on the report</label>
+          <input type="text" class="daily__name-input" [value]="displayName()"
+                 placeholder="e.g. Rashika"
+                 (input)="onNameInput($any($event.target).value)"
+                 [disabled]="daily.isLocked()" />
+        </div>
+
         @if (onLeave()) {
           <p class="daily__leave-note">
             You're marked <strong>on leave</strong> — you'll show as “On leave” in the report.
@@ -195,6 +203,9 @@
             <div class="daily__preview-actions">
               <button class="daily__raw-toggle btn-ghost" (click)="showRaw.set(!showRaw())">
                 {{ showRaw() ? 'Formatted' : 'Raw text' }}
+              </button>
+              <button class="btn btn-secondary" (click)="sendToNotes()" data-tooltip="Import into a note to edit">
+                <tp-icon name="file-text" [size]="14" /> Send to Notes
               </button>
               <button class="btn btn-primary" (click)="copyReport()">
                 <tp-icon name="copy" [size]="14" /> Copy for Teams

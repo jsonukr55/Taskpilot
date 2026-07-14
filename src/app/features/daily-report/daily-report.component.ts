@@ -1,18 +1,21 @@
 import { Component, inject, signal, computed, effect, OnDestroy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GroupService } from '@core/services/group.service';
 import { DailyReportService } from '@core/services/daily-report.service';
 import { WorkingCalendarService } from '@core/services/working-calendar.service';
 import { TaskService } from '@core/services/task.service';
 import { ToastService } from '@core/services/toast.service';
+import { AuthService } from '@core/services/auth.service';
+import { NoteService } from '@core/services/note.service';
+import { NoteBlock, newBlock } from '@shared/models/note.model';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { Group, groupMembers, GroupMember } from '@shared/models/group.model';
 import { TaskStatus } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
 import {
-  ReportLine, newLine, entryStatus, EntryStatus, ENTRY_STATUS_LABELS
+  ReportLine, ReportView, newLine, entryStatus, EntryStatus, ENTRY_STATUS_LABELS
 } from '@shared/models/daily-report.model';
 
 /** A one-click line drawn from one of the user's tasks (hybrid pre-fill). */
@@ -43,7 +46,10 @@ export class DailyReportComponent implements OnDestroy {
   readonly daily    = inject(DailyReportService);
   readonly calendar = inject(WorkingCalendarService);
   readonly tasks    = inject(TaskService);
-  private readonly toast = inject(ToastService);
+  private readonly toast  = inject(ToastService);
+  private readonly auth   = inject(AuthService);
+  private readonly notes  = inject(NoteService);
+  private readonly router = inject(Router);
 
   // ---- Team selection ----
   readonly selectedGroupId = signal<string | null>(null);
@@ -61,6 +67,7 @@ export class DailyReportComponent implements OnDestroy {
   );
 
   // ---- Local editable state (my entry) ----
+  readonly displayName   = signal('');   // name shown for me on the report
   readonly progressLines = signal<ReportLine[]>([newLine()]);
   readonly planLines     = signal<ReportLine[]>([newLine()]);
   readonly onLeave       = signal(false);
@@ -125,6 +132,7 @@ export class DailyReportComponent implements OnDestroy {
     effect(() => {
       const entry = this.daily.myEntry();
       if (this.dirty()) return;
+      this.displayName.set(entry?.displayName || this.auth.displayName() || '');
       this.progressLines.set(entry?.progress?.length ? entry.progress.map(l => ({ ...l })) : [newLine()]);
       this.planLines.set(entry?.plan?.length ? entry.plan.map(l => ({ ...l })) : [newLine()]);
       this.onLeave.set(entry?.onLeave ?? false);
@@ -175,6 +183,11 @@ export class DailyReportComponent implements OnDestroy {
     this.dirty.set(true);
   }
 
+  onNameInput(value: string): void {
+    this.displayName.set(value);
+    this.dirty.set(true);
+  }
+
   /** Append a suggestion as an editable line, dropping the empty placeholder. */
   private appendLine(which: Which, text: string, taskId: string | null): void {
     this.linesFor(which).update(list => {
@@ -214,10 +227,11 @@ export class DailyReportComponent implements OnDestroy {
         await this.recordLinesAsTasks('plan', 'todo');
       }
       await this.daily.saveMyEntry(group, {
-        progress:  onLeave ? [] : this.cleaned(this.progressLines()),
-        plan:      onLeave ? [] : this.cleaned(this.planLines()),
+        progress:    onLeave ? [] : this.cleaned(this.progressLines()),
+        plan:        onLeave ? [] : this.cleaned(this.planLines()),
         onLeave,
-        submitted
+        submitted,
+        displayName: this.displayName()
       });
       this.dirty.set(false);
       this.toast.success(submitted ? 'Update submitted' : 'Draft saved');
@@ -323,6 +337,41 @@ export class DailyReportComponent implements OnDestroy {
         this.toast.error('Could not access the clipboard');
       }
     }
+  }
+
+  /** Import the report into a new personal Note the user can freely edit. */
+  async sendToNotes(): Promise<void> {
+    const view = this.daily.reportView();
+    try {
+      const id = await this.notes.createNote(null, `Daily Report — ${this.daily.dateHeader()}`);
+      await this.notes.updateNote(null, id, { blocks: this.reportToBlocks(view), icon: '📋' });
+      this.toast.success('Imported to Notes');
+      this.router.navigate(['/notes', id]);
+    } catch (err: any) {
+      console.error('[daily] send to notes failed', err);
+      this.toast.error('Could not create the note');
+    }
+  }
+
+  /** Turn the report into editable note blocks (headings + bullets). */
+  private reportToBlocks(view: ReportView): NoteBlock[] {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const blocks: NoteBlock[] = [
+      newBlock('paragraph', 'Hi Everyone,'),
+      newBlock('paragraph', `Date: ${esc(view.dateHeader)}`),
+      newBlock('h2', 'Progress Update')
+    ];
+    for (const r of view.progress) {
+      blocks.push(newBlock('h3', esc(r.displayName)));
+      if (r.onLeave) blocks.push(newBlock('paragraph', 'On leave'));
+      else r.lines.forEach(l => blocks.push(newBlock('bulleted', esc(l))));
+    }
+    blocks.push(newBlock('h2', 'Plan for Tomorrow'));
+    for (const r of view.plan) {
+      blocks.push(newBlock('h3', esc(r.displayName)));
+      r.lines.forEach(l => blocks.push(newBlock('bulleted', esc(l))));
+    }
+    return blocks;
   }
 
   async lock(): Promise<void> {

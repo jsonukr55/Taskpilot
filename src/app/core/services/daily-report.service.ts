@@ -119,12 +119,15 @@ export class DailyReportService {
     return reportId;
   }
 
-  /** Save the current user's own entry (progress/plan/on-leave/submitted). */
+  /** Save the current user's own entry (progress/plan/on-leave/submitted).
+   *  `displayName` is the name shown on the report — the member controls it;
+   *  falls back to the account name. */
   async saveMyEntry(group: Group, data: {
     progress: ReportLine[];
     plan:     ReportLine[];
     onLeave:  boolean;
     submitted: boolean;
+    displayName?: string;
   }): Promise<void> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
@@ -133,7 +136,7 @@ export class DailyReportService {
     const reportId = await this.ensureReport(group);
     await setDoc(doc(this.firestore, 'dailyReports', reportId, 'entries', uid), {
       userId:      uid,
-      displayName: this.auth.displayName() || 'Member',
+      displayName: (data.displayName?.trim()) || this.auth.displayName() || 'Member',
       photoURL:    this.auth.photoURL() ?? null,
       progress:    data.progress,
       plan:        data.plan,

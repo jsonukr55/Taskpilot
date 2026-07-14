@@ -214,10 +214,16 @@ export class CreateTaskModalComponent {
     this.extracted.update(list => list.filter((_, i) => i !== index));
   }
 
+  openPicker(ev: Event): void {
+    const el = ev.target as HTMLInputElement & { showPicker?: () => void };
+    try { el.showPicker?.(); } catch { /* already open / not supported */ }
+  }
+
   // ---- Manual Form Submit ----
   async submitForm(): Promise<void> {
-    if (this.form.invalid) return;
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.isProcessing.set(true);
+    this.error.set(null);
 
     const v = this.form.value;
     try {
@@ -247,6 +253,9 @@ export class CreateTaskModalComponent {
         await this.taskService.createSubtask(parentId, st);
       }
       this.close.emit();
+    } catch (e: unknown) {
+      console.error('[CreateTask] save failed', e);
+      this.error.set(`Could not save task: ${(e as Error)?.message ?? e}`);
     } finally {
       this.isProcessing.set(false);
     }

@@ -26,6 +26,7 @@ export interface NoteBlock {
   type:        NoteBlockType;
   html:        string;               // inline formatting (bold/italic/links) as sanitized HTML
   checked?:    boolean;              // only for 'todo'
+  indent?:     number;               // nesting level for lists (0 = top level)
   assignees?:  NoteBlockAssignee[];  // per-line assignment + access (viewer/editor)
   assigneeId?: string | null;        // legacy single-assignee (read-only migration path)
   date?:       string | null;        // per-line date, ISO 'YYYY-MM-DD'

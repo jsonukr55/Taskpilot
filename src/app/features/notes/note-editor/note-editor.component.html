@@ -31,20 +31,22 @@
         <input class="doc-title" [value]="titleDraft()" (input)="onTitleInput($any($event.target).value)"
                [readOnly]="!canEdit()" placeholder="Untitled">
 
-        <div class="blocks">
+        <div class="blocks" cdkDropList (cdkDropListDropped)="onDrop($event)">
           @for (b of localBlocks(); track b.id; let i = $index) {
-            <div class="block" [class.block--sel]="selectedBlockId() === b.id">
+            <div class="block" cdkDrag [cdkDragDisabled]="!canEditBlock(b)"
+                 [attr.data-type]="b.type" [class.block--sel]="selectedBlockId() === b.id">
 
               <!-- Left gutter: + and ⋮⋮ (editors of this line only) -->
               @if (canEditBlock(b)) {
                 <div class="gutter">
                   <button class="gutter__btn" (click)="addBelow(i, $event)" data-tooltip="Insert block below"><tp-icon name="plus" [size]="16" /></button>
-                  <button class="gutter__btn gutter__handle" (click)="openBlockMenu(b.id, $event)" data-tooltip="Click to open menu"><span class="grip"></span></button>
+                  <button class="gutter__btn gutter__handle" cdkDragHandle (click)="openBlockMenu(b.id, $event)" data-tooltip="Drag to move · click for menu"><span class="grip"></span></button>
                 </div>
               }
 
               <!-- Content -->
-              <div class="block__main" [class.block__main--callout]="b.type === 'callout'">
+              <div class="block__main" [class.block__main--callout]="b.type === 'callout'"
+                   [style.marginLeft.px]="(b.indent || 0) * 24">
                 @if (b.type === 'divider') {
                   <hr class="block__hr">
                 } @else {
@@ -53,9 +55,9 @@
                       <tp-icon [name]="b.checked ? 'check-square' : 'square'" [size]="18" />
                     </button>
                   } @else if (b.type === 'bulleted') {
-                    <span class="block__marker">•</span>
+                    <span class="block__marker">{{ bulletChar(b.indent) }}</span>
                   } @else if (b.type === 'numbered') {
-                    <span class="block__marker">{{ i + 1 }}.</span>
+                    <span class="block__marker">{{ numberFor(i) }}.</span>
                   } @else if (b.type === 'callout') {
                     <span class="block__callout-emoji">💡</span>
                   }
@@ -71,6 +73,8 @@
                        (keydown.enter)="onEnter($event, b, i)"
                        (keydown.backspace)="onBackspace($event, b, i)"
                        (keydown.escape)="onEscape()"
+                       (keydown.tab)="onTabKey($event, b, false)"
+                       (keydown.shift.tab)="onTabKey($event, b, true)"
                        (paste)="onPaste($event)"></div>
                 }
               </div>

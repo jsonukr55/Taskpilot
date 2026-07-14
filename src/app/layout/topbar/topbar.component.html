@@ -10,12 +10,51 @@
     <input
       class="topbar__search-input"
       type="text"
-      placeholder="Search tasks..."
-      [value]="searchValue()"
-      (input)="onSearch($any($event.target).value)"
-      (change)="searchValue.set($any($event.target).value)"
+      placeholder="Search tasks & notes…"
+      [value]="search.queryText()"
+      (input)="search.setQuery($any($event.target).value)"
+      (keydown.escape)="search.close()"
     >
-    <kbd class="topbar__search-kbd">⌘K</kbd>
+    @if (search.queryText()) {
+      <button class="topbar__search-clear" (click)="search.close()"><tp-icon name="x" [size]="14" /></button>
+    } @else {
+      <kbd class="topbar__search-kbd">⌘K</kbd>
+    }
+
+    <!-- Results dropdown -->
+    @if (search.open()) {
+      <div class="search-results">
+        @if (search.taskHits().length) {
+          <div class="search-sec">
+            <p class="search-sec__label"><tp-icon name="check-square" [size]="12" /> Tasks</p>
+            @for (t of search.taskHits(); track t.id) {
+              <button class="search-item" (click)="openTask(t)">
+                <span class="search-item__title">{{ t.title }}</span>
+                <span class="search-item__badge">{{ t.status === 'in_progress' ? 'In progress' : t.status === 'completed' ? 'Done' : 'Open' }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        @for (sec of search.noteSections(); track sec.source) {
+          <div class="search-sec">
+            <p class="search-sec__label"><tp-icon name="file-text" [size]="12" /> {{ sec.source }}</p>
+            @for (h of sec.notes; track h.note.id) {
+              <button class="search-item search-item--note" (click)="openNote(h)">
+                <span class="search-item__title">{{ h.note.title || 'Untitled' }}</span>
+                <span class="search-item__preview">{{ search.preview(h.note) }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        @if (search.loading()) {
+          <div class="search-status"><span class="search-spinner"></span> Searching notes…</div>
+        } @else if (!search.hasResults()) {
+          <div class="search-status">No results for “{{ search.queryText() }}”.</div>
+        }
+      </div>
+    }
   </div>
 
   <div class="topbar__right">
@@ -25,10 +64,10 @@
       New Task
     </a>
 
-    <!-- AI Chat -->
-    <a routerLink="/ai-chat" class="btn btn-ghost btn-icon" data-tooltip="AI Assistant">
+    <!-- AI Chat (coming soon) -->
+    <button type="button" class="btn btn-ghost btn-icon topbar__soon" data-tooltip="Coming soon" aria-disabled="true">
       <tp-icon name="cpu" [size]="18" />
-    </a>
+    </button>
 
     <!-- Overdue indicator -->
     @if (tasks.overdueTasks().length > 0) {
@@ -39,3 +78,5 @@
     }
   </div>
 </header>
+
+@if (search.open()) { <div class="search-backdrop" (click)="search.close()"></div> }

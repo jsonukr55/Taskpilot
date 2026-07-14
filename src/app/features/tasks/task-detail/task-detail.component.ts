@@ -7,13 +7,14 @@ import { CategoryService } from '@core/services/category.service';
 import { SchedulingService } from '@core/services/scheduling.service';
 import { AuthService } from '@core/services/auth.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
 import { Task, TaskStatus, TaskPriority, ChecklistItem } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
 
 @Component({
   selector:   'tp-task-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, ReactiveFormsModule, DatePipe, DecimalPipe, IconComponent],
+  imports:    [RouterLink, FormsModule, ReactiveFormsModule, DatePipe, DecimalPipe, IconComponent, ShowPickerDirective],
   templateUrl: './task-detail.component.html',
   styleUrl:    './task-detail.component.scss'
 })

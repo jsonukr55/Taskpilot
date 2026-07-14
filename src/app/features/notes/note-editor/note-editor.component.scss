@@ -193,6 +193,7 @@
 .block__content {
   flex: 1;
   min-width: 0;
+  min-height: 1lh;           // reserve one line so empty blocks align with the gutter
   outline: none;
   line-height: 1.65;
   word-break: break-word;
@@ -229,6 +230,29 @@
   border: none;
   border-top: 1px solid var(--border-default);
   margin: $space-3 0;
+}
+
+// Align the +/⋮⋮ handle with the first line of taller block types
+.block[data-type='h1'] .gutter { padding-top: 16px; }
+.block[data-type='h2'] .gutter { padding-top: 10px; }
+.block[data-type='h3'] .gutter { padding-top: 5px; }
+.block[data-type='callout'] .gutter { padding-top: 14px; }
+
+// ---- Drag & drop (Angular CDK) ----
+.cdk-drag-preview {
+  box-sizing: border-box;
+  padding: 2px $space-4;
+  border-radius: $radius-md;
+  background: var(--bg-elevated);
+  box-shadow: $shadow-xl;
+  opacity: 0.95;
+
+  .gutter, .block__side { display: none; }   // clean floating preview: just the content
+}
+.cdk-drag-placeholder { opacity: 0.3; }
+.cdk-drag-animating { transition: transform 180ms cubic-bezier(0, 0, 0.2, 1); }
+.blocks.cdk-drop-list-dragging .block:not(.cdk-drag-placeholder) {
+  transition: transform 180ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 // ---- Floating selection menu ----

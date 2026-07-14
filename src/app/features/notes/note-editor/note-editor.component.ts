@@ -3,6 +3,7 @@ import {
   OnInit, OnDestroy, HostListener
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { GroupService } from '@core/services/group.service';
 import { NoteService } from '@core/services/note.service';
 import { AuthService } from '@core/services/auth.service';
@@ -30,7 +31,7 @@ interface Pos { x: number; y: number; }
 @Component({
   selector:   'tp-note-editor',
   standalone: true,
-  imports:    [RouterLink, IconComponent, EditableBlockDirective, CommentThreadComponent],
+  imports:    [RouterLink, DragDropModule, IconComponent, EditableBlockDirective, CommentThreadComponent],
   templateUrl: './note-editor.component.html',
   styleUrl:    './note-editor.component.scss'
 })
@@ -356,6 +357,42 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
     ev.preventDefault();
     const text = ev.clipboardData?.getData('text/plain') ?? '';
     document.execCommand('insertText', false, text);
+  }
+
+  // ---- Nesting (Tab / Shift+Tab) ----
+  onTabKey(ev: Event, block: NoteBlock, outdent: boolean): void {
+    ev.preventDefault();
+    const next = Math.max(0, Math.min(5, (block.indent ?? 0) + (outdent ? -1 : 1)));
+    if (next === (block.indent ?? 0)) return;
+    this.patchBlock(block.id, { indent: next });
+    this.focusBlock(block.id);
+  }
+
+  /** Bullet glyph rotates by nesting level, like Notion. */
+  bulletChar(indent = 0): string {
+    return ['•', '◦', '▪'][indent % 3];
+  }
+
+  /** Ordinal for a numbered item among its consecutive same-indent siblings. */
+  numberFor(index: number): number {
+    const blocks = this.localBlocks();
+    const curIndent = blocks[index].indent ?? 0;
+    let n = 1;
+    for (let i = index - 1; i >= 0; i--) {
+      const bi = blocks[i].indent ?? 0;
+      if (bi > curIndent) continue;                                   // deeper nested — skip
+      if (blocks[i].type === 'numbered' && bi === curIndent) { n++; continue; }
+      break;                                                          // sequence ended
+    }
+    return n;
+  }
+
+  // ---- Drag to reorder ----
+  onDrop(event: CdkDragDrop<NoteBlock[]>): void {
+    if (event.previousIndex === event.currentIndex) return;
+    const next = [...this.localBlocks()];
+    moveItemInArray(next, event.previousIndex, event.currentIndex);
+    this.setBlocks(next);
   }
 
   // ---- Selection (bubble) toolbar ----

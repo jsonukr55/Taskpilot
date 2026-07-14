@@ -3,13 +3,14 @@ import { FormsModule } from '@angular/forms';
 import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
 import { IconComponent } from '../icon/icon.component';
+import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
 import { Task, TaskStatus, TaskPriority, ChecklistItem } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
 
 @Component({
   selector: 'tp-task-drawer',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, ShowPickerDirective],
   templateUrl: './task-drawer.component.html',
   styleUrl: './task-drawer.component.scss',
   host: { '(document:keydown.escape)': 'close()' }
@@ -30,8 +31,13 @@ export class TaskDrawerComponent implements OnDestroy {
   editDueTime     = signal('');
   editTags        = signal('');
   editCategoryIds = signal<string[]>([]);
+  editEstHours    = signal<number | null>(null);
   newItemText     = signal('');
   newSubtaskTitle = signal('');
+
+  // Est. hours = sum of subtask hours when subtasks provide them, else manual.
+  readonly subtaskEstSum = computed(() => this.subtasks().reduce((s, t) => s + (t.estimatedHours ?? 0), 0));
+  readonly hasSubtaskEst = computed(() => this.subtasks().some(t => (t.estimatedHours ?? 0) > 0));
 
   saveState = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
@@ -79,6 +85,7 @@ export class TaskDrawerComponent implements OnDestroy {
         this.editDueTime.set(t.dueTime ?? '');
         this.editTags.set(t.tags.join(', '));
         this.editCategoryIds.set([...(t.categoryIds ?? [])]);
+        this.editEstHours.set(t.estimatedHours ?? null);
         this.saveState.set('idle');
         this.initialized = false;
         setTimeout(() => { this.initialized = true; }, 0);
@@ -130,6 +137,7 @@ export class TaskDrawerComponent implements OnDestroy {
         dueTime:     this.editDueTime() || null,
         tags:        this.editTags().split(',').map(t => t.trim()).filter(Boolean),
         categoryIds: this.editCategoryIds(),
+        estimatedHours: this.hasSubtaskEst() ? this.subtaskEstSum() : this.editEstHours(),
       });
       this.saveState.set('saved');
       setTimeout(() => this.saveState.set('idle'), 2000);

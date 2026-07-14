@@ -99,6 +99,22 @@
         </div>
       </div>
 
+      <!-- Est. hours (auto from subtasks, else manual) -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="clock" [size]="13" /> Est. hours
+        </span>
+        <div class="drawer__prop-value">
+          @if (hasSubtaskEst()) {
+            <span class="drawer__est-auto">{{ subtaskEstSum() }}h · auto from subtasks</span>
+          } @else {
+            <input type="number" min="0" step="0.5" class="drawer__input drawer__input--inline" placeholder="e.g. 2"
+              [value]="editEstHours()"
+              (input)="editEstHours.set($any($event.target).valueAsNumber || null); scheduleAutoSave()" />
+          }
+        </div>
+      </div>
+
       <!-- Category selector — click to toggle -->
       <div class="drawer__prop drawer__prop--wrap">
         <span class="drawer__prop-label">

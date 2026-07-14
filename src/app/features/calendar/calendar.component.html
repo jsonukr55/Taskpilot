@@ -30,13 +30,45 @@
       <!-- Sticky Day Headers -->
       <div class="week-view__grid week-view__grid--sticky-header">
         <div class="week-view__time-col week-view__time-col--header"></div>
-        @for (day of weekDays(); track day.toISOString()) {
-          <div class="week-view__day-header" [class.today]="isToday(day)">
-            <span class="week-view__day-name">{{ day | date:'EEE' }}</span>
-            <span class="week-view__day-num" [class.today-circle]="isToday(day)">{{ day | date:'d' }}</span>
+        @for (dayData of calendarDays(); track dayData.date.toISOString()) {
+          <div class="week-view__day-header" [class.today]="isToday(dayData.date)" [class.is-holiday]="dayData.holiday">
+            <span class="week-view__day-name">{{ dayData.date | date:'EEE' }}</span>
+            <span class="week-view__day-num" [class.today-circle]="isToday(dayData.date)">{{ dayData.date | date:'d' }}</span>
           </div>
         }
       </div>
+
+      <!-- Holidays band (mandatory company holidays) -->
+      @if (hasAnyHoliday()) {
+        <div class="week-view__grid week-view__holiday-row">
+          <div class="week-view__time-col week-view__holiday-label" data-tooltip="Company holidays">
+            <tp-icon name="calendar" [size]="13" />
+          </div>
+          @for (dayData of calendarDays(); track dayData.date.toISOString()) {
+            <div class="week-view__holiday-cell">
+              @if (dayData.holiday) {
+                <span class="cal-holiday" [attr.data-tooltip]="dayData.holiday">🎉 {{ dayData.holiday }}</span>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Birthdays band -->
+      @if (hasAnyBirthday()) {
+        <div class="week-view__grid week-view__birthday-row">
+          <div class="week-view__time-col week-view__birthday-label" data-tooltip="Birthdays">
+            <span>🎂</span>
+          </div>
+          @for (dayData of calendarDays(); track dayData.date.toISOString()) {
+            <div class="week-view__birthday-cell">
+              @for (name of dayData.birthdays; track name) {
+                <span class="cal-birthday" [attr.data-tooltip]="name + ' — Happy Birthday!'">🎂 {{ name }}</span>
+              }
+            </div>
+          }
+        </div>
+      }
 
       <!-- Notes band (notes added on each day) -->
       @if (hasAnyNotes()) {
@@ -72,7 +104,7 @@
 
         <!-- Day columns -->
         @for (dayData of calendarDays(); track dayData.date.toISOString()) {
-          <div class="week-view__day-col">
+          <div class="week-view__day-col" [class.is-holiday]="dayData.holiday">
             <!-- Hour lines -->
             @for (h of hours; track h) {
               <div class="week-view__hour-row"></div>

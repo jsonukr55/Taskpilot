@@ -6,9 +6,11 @@ import { CalendarService, CalendarEvent } from '@core/services/calendar.service'
 import { TaskService } from '@core/services/task.service';
 import { NoteService } from '@core/services/note.service';
 import { AuthService } from '@core/services/auth.service';
+import { WorkingCalendarService } from '@core/services/working-calendar.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { Task } from '@shared/models/task.model';
 import { Note } from '@shared/models/note.model';
+import { birthdaysOn } from '@shared/models/birthday.model';
 
 type CalView = 'week' | 'month' | 'day';
 
@@ -25,6 +27,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
   readonly tasks               = inject(TaskService);
   private readonly noteService = inject(NoteService);
   private readonly auth        = inject(AuthService);
+  private readonly workCal     = inject(WorkingCalendarService);
 
   // Hover preview for a note chip
   readonly hoverNote = signal<{ title: string; preview: string; x: number; y: number } | null>(null);
@@ -62,8 +65,11 @@ export class CalendarComponent implements OnInit, OnDestroy {
       const start   = new Date(day.getFullYear(), day.getMonth(), day.getDate());
       const end     = new Date(start.getTime() + 86_400_000);
       const dateStr = start.toDateString();
+      const key     = this.dateKey(day);
       return {
-        date:   day,
+        date:      day,
+        holiday:   this.workCal.holidayName(key),
+        birthdays: birthdaysOn(day.getMonth() + 1, day.getDate()),
         blocks: blocks.filter(b => {
           const t = b.startTime.toDate();
           return t >= start && t < end;
@@ -81,7 +87,16 @@ export class CalendarComponent implements OnInit, OnDestroy {
     });
   });
 
-  readonly hasAnyNotes = computed(() => this.calendarDays().some(d => d.notes.length > 0));
+  readonly hasAnyNotes    = computed(() => this.calendarDays().some(d => d.notes.length > 0));
+  readonly hasAnyHoliday  = computed(() => this.calendarDays().some(d => !!d.holiday));
+  readonly hasAnyBirthday = computed(() => this.calendarDays().some(d => d.birthdays.length > 0));
+
+  /** Local 'YYYY-MM-DD' for a week-grid day (matches the holiday date keys). */
+  private dateKey(day: Date): string {
+    const m = String(day.getMonth() + 1).padStart(2, '0');
+    const d = String(day.getDate()).padStart(2, '0');
+    return `${day.getFullYear()}-${m}-${d}`;
+  }
 
   ngOnInit(): void {
     this.noteService.openPersonalNotes();

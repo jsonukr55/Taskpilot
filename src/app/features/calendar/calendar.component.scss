@@ -354,3 +354,78 @@ $num-hours: 16;
     flex-shrink: 0;
   }
 }
+
+// ---- Holidays (company mandatory holidays) ----
+.week-view {
+  &__day-header.is-holiday {
+    .week-view__day-num { color: $rose-500; }
+  }
+
+  &__holiday-row {
+    border-bottom: 1px solid var(--border-default);
+    background: rgba(244, 63, 94, 0.04);
+  }
+  &__holiday-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $rose-500;
+  }
+  &__holiday-cell {
+    padding: $space-1 $space-2;
+    min-height: 26px;
+    display: flex;
+    align-items: center;
+  }
+
+  &__day-col.is-holiday {
+    background: rgba(244, 63, 94, 0.035);
+  }
+}
+
+.cal-holiday {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px $space-2;
+  border-radius: $radius-full;
+  background: rgba(244, 63, 94, 0.14);
+  color: $rose-500;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ---- Birthdays ----
+.week-view {
+  &__birthday-row {
+    border-bottom: 1px solid var(--border-default);
+    background: rgba(139, 92, 246, 0.05);
+  }
+  &__birthday-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  &__birthday-cell {
+    padding: $space-1 $space-2;
+    min-height: 26px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.cal-birthday {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px $space-2;
+  border-radius: $radius-full;
+  background: rgba(139, 92, 246, 0.16);
+  color: #8b5cf6;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

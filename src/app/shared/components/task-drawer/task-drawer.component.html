@@ -53,6 +53,56 @@
         </div>
       </div>
 
+      <!-- Assignees -->
+      <div class="drawer__prop">
+        <span class="drawer__prop-label">
+          <tp-icon name="user" [size]="13" /> Assignees
+        </span>
+        <div class="drawer__prop-value">
+          <div class="drawer-assign" (click)="$event.stopPropagation()">
+            <!-- Assigned people as removable chips -->
+            @for (person of assignees(); track person.uid) {
+              <span class="assignee-chip">
+                <span class="avatar avatar--sm">
+                  @if (person.photoURL) { <img [src]="person.photoURL" alt=""> }
+                  @else { {{ initial(person.displayName) }} }
+                </span>
+                <span class="assignee-chip__name">{{ person.displayName }}</span>
+                <button class="assignee-chip__remove" (click)="toggleAssignee(person.uid)" title="Remove">
+                  <tp-icon name="x" [size]="11" />
+                </button>
+              </span>
+            }
+
+            <!-- Distinct add button -->
+            <button class="assignee-add" (click)="toggleAssignMenu()" [title]="assignees().length ? 'Add assignee' : 'Assign'">
+              <tp-icon name="user-plus" [size]="13" />
+              @if (!assignees().length) { <span>Assign</span> }
+            </button>
+
+            @if (assignMenuOpen()) {
+              <div class="assign-menu">
+                <p class="assign-menu__label">Assign to</p>
+                @if (assignablePeople().length === 0) {
+                  <p class="assign-menu__empty">No people available.</p>
+                }
+                @for (person of assignablePeople(); track person.uid) {
+                  <button class="assign-menu__item" [class.on]="isAssigned(person.uid)"
+                    (click)="toggleAssignee(person.uid)">
+                    <span class="avatar avatar--sm">
+                      @if (person.photoURL) { <img [src]="person.photoURL" alt=""> }
+                      @else { {{ initial(person.displayName) }} }
+                    </span>
+                    <span class="assign-menu__name">{{ person.displayName }}@if (person.isSelf) { <span class="assign-menu__you">you</span> }</span>
+                    @if (isAssigned(person.uid)) { <tp-icon name="check" [size]="14" /> }
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
       <!-- Start date -->
       <div class="drawer__prop">
         <span class="drawer__prop-label">

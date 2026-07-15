@@ -4,16 +4,8 @@ import { Task, TaskStatus } from '@shared/models/task.model';
 import { CategoryService } from '@core/services/category.service';
 import { TaskService } from '@core/services/task.service';
 import { GroupService } from '@core/services/group.service';
-import { AuthService } from '@core/services/auth.service';
+import { AssignablePerson } from '@shared/models/group.model';
 import { IconComponent } from '../icon/icon.component';
-
-/** A person who can be assigned to a task (self + members of any shared group). */
-interface AssignablePerson {
-  uid:         string;
-  displayName: string;
-  photoURL:    string | null;
-  isSelf:      boolean;
-}
 
 @Component({
   selector:   'tp-task-card',
@@ -31,10 +23,15 @@ export class TaskCardComponent {
   private readonly categories  = inject(CategoryService);
   private readonly taskService = inject(TaskService);
   private readonly groups      = inject(GroupService);
-  private readonly auth        = inject(AuthService);
+
+  // Which task's assignee picker is open — shared across ALL cards so only one
+  // menu is ever open. Clicking a different row's trigger closes the previous.
+  private static readonly openMenuTaskId = signal<string | null>(null);
 
   /** Is the assignee picker open for this row? */
-  readonly assignMenuOpen = signal(false);
+  readonly assignMenuOpen = computed(() =>
+    TaskCardComponent.openMenuTaskId() === this.task().id
+  );
 
   readonly subtaskCount = computed(() => this.taskService.getSubtasks(this.task().id).length);
 
@@ -45,49 +42,12 @@ export class TaskCardComponent {
   );
 
   /** Everyone the user can assign work to: themselves + members of every shared group. */
-  readonly assignablePeople = computed<AssignablePerson[]>(() => {
-    const uid = this.auth.userId();
-    const byUid = new Map<string, AssignablePerson>();
-
-    if (uid) {
-      byUid.set(uid, {
-        uid,
-        displayName: this.auth.displayName() || 'You',
-        photoURL:    this.auth.photoURL(),
-        isSelf:      true
-      });
-    }
-
-    for (const group of this.groups.groups()) {
-      for (const memberId of group.memberIds) {
-        if (byUid.has(memberId)) continue;
-        const profile = group.memberProfiles[memberId];
-        byUid.set(memberId, {
-          uid:         memberId,
-          displayName: profile?.displayName ?? 'Member',
-          photoURL:    profile?.photoURL ?? null,
-          isSelf:      false
-        });
-      }
-    }
-
-    return [...byUid.values()].sort((a, b) =>
-      a.isSelf ? -1 : b.isSelf ? 1 : a.displayName.localeCompare(b.displayName)
-    );
-  });
+  readonly assignablePeople = this.groups.assignablePeople;
 
   /** The people currently assigned to this task, resolved to display info. */
-  readonly assignees = computed<AssignablePerson[]>(() => {
-    const ids = this.task().assigneeIds ?? [];
-    if (!ids.length) return [];
-    const lookup = new Map(this.assignablePeople().map(p => [p.uid, p]));
-    return ids.map(id => lookup.get(id) ?? {
-      uid:         id,
-      displayName: 'Member',
-      photoURL:    null,
-      isSelf:      false
-    });
-  });
+  readonly assignees = computed<AssignablePerson[]>(() =>
+    this.groups.resolveAssignees(this.task().assigneeIds)
+  );
 
   readonly isOverdue = computed(() => {
     const t = this.task();
@@ -121,7 +81,8 @@ export class TaskCardComponent {
   }
 
   toggleAssignMenu(): void {
-    this.assignMenuOpen.update(open => !open);
+    const id = this.task().id;
+    TaskCardComponent.openMenuTaskId.update(open => open === id ? null : id);
   }
 
   isAssigned(uid: string): boolean {
@@ -137,7 +98,7 @@ export class TaskCardComponent {
   /** Close the assignee menu when the user clicks anywhere outside this card. */
   @HostListener('document:click')
   onDocumentClick(): void {
-    if (this.assignMenuOpen()) this.assignMenuOpen.set(false);
+    if (this.assignMenuOpen()) TaskCardComponent.openMenuTaskId.set(null);
   }
 
   async toggleStatus(): Promise<void> {

@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TaskService, TaskFilter, TaskSortOption } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
+import { GroupService } from '@core/services/group.service';
 import { TaskCardComponent } from '@shared/components/task-card/task-card.component';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { IconComponent } from '@shared/components/icon/icon.component';
@@ -23,6 +24,7 @@ type ViewMode = 'list' | 'board';
 export class TasksComponent implements OnInit {
   readonly taskService   = inject(TaskService);
   readonly categories    = inject(CategoryService);
+  private readonly groups = inject(GroupService);
   private readonly route = inject(ActivatedRoute);
 
   readonly viewMode        = signal<ViewMode>('list');
@@ -86,8 +88,16 @@ export class TasksComponent implements OnInit {
     { value: '', label: 'All priorities' },
     ...this.priorityOptions,
   ];
+  readonly assigneeFilterOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'All assignees' },
+    ...this.groups.assignablePeople().map(p => ({
+      value: p.uid,
+      label: p.isSelf ? 'Me' : p.displayName,
+    })),
+  ]);
   readonly currentCategoryFilter = computed(() => this.taskService.filter().categoryIds?.[0] ?? '');
   readonly currentPriorityFilter = computed(() => this.taskService.filter().priority?.[0] ?? '');
+  readonly currentAssigneeFilter = computed(() => this.taskService.filter().assigneeId ?? '');
 
   ngOnInit(): void {
     // Open create modal if ?new=true
@@ -115,6 +125,10 @@ export class TasksComponent implements OnInit {
       ...f,
       priority: value ? [value as TaskPriority] : undefined
     }));
+  }
+
+  onAssigneeFilter(value: string): void {
+    this.taskService.filter.update(f => ({ ...f, assigneeId: value || undefined }));
   }
 
   toggleOverdue(): void {

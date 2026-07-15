@@ -124,8 +124,19 @@
   &__tasks {
     border: 1px solid var(--border-subtle);
     border-radius: $radius-lg;
-    overflow: hidden;
+    // Not `hidden` — an open assignee popup on the last row must be able to
+    // overflow the card. Corners are kept rounded via the first/last children.
+    overflow: visible;
     background: var(--card-bg);
+
+    .task-list-header {
+      border-top-left-radius: $radius-lg;
+      border-top-right-radius: $radius-lg;
+    }
+    > *:last-child {
+      border-bottom-left-radius: $radius-lg;
+      border-bottom-right-radius: $radius-lg;
+    }
   }
 }
 

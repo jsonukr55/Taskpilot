@@ -32,6 +32,13 @@
       (changed)="onPriorityFilter($event)"
     />
 
+    <tp-select
+      pill
+      [options]="assigneeFilterOptions()"
+      [value]="currentAssigneeFilter()"
+      (changed)="onAssigneeFilter($event)"
+    />
+
     <button class="filter-pill filter-pill--sort" (click)="updateSort('dueDate')">
       Due @if (taskService.sort().field === 'dueDate') {
         <tp-icon [name]="taskService.sort().direction === 'asc' ? 'chevron-up' : 'chevron-down'" [size]="11" />
@@ -49,7 +56,7 @@
         ⚠ {{ taskService.overdueTasks().length }} overdue
       </button>
     }
-    @if (taskService.searchQuery() || taskService.filter().categoryIds?.length || taskService.filter().priority?.length) {
+    @if (taskService.searchQuery() || taskService.filter().categoryIds?.length || taskService.filter().priority?.length || taskService.filter().assigneeId) {
       <button class="filter-pill filter-pill--clear" (click)="clearFilter()">✕ Clear</button>
     }
   </div>

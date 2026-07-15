@@ -2,9 +2,11 @@ import { Component, input, output, inject, signal, computed, effect, untracked, 
 import { FormsModule } from '@angular/forms';
 import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
+import { GroupService } from '@core/services/group.service';
 import { IconComponent } from '../icon/icon.component';
 import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
 import { Task, TaskStatus, TaskPriority, ChecklistItem } from '@shared/models/task.model';
+import { AssignablePerson } from '@shared/models/group.model';
 import { Timestamp } from '@angular/fire/firestore';
 
 @Component({
@@ -13,7 +15,10 @@ import { Timestamp } from '@angular/fire/firestore';
   imports: [FormsModule, IconComponent, ShowPickerDirective],
   templateUrl: './task-drawer.component.html',
   styleUrl: './task-drawer.component.scss',
-  host: { '(document:keydown.escape)': 'close()' }
+  host: {
+    '(document:keydown.escape)': 'close()',
+    '(document:click)': 'assignMenuOpen.set(false)'
+  }
 })
 export class TaskDrawerComponent implements OnDestroy {
   task = input.required<Task>();
@@ -21,6 +26,23 @@ export class TaskDrawerComponent implements OnDestroy {
 
   private readonly taskService = inject(TaskService);
   readonly categories = inject(CategoryService);
+  private readonly groups = inject(GroupService);
+
+  // ---- Assignees ----
+  readonly assignMenuOpen  = signal(false);
+  readonly assignablePeople = this.groups.assignablePeople;
+  readonly assignees = computed<AssignablePerson[]>(() =>
+    this.groups.resolveAssignees(this.live().assigneeIds)
+  );
+
+  initial(name: string): string { return (name?.charAt(0) || '?').toUpperCase(); }
+  toggleAssignMenu(): void { this.assignMenuOpen.update(v => !v); }
+  isAssigned(uid: string): boolean { return (this.live().assigneeIds ?? []).includes(uid); }
+  async toggleAssignee(uid: string): Promise<void> {
+    const current = new Set(this.live().assigneeIds ?? []);
+    current.has(uid) ? current.delete(uid) : current.add(uid);
+    await this.taskService.setAssignees(this.task().id, [...current]);
+  }
 
   editTitle       = signal('');
   editDesc        = signal('');

@@ -484,3 +484,62 @@
 }
 
 .drawer__est-auto { font-size: 0.875rem; color: var(--text-secondary); }
+
+// ---- Assignees picker ----
+.drawer-assign {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2;
+}
+
+// A selected assignee — avatar + name + remove
+.assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px 3px 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-full;
+  background: var(--bg-tertiary);
+  font-size: $font-size-sm;
+  color: var(--text-primary);
+
+  &__name { white-space: nowrap; }
+
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: background $transition-fast, color $transition-fast;
+
+    &:hover { background: var(--border-default); color: var(--text-primary); }
+  }
+}
+
+// Distinct add button
+.assignee-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px dashed var(--border-default);
+  border-radius: $radius-full;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: border-color $transition-fast, color $transition-fast;
+
+  &:hover { border-color: var(--accent-400); color: var(--text-brand); }
+}

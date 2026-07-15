@@ -389,6 +389,75 @@ select:not(.filter-pill) {
 }
 
 // ============================================================
+// Assignee picker dropdown (shared by task card + task drawer)
+// Anchors to the nearest positioned ancestor (a relative wrapper).
+// ============================================================
+.assign-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 220px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: $space-2;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  z-index: $z-dropdown;
+  animation: fade-in $transition-fast both;
+
+  &__label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: $space-1 $space-2 $space-2;
+  }
+
+  &__empty {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    padding: $space-1 $space-2 $space-2;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    width: 100%;
+    padding: $space-2;
+    border: none;
+    border-radius: $radius-md;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: $font-size-sm;
+    text-align: left;
+    cursor: pointer;
+    transition: background $transition-fast;
+
+    &:hover { background: var(--bg-tertiary); }
+    &.on    { color: var(--text-brand); }
+
+    tp-icon { margin-left: auto; color: var(--text-brand); }
+  }
+
+  &__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__you {
+    margin-left: 4px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+  }
+}
+
+// ============================================================
 // Modal (shared across feature dialogs)
 // ============================================================
 .modal-backdrop {

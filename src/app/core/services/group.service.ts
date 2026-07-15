@@ -9,7 +9,8 @@ import {
 import { environment } from '@env/environment';
 import { AuthService } from './auth.service';
 import {
-  Group, GroupRole, GroupInvite, InvitePreview, canEdit
+  Group, GroupRole, GroupInvite, InvitePreview, canEdit,
+  AssignablePerson, buildAssignablePeople
 } from '@shared/models/group.model';
 import { inviteToken, slugId } from '@shared/utils/id.util';
 
@@ -33,6 +34,24 @@ export class GroupService {
   readonly ownedGroups = computed(() =>
     this.groups().filter(g => g.ownerId === this.auth.userId())
   );
+
+  /** Everyone the current user can assign tasks to (self + shared-group members). */
+  readonly assignablePeople = computed<AssignablePerson[]>(() =>
+    buildAssignablePeople(this.groups(), {
+      uid:         this.auth.userId(),
+      displayName: this.auth.displayName() || 'You',
+      photoURL:    this.auth.photoURL()
+    })
+  );
+
+  /** Resolve assignee uids to display info, falling back for unknown members. */
+  resolveAssignees(uids: string[] | undefined | null): AssignablePerson[] {
+    if (!uids?.length) return [];
+    const lookup = new Map(this.assignablePeople().map(p => [p.uid, p]));
+    return uids.map(uid => lookup.get(uid) ?? {
+      uid, displayName: 'Member', photoURL: null, isSelf: false
+    });
+  }
 
   private unsubscribe?: () => void;
 

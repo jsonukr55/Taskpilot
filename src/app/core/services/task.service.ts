@@ -17,6 +17,7 @@ export interface TaskFilter {
   status?:      TaskStatus[];
   priority?:    TaskPriority[];
   categoryIds?: string[];
+  assigneeId?:  string;      // show only tasks assigned to this uid
   dueBefore?:   Date;
   dueAfter?:    Date;
   search?:      string;
@@ -65,6 +66,7 @@ export class TaskService {
     if (f.categoryIds?.length) list = list.filter(t =>
       t.categoryIds.some(id => f.categoryIds!.includes(id))
     );
+    if (f.assigneeId) list = list.filter(t => (t.assigneeIds ?? []).includes(f.assigneeId!));
     if (f.isOverdue) {
       const now = new Date();
       list = list.filter(t =>

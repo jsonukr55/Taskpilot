@@ -64,6 +64,49 @@ export interface InvitePreview {
   memberCount: number;
 }
 
+/** A person a task can be assigned to: yourself + members of shared groups. */
+export interface AssignablePerson {
+  uid:         string;
+  displayName: string;
+  photoURL:    string | null;
+  isSelf:      boolean;
+}
+
+/** Union of the current user + every member across the given groups, deduped by
+ *  uid. `self` is listed first (as "you"); the rest sort by name. */
+export function buildAssignablePeople(
+  groups: Group[],
+  self: { uid: string | null; displayName: string; photoURL: string | null }
+): AssignablePerson[] {
+  const byUid = new Map<string, AssignablePerson>();
+
+  if (self.uid) {
+    byUid.set(self.uid, {
+      uid:         self.uid,
+      displayName: self.displayName || 'You',
+      photoURL:    self.photoURL,
+      isSelf:      true
+    });
+  }
+
+  for (const group of groups) {
+    for (const uid of group.memberIds) {
+      if (byUid.has(uid)) continue;
+      const profile = group.memberProfiles[uid];
+      byUid.set(uid, {
+        uid,
+        displayName: profile?.displayName ?? 'Member',
+        photoURL:    profile?.photoURL ?? null,
+        isSelf:      false
+      });
+    }
+  }
+
+  return [...byUid.values()].sort((a, b) =>
+    a.isSelf ? -1 : b.isSelf ? 1 : a.displayName.localeCompare(b.displayName)
+  );
+}
+
 // ---- Helpers ----
 
 export const ROLE_LABELS: Record<GroupRole, string> = {

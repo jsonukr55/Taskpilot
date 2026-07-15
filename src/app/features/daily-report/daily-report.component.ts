@@ -8,7 +8,6 @@ import { TaskService } from '@core/services/task.service';
 import { ToastService } from '@core/services/toast.service';
 import { AuthService } from '@core/services/auth.service';
 import { NoteService } from '@core/services/note.service';
-import { NoteBlock, newBlock } from '@shared/models/note.model';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { Group, groupMembers, GroupMember } from '@shared/models/group.model';
@@ -16,7 +15,7 @@ import { TaskStatus } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
 import {
   ReportLine, ReportView, DailyReport, newLine, entryStatus, EntryStatus, ENTRY_STATUS_LABELS,
-  reportViewToText, reportViewToHtml
+  reportViewToText, reportViewToHtml, reportViewToNoteBlocks
 } from '@shared/models/daily-report.model';
 
 /** A one-click line drawn from one of the user's tasks (hybrid pre-fill). */
@@ -396,7 +395,7 @@ export class DailyReportComponent implements OnDestroy {
     const view = this.daily.reportView();
     try {
       const id = await this.notes.createNote(null, `Daily Report — ${this.daily.dateHeader()}`);
-      await this.notes.updateNote(null, id, { blocks: this.reportToBlocks(view), icon: '📋' });
+      await this.notes.updateNote(null, id, { blocks: reportViewToNoteBlocks(view), icon: '📋' });
       this.toast.success('Imported to Notes');
       this.router.navigate(['/notes', id]);
     } catch (err: any) {
@@ -405,25 +404,41 @@ export class DailyReportComponent implements OnDestroy {
     }
   }
 
-  /** Turn the report into editable note blocks (headings + bullets). */
-  private reportToBlocks(view: ReportView): NoteBlock[] {
-    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const blocks: NoteBlock[] = [
-      newBlock('paragraph', 'Hi Everyone,'),
-      newBlock('paragraph', `Date: ${esc(view.dateHeader)}`),
-      newBlock('h2', 'Progress Update')
-    ];
-    for (const r of view.progress) {
-      blocks.push(newBlock('h3', esc(r.displayName)));
-      if (r.onLeave) blocks.push(newBlock('paragraph', 'On leave'));
-      else r.lines.forEach(l => blocks.push(newBlock('bulleted', esc(l))));
+  /** The group note this report is mirrored into, if one exists yet. */
+  readonly groupNoteId = computed(() => this.daily.report()?.noteId ?? null);
+
+  /**
+   * Mirror the report into a persistent note that lives in the selected group,
+   * so the whole team sees it under the group. Reuses the same note on later
+   * syncs (updates it to the current template) instead of piling up copies.
+   */
+  async syncToGroupNote(): Promise<void> {
+    const group = this.selectedGroup();
+    if (!group) { this.toast.error('Select a team first.'); return; }
+    const view   = this.daily.reportView();
+    const title  = `Daily Report — ${this.daily.dateHeader()}`;
+    const blocks = reportViewToNoteBlocks(view);
+    try {
+      let noteId = this.groupNoteId();
+      if (noteId) {
+        await this.notes.updateNote(group.id, noteId, { title, blocks, icon: '📋' });
+      } else {
+        noteId = await this.notes.createNote(group.id, title);
+        await this.notes.updateNote(group.id, noteId, { blocks, icon: '📋' });
+        await this.daily.setReportNote(group, noteId);
+      }
+      this.toast.success('Synced to group note');
+    } catch (err: any) {
+      console.error('[daily] sync to group note failed', err);
+      this.toast.error(this.describeError(err));
     }
-    blocks.push(newBlock('h2', 'Plan for Tomorrow'));
-    for (const r of view.plan) {
-      blocks.push(newBlock('h3', esc(r.displayName)));
-      r.lines.forEach(l => blocks.push(newBlock('bulleted', esc(l))));
-    }
-    return blocks;
+  }
+
+  /** Open the linked group note in the notes editor. */
+  openGroupNote(): void {
+    const group = this.selectedGroup();
+    const noteId = this.groupNoteId();
+    if (group && noteId) this.router.navigate(['/groups', group.id, 'notes', noteId]);
   }
 
   async lock(): Promise<void> {

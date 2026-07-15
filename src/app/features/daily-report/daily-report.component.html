@@ -211,14 +211,24 @@
               <button class="daily__raw-toggle btn-ghost" (click)="showRaw.set(!showRaw())">
                 {{ showRaw() ? 'Formatted' : 'Raw text' }}
               </button>
-              <button class="btn btn-secondary" (click)="sendToNotes()" data-tooltip="Import into a note to edit">
+              <button class="btn btn-secondary" (click)="sendToNotes()" data-tooltip="Import into a personal note to edit">
                 <tp-icon name="file-text" [size]="14" /> Send to Notes
+              </button>
+              <button class="btn btn-secondary" (click)="syncToGroupNote()"
+                [attr.data-tooltip]="groupNoteId() ? 'Update the group note' : 'Save into a shared group note'">
+                <tp-icon name="users" [size]="14" /> {{ groupNoteId() ? 'Update group note' : 'Send to group note' }}
               </button>
               <button class="btn btn-primary" (click)="copyReport()">
                 <tp-icon name="copy" [size]="14" /> Copy for Teams
               </button>
             </div>
           </div>
+
+          @if (groupNoteId()) {
+            <button class="daily__note-link btn-ghost" (click)="openGroupNote()">
+              <tp-icon name="file-text" [size]="13" /> This report is saved to a group note — open it
+            </button>
+          }
 
           @if (showRaw()) {
             <pre class="daily__preview-raw">{{ daily.reportText() }}</pre>

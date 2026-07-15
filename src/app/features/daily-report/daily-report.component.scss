@@ -259,6 +259,16 @@
   }
   &__raw-toggle { font-size: $font-size-xs; }
 
+  // Link to the group note this report is mirrored into.
+  &__note-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: $space-3;
+    font-size: $font-size-xs;
+    color: var(--text-brand);
+  }
+
   // Raw plain-text (toggle) — exactly what gets pasted.
   &__preview-raw {
     background: var(--bg-tertiary);

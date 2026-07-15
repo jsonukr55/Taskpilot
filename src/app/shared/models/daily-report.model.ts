@@ -1,5 +1,6 @@
 import { Timestamp } from '@angular/fire/firestore';
 import { nanoid } from '@shared/utils/id.util';
+import { NoteBlock, newBlock } from '@shared/models/note.model';
 
 // ============================================================
 // Daily Task Report ("Standup") — a thin reporting layer over
@@ -43,6 +44,7 @@ export interface DailyReport {
   lockedBy?:    string | null;
   lockedAt?:    Timestamp | null;
   memberOrder:  string[];        // uid order for the report
+  noteId?:      string | null;   // group note this report is mirrored into (Send to group note)
   createdAt:    Timestamp;
   updatedAt:    Timestamp;
 }
@@ -193,4 +195,29 @@ export function reportViewToHtml(view: ReportView): string {
     `<hr>`,
     section('Plan for Tomorrow', view.plan)
   ].join('');
+}
+
+/**
+ * Render a ReportView as editable Note blocks (headings + bullets), following
+ * the same Daily Report template. Shared by "Send to Notes" (personal) and
+ * "Send to group note" so both stay in lockstep with the report format.
+ */
+export function reportViewToNoteBlocks(view: ReportView): NoteBlock[] {
+  const esc = (s: string) => escapeHtml(s);
+  const blocks: NoteBlock[] = [
+    newBlock('paragraph', 'Hi Everyone,'),
+    newBlock('paragraph', `Date: ${esc(view.dateHeader)}`),
+    newBlock('h2', 'Progress Update')
+  ];
+  for (const r of view.progress) {
+    blocks.push(newBlock('h3', esc(r.displayName)));
+    if (r.onLeave) blocks.push(newBlock('paragraph', 'On leave'));
+    else r.lines.forEach(l => blocks.push(newBlock('bulleted', esc(l))));
+  }
+  blocks.push(newBlock('h2', 'Plan for Tomorrow'));
+  for (const r of view.plan) {
+    blocks.push(newBlock('h3', esc(r.displayName)));
+    r.lines.forEach(l => blocks.push(newBlock('bulleted', esc(l))));
+  }
+  return blocks;
 }

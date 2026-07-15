@@ -16,6 +16,16 @@
     @if (subtaskCount() > 0) {
       <span class="task-row__subcount" title="Subtasks"><tp-icon name="list" [size]="11" /> {{ subtaskCount() }}</span>
     }
+    @if (assignees().length > 0) {
+      <span class="task-row__assignees" title="Assigned to">
+        @for (person of assignees(); track person.uid) {
+          <span class="avatar avatar--sm" [attr.title]="person.displayName">
+            @if (person.photoURL) { <img [src]="person.photoURL" alt=""> }
+            @else { {{ initial(person.displayName) }} }
+          </span>
+        }
+      </span>
+    }
   </div>
 
   <div class="task-row__priority">
@@ -45,6 +55,34 @@
       <span class="task-row__cat" [style.color]="cat!.color">
         <span class="task-row__cat-dot" [style.background]="cat!.color"></span>{{ cat!.name }}
       </span>
+    }
+  </div>
+
+  <!-- Assign trigger + picker -->
+  <div class="task-row__assign" (click)="$event.stopPropagation()">
+    <button class="task-row__assign-btn" (click)="toggleAssignMenu()"
+      [class.has-assignees]="assignees().length > 0" title="Assign task">
+      <tp-icon name="user-plus" [size]="13" />
+    </button>
+
+    @if (assignMenuOpen()) {
+      <div class="assign-menu">
+        <p class="assign-menu__label">Assign to</p>
+        @if (assignablePeople().length === 0) {
+          <p class="assign-menu__empty">No people available.</p>
+        }
+        @for (person of assignablePeople(); track person.uid) {
+          <button class="assign-menu__item" [class.on]="isAssigned(person.uid)"
+            (click)="toggleAssignee(person.uid)">
+            <span class="avatar avatar--sm">
+              @if (person.photoURL) { <img [src]="person.photoURL" alt=""> }
+              @else { {{ initial(person.displayName) }} }
+            </span>
+            <span class="assign-menu__name">{{ person.displayName }}@if (person.isSelf) { <span class="assign-menu__you">you</span> }</span>
+            @if (isAssigned(person.uid)) { <tp-icon name="check" [size]="14" /> }
+          </button>
+        }
+      </div>
     }
   </div>
 

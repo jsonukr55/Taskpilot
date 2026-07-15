@@ -103,6 +103,45 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
 
   &:hover &__add-sub { opacity: 1; }
 
+  // Inline assignee avatars shown next to the title
+  &__assignees {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+
+    .avatar { margin-left: -6px; &:first-child { margin-left: 0; } }
+  }
+
+  // Assign trigger + dropdown
+  &__assign {
+    position: absolute;
+    right: calc(#{$space-3} + 30px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+  }
+
+  &__assign-btn {
+    @include flex-center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: $radius-md;
+    background: var(--bg-elevated);
+    box-shadow: var(--card-shadow);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity $transition-fast, color $transition-fast;
+
+    &:hover { color: var(--text-brand); }
+
+    // Keep it visible when the task already has assignees
+    &.has-assignees { opacity: 1; color: var(--text-brand); }
+  }
+
+  &:hover &__assign-btn { opacity: 1; }
+
   &__priority {
     display: flex;
     align-items: center;
@@ -178,4 +217,70 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
   height: 6px;
   border-radius: 50%;
   background: var(--accent-500);
+}
+
+// Assignee picker dropdown
+.assign-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 220px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: $space-2;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  z-index: $z-dropdown;
+  animation: fade-in $transition-fast both;
+
+  &__label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: $space-1 $space-2 $space-2;
+  }
+
+  &__empty {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    padding: $space-1 $space-2 $space-2;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    width: 100%;
+    padding: $space-2;
+    border: none;
+    border-radius: $radius-md;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: $font-size-sm;
+    text-align: left;
+    cursor: pointer;
+    transition: background $transition-fast;
+
+    &:hover { background: var(--bg-tertiary); }
+    &.on    { color: var(--text-brand); }
+
+    tp-icon { margin-left: auto; color: var(--text-brand); }
+  }
+
+  &__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__you {
+    margin-left: 4px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+  }
 }

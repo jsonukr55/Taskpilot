@@ -34,7 +34,19 @@ export class TaskService {
   private readonly auth      = inject(AuthService);
 
   // ---- State Signals ----
-  readonly tasks       = signal<Task[]>([]);
+  // Tasks I own (userId == me) and tasks assigned to me (assigneeIds contains me)
+  // come from two separate Firestore queries and are merged (deduped) below.
+  private readonly ownTasks      = signal<Task[]>([]);
+  private readonly assignedTasks = signal<Task[]>([]);
+
+  /** Every task visible to me: ones I own + ones assigned to me, deduped by id. */
+  readonly tasks = computed<Task[]>(() => {
+    const byId = new Map<string, Task>();
+    for (const t of this.ownTasks())      byId.set(t.id, t);
+    for (const t of this.assignedTasks()) byId.set(t.id, t);
+    return [...byId.values()];
+  });
+
   readonly isLoading   = signal(true);
   readonly error       = signal<string | null>(null);
   readonly filter      = signal<TaskFilter>({});
@@ -144,6 +156,7 @@ export class TaskService {
   }
 
   private unsubscribe?: () => void;
+  private assignedUnsub?: () => void;
 
   // ---- Lifecycle ----
 
@@ -153,26 +166,37 @@ export class TaskService {
 
     this.isLoading.set(true);
 
-    const q = query(
+    const ownQuery = query(
       collection(this.firestore, 'tasks'),
       where('userId', '==', uid)
     );
 
-    this.unsubscribe = onSnapshot(q, snapshot => {
-      const tasks = snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      } as Task));
-      this.tasks.set(tasks);
+    this.unsubscribe = onSnapshot(ownQuery, snapshot => {
+      this.ownTasks.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
       this.isLoading.set(false);
     }, err => {
       this.error.set(err.message);
       this.isLoading.set(false);
     });
+
+    // Tasks other people assigned to me (shared via assigneeIds).
+    const assignedQuery = query(
+      collection(this.firestore, 'tasks'),
+      where('assigneeIds', 'array-contains', uid)
+    );
+
+    this.assignedUnsub = onSnapshot(assignedQuery, snapshot => {
+      this.assignedTasks.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
+    }, err => {
+      // A missing composite index or rules gap shouldn't break the own-tasks list.
+      console.error('[tasks] assigned-to-me listener failed', err);
+    });
   }
 
   stopListening(): void {
     this.unsubscribe?.();
+    this.assignedUnsub?.();
+    this.unsubscribe = this.assignedUnsub = undefined;
   }
 
   // ---- CRUD ----

@@ -55,7 +55,9 @@ service cloud.firestore {
       allow read: if signedIn() && (
         resource.data.userId == request.auth.uid ||
         (('groupId' in resource.data) && resource.data.groupId != null
-          && isMember(resource.data.groupId))
+          && isMember(resource.data.groupId)) ||
+        (('assigneeIds' in resource.data)
+          && request.auth.uid in resource.data.assigneeIds)
       );
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
@@ -63,7 +65,16 @@ service cloud.firestore {
           !('groupId' in request.resource.data) || request.resource.data.groupId == null
           || canEditGroup(request.resource.data.groupId)
         );
-      allow update, delete: if signedIn() && (
+      // Owner and group editors may fully edit. An assignee may update the task
+      // (e.g. mark progress / complete) but not delete someone else's task.
+      allow update: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (('groupId' in resource.data) && resource.data.groupId != null
+          && canEditGroup(resource.data.groupId)) ||
+        (('assigneeIds' in resource.data)
+          && request.auth.uid in resource.data.assigneeIds)
+      );
+      allow delete: if signedIn() && (
         resource.data.userId == request.auth.uid ||
         (('groupId' in resource.data) && resource.data.groupId != null
           && canEditGroup(resource.data.groupId))

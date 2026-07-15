@@ -161,6 +161,17 @@ export class DailyReportService {
     }, { merge: true });
   }
 
+  /** Link the group note this report is mirrored into, so the page can surface
+   *  it and future syncs update the same note. Creates the report doc if needed
+   *  (manager-only per rules — the parent update is restricted to the owner). */
+  async setReportNote(group: Group, noteId: string): Promise<void> {
+    const reportId = await this.ensureReport(group);
+    await setDoc(doc(this.firestore, 'dailyReports', reportId), {
+      noteId,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
   /** Manager: finalize the report — read-only from here. */
   async lock(): Promise<void> {
     const groupId = this.groupId();

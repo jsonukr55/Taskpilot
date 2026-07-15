@@ -1,6 +1,7 @@
 {
   "hosting": {
     "public": "dist/taskpilot/browser",
+    "site": "taskpilot",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [{ "source": "**", "destination": "/index.html" }],
     "headers": [
@@ -25,4 +26,5 @@
     "hosting": { "port": 5000 },
     "ui": { "enabled": true }
   }
+  
 }

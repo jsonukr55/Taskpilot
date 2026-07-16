@@ -196,11 +196,42 @@
                   {{ statusLabel(m.userId) }}
                 </span>
                 @if (!daily.isLocked()) {
+                  <button class="daily__roster-edit btn-ghost" (click)="startEditMember(m)" data-tooltip="Edit this member's update">
+                    <tp-icon name="edit-2" [size]="14" />
+                  </button>
                   <button class="daily__leave-btn btn-ghost" (click)="toggleMemberLeave(m)">
                     {{ statusOf(m.userId) === 'onLeave' ? 'Clear leave' : 'Mark on leave' }}
                   </button>
                 }
               </li>
+
+              @if (editMemberId() === m.userId) {
+                <li class="daily__member-editor">
+                  <label class="daily__name-label">Name on report</label>
+                  <input type="text" class="daily__name-input" [value]="editMemberName()"
+                         (input)="editMemberName.set($any($event.target).value)" />
+
+                  <label class="daily__member-leave">
+                    <input type="checkbox" [checked]="editMemberLeave()"
+                           (change)="editMemberLeave.set($any($event.target).checked)" />
+                    <span>On leave</span>
+                  </label>
+
+                  @if (!editMemberLeave()) {
+                    <label class="daily__name-label">Progress (one per line)</label>
+                    <textarea class="daily__member-area" rows="3" [value]="editProgressTxt()"
+                              (input)="editProgressTxt.set($any($event.target).value)"></textarea>
+                    <label class="daily__name-label">Plan (one per line)</label>
+                    <textarea class="daily__member-area" rows="3" [value]="editPlanTxt()"
+                              (input)="editPlanTxt.set($any($event.target).value)"></textarea>
+                  }
+
+                  <div class="daily__member-actions">
+                    <button class="btn btn-ghost" (click)="cancelEditMember()">Cancel</button>
+                    <button class="btn btn-primary" (click)="saveMemberEdit()">Save</button>
+                  </div>
+                </li>
+              }
             }
           </ul>
 
@@ -210,13 +241,6 @@
             <div class="daily__preview-actions">
               <button class="daily__raw-toggle btn-ghost" (click)="showRaw.set(!showRaw())">
                 {{ showRaw() ? 'Formatted' : 'Raw text' }}
-              </button>
-              <button class="btn btn-secondary" (click)="sendToNotes()" data-tooltip="Import into a personal note to edit">
-                <tp-icon name="file-text" [size]="14" /> Send to Notes
-              </button>
-              <button class="btn btn-secondary" (click)="syncToGroupNote()"
-                [attr.data-tooltip]="groupNoteId() ? 'Update the group note' : 'Save into a shared group note'">
-                <tp-icon name="users" [size]="14" /> {{ groupNoteId() ? 'Update group note' : 'Send to group note' }}
               </button>
               <button class="btn btn-primary" (click)="copyReport()">
                 <tp-icon name="copy" [size]="14" /> Copy for Teams

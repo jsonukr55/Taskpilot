@@ -79,6 +79,13 @@ export class DailyReportComponent implements OnDestroy {
   // ---- Phase 3: history + nudges ----
   readonly history      = signal<DailyReport[]>([]);
   readonly historyView  = signal<ReportView | null>(null);
+
+  // Manager editing another member's entry (textarea per section; newline = line).
+  readonly editMemberId    = signal<string | null>(null);
+  readonly editMemberName  = signal('');
+  readonly editProgressTxt = signal('');
+  readonly editPlanTxt     = signal('');
+  readonly editMemberLeave = signal(false);
   readonly historyDate  = signal<string | null>(null);
 
   /** How many roster members have submitted (or are on leave) today. */
@@ -324,6 +331,44 @@ export class DailyReportComponent implements OnDestroy {
       await this.daily.setMemberLeave(group, member.userId, !currentlyOnLeave, member.displayName);
     } catch (err: any) {
       console.error('[daily] setMemberLeave failed', err);
+      this.toast.error(this.describeError(err));
+    }
+  }
+
+  // ---- Manager: edit any member's entry ----
+
+  startEditMember(member: GroupMember): void {
+    const entry = this.daily.entries().find(e => e.userId === member.userId);
+    this.editMemberName.set(entry?.displayName || member.displayName);
+    this.editProgressTxt.set((entry?.progress ?? []).map(l => l.text).join('\n'));
+    this.editPlanTxt.set((entry?.plan ?? []).map(l => l.text).join('\n'));
+    this.editMemberLeave.set(entry?.onLeave ?? false);
+    this.editMemberId.set(member.userId);
+  }
+
+  cancelEditMember(): void {
+    this.editMemberId.set(null);
+  }
+
+  private toLines(text: string): ReportLine[] {
+    return text.split('\n').map(t => t.trim()).filter(Boolean).map(t => newLine(t));
+  }
+
+  async saveMemberEdit(): Promise<void> {
+    const group = this.selectedGroup();
+    const uid   = this.editMemberId();
+    if (!group || !uid) return;
+    try {
+      await this.daily.saveMemberEntry(group, uid, {
+        progress:    this.toLines(this.editProgressTxt()),
+        plan:        this.toLines(this.editPlanTxt()),
+        onLeave:     this.editMemberLeave(),
+        displayName: this.editMemberName()
+      });
+      this.editMemberId.set(null);
+      this.toast.success('Update saved');
+    } catch (err: any) {
+      console.error('[daily] saveMemberEdit failed', err);
       this.toast.error(this.describeError(err));
     }
   }

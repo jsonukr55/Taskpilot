@@ -133,7 +133,14 @@
     @include input-base;
     flex: 1;
   }
-  &__line-remove { width: 32px; height: 32px; flex-shrink: 0; }
+  &__line-remove {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    color: $rose-500;
+
+    &:hover:not(:disabled) { background: rgba(244, 63, 94, 0.12); color: $rose-500; }
+  }
 
   &__add {
     display: inline-flex;
@@ -416,4 +423,36 @@
     color: var(--text-primary);
   }
   &__history-arrow { color: var(--text-tertiary, var(--text-secondary)); }
+
+  // ---- Manager: member editor ----
+  &__roster-edit { margin-left: auto; width: 30px; height: 30px; }
+  &__member-editor {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+    padding: $space-3;
+    margin: 0 0 $space-2;
+    border-radius: $radius-md;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+  }
+  &__member-leave {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    input { width: 16px; height: 16px; }
+  }
+  &__member-area {
+    @include input-base;
+    resize: vertical;
+    font-size: $font-size-sm;
+  }
+  &__member-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $space-2;
+  }
+
 }

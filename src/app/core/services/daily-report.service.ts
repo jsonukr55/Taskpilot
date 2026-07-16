@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed, NgZone } from '@angular/core';
 import {
   Firestore, collection, doc, getDoc, getDocs, onSnapshot,
   query, where, setDoc, updateDoc, serverTimestamp, Timestamp
@@ -24,6 +24,7 @@ export class DailyReportService {
   private readonly firestore = inject(Firestore);
   private readonly auth      = inject(AuthService);
   private readonly calendar  = inject(WorkingCalendarService);
+  private readonly zone      = inject(NgZone);
 
   // ---- State ----
   readonly groupId   = signal<string | null>(null);
@@ -74,18 +75,21 @@ export class DailyReportService {
     this.date.set(date);
     const reportId = this.reportId(groupId, date);
 
+    // Run signal writes inside Angular's zone so onSnapshot updates trigger
+    // change detection live (Firestore callbacks can fire outside the zone,
+    // which otherwise leaves a passively-watched preview stale until refresh).
     this.unsubReport = onSnapshot(
       doc(this.firestore, 'dailyReports', reportId),
-      snap => {
+      snap => this.zone.run(() => {
         this.report.set(snap.exists() ? ({ id: snap.id, ...snap.data() } as DailyReport) : null);
         this.isLoading.set(false);
-      },
-      () => this.isLoading.set(false)
+      }),
+      () => this.zone.run(() => this.isLoading.set(false))
     );
 
     this.unsubEntries = onSnapshot(
       collection(this.firestore, 'dailyReports', reportId, 'entries'),
-      snap => this.entries.set(snap.docs.map(d => d.data() as DailyEntry))
+      snap => this.zone.run(() => this.entries.set(snap.docs.map(d => d.data() as DailyEntry)))
     );
   }
 
@@ -157,6 +161,29 @@ export class DailyReportService {
       submitted:   onLeave,          // on-leave counts as "accounted for"
       progress:    onLeave ? [] : (this.entries().find(e => e.userId === uid)?.progress ?? []),
       plan:        onLeave ? [] : (this.entries().find(e => e.userId === uid)?.plan ?? []),
+      updatedAt:   serverTimestamp()
+    }, { merge: true });
+  }
+
+  /** Manager: edit any member's entry (progress/plan/name/on-leave). Rules allow
+   *  this because the entry write permits `isManager`. */
+  async saveMemberEntry(group: Group, uid: string, data: {
+    progress: ReportLine[];
+    plan:     ReportLine[];
+    onLeave:  boolean;
+    displayName: string;
+  }): Promise<void> {
+    if (this.isLocked()) throw new Error('This report is locked.');
+    const reportId = await this.ensureReport(group);
+    const existing = this.entries().find(e => e.userId === uid);
+    await setDoc(doc(this.firestore, 'dailyReports', reportId, 'entries', uid), {
+      userId:      uid,
+      displayName: data.displayName.trim() || existing?.displayName || 'Member',
+      photoURL:    existing?.photoURL ?? null,
+      progress:    data.onLeave ? [] : data.progress,
+      plan:        data.onLeave ? [] : data.plan,
+      onLeave:     data.onLeave,
+      submitted:   data.onLeave ? true : (existing?.submitted ?? false),
       updatedAt:   serverTimestamp()
     }, { merge: true });
   }

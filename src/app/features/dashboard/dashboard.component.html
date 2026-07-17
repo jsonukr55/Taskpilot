@@ -345,26 +345,7 @@
         </h2>
       </div>
 
-      @if (recentActivity().length > 0) {
-        <ul class="activity-list">
-          @for (event of recentActivity(); track event.id) {
-            <li class="activity-item" (click)="selectedTask.set(event.task)">
-              <span class="activity-item__icon" [class]="'activity-item__icon--' + event.kind">
-                <tp-icon [name]="event.icon" [size]="14" />
-              </span>
-              <span class="activity-item__text">
-                <strong>{{ event.label }}</strong> {{ event.task.title }}
-              </span>
-              <span class="activity-item__time">{{ timeAgo(event.at) }}</span>
-            </li>
-          }
-        </ul>
-      } @else {
-        <div class="empty-state">
-          <span class="empty-state__icon">🕓</span>
-          <p class="empty-state__text">No recent activity yet.</p>
-        </div>
-      }
+      <tp-activity-feed [events]="recentActivity()" (activate)="onActivity($event)" />
     </section>
 
     <!-- Recently Completed -->

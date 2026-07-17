@@ -1,4 +1,3 @@
-import { Timestamp } from '@angular/fire/firestore';
 import { Task } from './task.model';
 import { Category } from './category.model';
 
@@ -59,22 +58,6 @@ export interface WeeklyProductivity {
   avgPerDay:       number;
   /** Completed-this-week vs the prior 7 days, as a signed percentage. */
   trendPercent:    number;
-}
-
-export type ActivityKind = 'created' | 'completed' | 'updated';
-
-/**
- * A lightweight activity event derived locally from task timestamps.
- * (The full cross-entity Activity Feed is delivered separately.)
- */
-export interface ActivityEvent {
-  id:    string;
-  kind:  ActivityKind;
-  task:  Task;
-  at:    Timestamp;
-  /** Short label, e.g. "Completed", "Created", "Updated". */
-  label: string;
-  icon:  string;
 }
 
 export type RecommendationTone = 'info' | 'warning' | 'success';

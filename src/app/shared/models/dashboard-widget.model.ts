@@ -1,8 +1,9 @@
 import { Task } from './task.model';
 import {
   FocusTask, CategoryProgress, WeeklyProductivity,
-  ActivityEvent, DashboardRecommendation, ProductivityScore, DashboardStats
+  DashboardRecommendation, ProductivityScore, DashboardStats
 } from './dashboard.model';
+import { ActivityEvent } from './activity.model';
 import { RiskFlag } from './ai-brief.model';
 
 // ============================================================

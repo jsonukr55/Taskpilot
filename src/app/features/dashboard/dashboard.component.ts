@@ -11,18 +11,19 @@ import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskCardComponent } from '@shared/components/task-card/task-card.component';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
+import { ActivityFeedComponent } from '@shared/components/activity-feed/activity-feed.component';
 import {
   Firestore, collection, query, where, orderBy,
   limit, onSnapshot, addDoc, Timestamp
 } from '@angular/fire/firestore';
 import { Insight, InsightType } from '@shared/models/schedule.model';
 import { Task } from '@shared/models/task.model';
-import { ActivityEvent } from '@shared/models/dashboard.model';
+import { ActivityEvent } from '@shared/models/activity.model';
 
 @Component({
   selector:   'tp-dashboard',
   standalone: true,
-  imports:    [RouterLink, IconComponent, TooltipDirective, TaskCardComponent, TaskDrawerComponent, DecimalPipe],
+  imports:    [RouterLink, IconComponent, TooltipDirective, TaskCardComponent, TaskDrawerComponent, ActivityFeedComponent, DecimalPipe],
   templateUrl: './dashboard.component.html',
   styleUrl:    './dashboard.component.scss'
 })
@@ -97,23 +98,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.tasks.updateStatus(task.id, 'completed');
   }
 
-  /** Short "x ago" / "in x" label for activity + relative times. */
-  timeAgo(ts?: Timestamp | null): string {
-    if (!ts) return '';
-    const diffMs = Date.now() - ts.toMillis();
-    const abs    = Math.abs(diffMs);
-    const min    = Math.round(abs / 60_000);
-    const suffix = diffMs >= 0 ? 'ago' : 'from now';
-    if (min < 1)  return 'just now';
-    if (min < 60) return `${min}m ${suffix}`;
-    const hr = Math.round(min / 60);
-    if (hr < 24)  return `${hr}h ${suffix}`;
-    const days = Math.round(hr / 24);
-    if (days < 7) return `${days}d ${suffix}`;
-    return ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  /** Open the entity behind an activity row: task → drawer; note/group → route. */
+  onActivity(event: ActivityEvent): void {
+    if (event.category === 'task') {
+      const task = this.tasks.getTaskById(event.entityId);
+      if (task) { this.selectedTask.set(task); return; }
+    }
+    if (event.route) this.router.navigate(event.route);
   }
-
-  trackByActivity = (_: number, e: ActivityEvent): string => e.id;
 
   private loadInsights(): void {
     const uid = this.auth.userId();

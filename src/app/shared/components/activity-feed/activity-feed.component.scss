@@ -1,0 +1,57 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.activity-feed {
+  @include flex-col;
+  gap: $space-1;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: $space-2;
+    border-radius: $radius-md;
+    cursor: pointer;
+    transition: background $transition-fast;
+
+    &:hover { background: var(--bg-tertiary); }
+  }
+
+  &__icon {
+    @include flex-center;
+    width: 28px;
+    height: 28px;
+    border-radius: $radius-full;
+    flex-shrink: 0;
+    background: var(--bg-tertiary);
+    color: var(--text-tertiary);
+
+    &--task   { background: var(--surface-brand);   color: var(--text-brand); }
+    &--note   { background: var(--surface-warning);  color: $amber-500; }
+    &--group  { background: var(--surface-success);  color: $emerald-500; }
+    &--report { background: rgba($indigo-500, 0.14); color: $indigo-500; }
+  }
+
+  &__text {
+    flex: 1;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    @include text-truncate;
+    strong { color: var(--text-primary); font-weight: $font-weight-medium; }
+  }
+
+  &__time { font-size: $font-size-xs; color: var(--text-tertiary); flex-shrink: 0; }
+
+  &__empty {
+    @include flex-col;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-6;
+    text-align: center;
+    color: var(--text-tertiary);
+
+    &-icon { font-size: 2rem; }
+    p { font-size: $font-size-sm; }
+  }
+}

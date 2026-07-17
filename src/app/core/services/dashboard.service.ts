@@ -2,12 +2,13 @@ import { Injectable, inject, computed, Signal } from '@angular/core';
 import { TaskService } from './task.service';
 import { CategoryService } from './category.service';
 import { AuthService } from './auth.service';
+import { ActivityService } from './activity.service';
 import { Task, TaskPriority } from '@shared/models/task.model';
 import {
   DashboardStats, FocusTask, CategoryProgress, WeeklyProductivity,
-  WeeklyDay, ActivityEvent, ActivityKind, DashboardRecommendation,
-  ProductivityScore
+  WeeklyDay, DashboardRecommendation, ProductivityScore
 } from '@shared/models/dashboard.model';
+import { ActivityEvent } from '@shared/models/activity.model';
 
 // ============================================================
 // DashboardService
@@ -31,6 +32,7 @@ export class DashboardService {
   private readonly tasks      = inject(TaskService);
   private readonly categories = inject(CategoryService);
   private readonly auth       = inject(AuthService);
+  private readonly activity   = inject(ActivityService);
 
   // ---- Headline stats -------------------------------------------------
 
@@ -140,30 +142,13 @@ export class DashboardService {
   // ---- Recent Activity ------------------------------------------------
 
   /**
-   * A lightweight activity stream derived from task timestamps
-   * (created / completed / updated), newest first (top 8). This is a
-   * self-contained local derivation; the full cross-entity Activity
-   * Feed is a separate deliverable and can supersede this later.
+   * Recent cross-entity activity for the dashboard (top 8), sourced from
+   * the shared ActivityService global feed (tasks + groups) — one
+   * derivation engine, reused here and by <tp-activity-feed>.
    */
-  readonly recentActivity: Signal<ActivityEvent[]> = computed(() => {
-    const events: ActivityEvent[] = [];
-
-    for (const task of this.tasks.tasks()) {
-      if (task.status === 'completed' && task.completedAt) {
-        events.push(this.activity('completed', task, task.completedAt.toMillis()));
-      } else if (task.updatedAt && task.createdAt &&
-                 task.updatedAt.toMillis() - task.createdAt.toMillis() > 60_000) {
-        events.push(this.activity('updated', task, task.updatedAt.toMillis()));
-      }
-      if (task.createdAt) {
-        events.push(this.activity('created', task, task.createdAt.toMillis()));
-      }
-    }
-
-    return events
-      .sort((a, b) => b.at.toMillis() - a.at.toMillis())
-      .slice(0, 8);
-  });
+  readonly recentActivity: Signal<ActivityEvent[]> = computed(() =>
+    this.activity.feed().slice(0, 8)
+  );
 
   // ---- Smart Recommendations ------------------------------------------
 
@@ -304,17 +289,4 @@ export class DashboardService {
     return `Due in ${days} ${this.plural(days, 'day')} • ${priority}`;
   }
 
-  private activity(kind: ActivityKind, task: Task, ms: number): ActivityEvent {
-    const meta: Record<ActivityKind, { label: string; icon: string }> = {
-      created:   { label: 'Created',   icon: 'plus' },
-      completed: { label: 'Completed', icon: 'check' },
-      updated:   { label: 'Updated',   icon: 'edit-2' },
-    };
-    const { label, icon } = meta[kind];
-    // Reuse the task's own Timestamp so consumers keep a single time type.
-    const at = kind === 'completed' ? task.completedAt!
-             : kind === 'updated'   ? task.updatedAt
-             : task.createdAt;
-    return { id: `${task.id}_${kind}`, kind, task, at, label, icon };
-  }
 }

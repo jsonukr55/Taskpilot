@@ -152,6 +152,15 @@
         </ul>
       }
     </section>
+
+    <!-- Activity -->
+    <section class="card gd-section">
+      <div class="gd-section__head">
+        <h2><tp-icon name="repeat" [size]="16" /> Activity</h2>
+      </div>
+      <tp-activity-feed [events]="groupActivity()" (activate)="onActivity($event)"
+        emptyText="No activity in this group yet." />
+    </section>
   </div>
 } @else if (notFound()) {
   <div class="gd-missing card">

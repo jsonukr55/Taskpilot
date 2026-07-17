@@ -6,13 +6,16 @@ import { NoteService } from '@core/services/note.service';
 import { TaskService } from '@core/services/task.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
+import { ActivityService } from '@core/services/activity.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
+import { ActivityFeedComponent } from '@shared/components/activity-feed/activity-feed.component';
 import {
   Group, GroupInvite, GroupRole, groupMembers, ROLE_LABELS
 } from '@shared/models/group.model';
 import { Task } from '@shared/models/task.model';
+import { ActivityEvent } from '@shared/models/activity.model';
 
 const GROUP_ICONS  = ['👥','🚀','📁','🎯','💼','🧩','🏗️','🌐','🔬','🎨','📊','🛠️'];
 const GROUP_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
@@ -20,7 +23,7 @@ const GROUP_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9
 @Component({
   selector:   'tp-group-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective, SelectComponent],
+  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective, SelectComponent, ActivityFeedComponent],
   templateUrl: './group-detail.component.html',
   styleUrl:    './group-detail.component.scss'
 })
@@ -32,6 +35,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   readonly tasks  = inject(TaskService);
   readonly auth   = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly activity = inject(ActivityService);
   private readonly router = inject(Router);
 
   readonly ROLE_LABELS = ROLE_LABELS;
@@ -50,6 +54,24 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   readonly openTasks = computed(() =>
     [...this.tasks.groupTasks()].sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds)
   );
+
+  /** Scoped activity for THIS group, from data already loaded on the page
+   *  (group tasks + notes + the group itself + any loaded invites). Reuses
+   *  the same ActivityService builders as the dashboard feed. */
+  readonly groupActivity = computed(() => {
+    const g = this.group();
+    return this.activity.merge([
+      ...this.activity.fromTasks(this.tasks.groupTasks()),
+      ...this.activity.fromNotes(this.notes.notes()),
+      ...this.activity.fromInvites(this.activeInvites()),
+      ...(g ? this.activity.fromGroups([g]) : []),
+    ], 12);
+  });
+
+  onActivity(e: ActivityEvent): void {
+    if (e.route) { this.router.navigate(e.route); return; }
+    if (e.category === 'task') this.router.navigate(['/tasks', e.entityId]);
+  }
 
   // ---- UI state ----
   readonly showInvite   = signal(false);

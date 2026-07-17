@@ -20,6 +20,21 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: 'v0.3',
+    date:    '2026-07-17',
+    title:   'Smarter & faster',
+    items: [
+      { type: 'added',    text: 'Smarter dashboard — Today’s Focus task, a Productivity Score, a weekly summary, smart recommendations, recent activity and recently-completed at a glance.' },
+      { type: 'added',    text: 'Bulk task actions — select multiple tasks to complete, restore, archive, delete, or set priority, category and due date at once.' },
+      { type: 'added',    text: 'Keyboard shortcuts everywhere — press “?” to see them all. Ctrl/⌘+K to search, N for a new task, arrow keys to navigate, E to edit, D to duplicate, Ctrl/⌘+S to save.' },
+      { type: 'added',    text: 'Smart filters — one-click Quick filters (My Tasks, Due Today, Overdue, High Priority, Recently Updated, Completed This Week) plus Saved and Recent filters.' },
+      { type: 'added',    text: 'Favorite & pin notes, plus a Quick Access strip and Recently Opened, so your important notes are always one click away.' },
+      { type: 'added',    text: 'Activity feed — see recent task, note and group activity on the dashboard and on each group.' },
+      { type: 'improved', text: 'More AI writing skills in notes — Rewrite, Translate, Professional tone, Bullet points, Extract action items, Meeting summary and Email draft, inserted as clean, formatted blocks.' },
+      { type: 'fixed',    text: 'Switching directly between two notes now loads the right note instead of keeping the previous one open.' },
+    ],
+  },
+  {
     version: 'v0.2',
     date:    '2026-07-14',
     title:   'Personalization & polish',

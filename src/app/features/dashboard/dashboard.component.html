@@ -90,6 +90,68 @@
     </div>
   </div>
 
+  <!-- Hero row: Today's Focus + Productivity Score -->
+  <div class="dashboard__hero">
+
+    <!-- Today's Focus Task -->
+    <section class="focus-card">
+      <div class="focus-card__head">
+        <span class="focus-card__eyebrow">
+          <tp-icon name="zap" [size]="14" />
+          Today's focus
+        </span>
+      </div>
+
+      @if (focusTask(); as focus) {
+        <button type="button" class="focus-card__task" (click)="selectedTask.set(focus.task)">
+          <span class="focus-card__reason" [attr.data-priority]="focus.task.priority">{{ focus.reason }}</span>
+          <span class="focus-card__title">{{ focus.task.title }}</span>
+        </button>
+        <div class="focus-card__actions">
+          <button class="btn btn-primary btn-sm" (click)="completeFocus(focus.task)">
+            <tp-icon name="check" [size]="14" />
+            Mark done
+          </button>
+          <button class="btn btn-secondary btn-sm" (click)="selectedTask.set(focus.task)">
+            Open
+          </button>
+        </div>
+      } @else {
+        <div class="focus-card__empty">
+          <span class="focus-card__empty-icon">🎉</span>
+          <p>No open tasks — you're clear. Add one to get started.</p>
+          <a routerLink="/tasks" [queryParams]="{new: true}" class="btn btn-primary btn-sm">
+            <tp-icon name="plus" [size]="14" /> New Task
+          </a>
+        </div>
+      }
+    </section>
+
+    <!-- Productivity Score -->
+    <section class="score-card" [attr.data-band]="productivityScore().label">
+      <div class="score-card__ring-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120" class="score-card__ring">
+          <circle cx="60" cy="60" r="26" fill="none" stroke="currentColor" stroke-width="8" opacity="0.12"
+            transform="scale(2) translate(-30 -30)"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="8" opacity="0.12"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="8"
+            stroke-linecap="round"
+            [attr.stroke-dasharray]="ringCircumference * 2"
+            [attr.stroke-dashoffset]="(ringCircumference * 2) * (1 - productivityScore().value / 100)"
+            transform="rotate(-90 60 60)"/>
+        </svg>
+        <div class="score-card__center">
+          <span class="score-card__value">{{ productivityScore().value }}</span>
+          <span class="score-card__max">/100</span>
+        </div>
+      </div>
+      <div class="score-card__meta">
+        <span class="score-card__label">Productivity score</span>
+        <span class="score-card__band">{{ productivityScore().label }}</span>
+      </div>
+    </section>
+  </div>
+
   <div class="dashboard__grid">
 
     <!-- AI Insights -->
@@ -132,6 +194,31 @@
       }
     </section>
 
+    <!-- Smart Recommendations -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="zap" [size]="18" />
+          Recommended
+        </h2>
+      </div>
+
+      <div class="rec-list">
+        @for (rec of recommendations(); track rec.id) {
+          <div class="rec-card" [class]="'rec-card--' + rec.tone">
+            <span class="rec-card__icon">{{ rec.icon }}</span>
+            <div class="rec-card__body">
+              <strong class="rec-card__title">{{ rec.title }}</strong>
+              <p class="rec-card__text">{{ rec.body }}</p>
+              @if (rec.route && rec.cta) {
+                <a [routerLink]="rec.route" class="rec-card__action">{{ rec.cta }} →</a>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
     <!-- Today's Tasks -->
     <section class="dashboard__section">
       <div class="section-header">
@@ -156,7 +243,39 @@
       }
     </section>
 
-    <!-- Category Breakdown -->
+    <!-- Weekly Productivity Summary -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="bar-chart-2" [size]="18" />
+          This Week
+        </h2>
+        <span class="section-header__badge">
+          @if (weekly().trendPercent > 0) { ▲ {{ weekly().trendPercent }}% }
+          @else if (weekly().trendPercent < 0) { ▼ {{ -weekly().trendPercent }}% }
+          @else { — }
+        </span>
+      </div>
+
+      <div class="week-chart">
+        @for (day of weekly().days; track day.label) {
+          <div class="week-chart__col" [class.week-chart__col--today]="day.isToday">
+            <div class="week-chart__bar-wrap">
+              <div class="week-chart__bar"
+                [style.height.%]="day.completed / weekly().peakCompleted * 100"
+                [attr.data-count]="day.completed"></div>
+            </div>
+            <span class="week-chart__label">{{ day.label }}</span>
+          </div>
+        }
+      </div>
+      <div class="week-summary">
+        <span><strong>{{ weekly().completedThisWeek }}</strong> completed</span>
+        <span><strong>{{ weekly().avgPerDay | number:'1.0-1' }}</strong> / day avg</span>
+      </div>
+    </section>
+
+    <!-- Category Progress -->
     <section class="dashboard__section">
       <div class="section-header">
         <h2 class="section-header__title">
@@ -166,25 +285,23 @@
         <a routerLink="/analytics" class="section-header__link">Details →</a>
       </div>
 
-      @if (tasksByCategory().length > 0) {
+      @if (categoryProgress().length > 0) {
         <div class="category-breakdown">
-          @for (item of tasksByCategory(); track item.category.id) {
+          @for (item of categoryProgress(); track item.category.id) {
             <div class="category-row">
               <div class="category-row__info">
                 <span class="category-row__icon">{{ item.category.icon }}</span>
                 <span class="category-row__name">{{ item.category.name }}</span>
-                <span class="category-row__count">{{ item.count }}</span>
+                <span class="category-row__count">{{ item.done }}/{{ item.count }}</span>
               </div>
               <div class="category-row__bar-wrap">
                 <div
                   class="category-row__bar"
-                  [style.width.%]="item.count > 0 ? (item.done / item.count) * 100 : 0"
+                  [style.width.%]="item.percent"
                   [style.background]="item.category.color"
                 ></div>
               </div>
-              <span class="category-row__pct">
-                {{ item.count > 0 ? ((item.done / item.count) * 100 | number:'1.0-0') : 0 }}%
-              </span>
+              <span class="category-row__pct">{{ item.percent }}%</span>
             </div>
           }
         </div>
@@ -195,7 +312,7 @@
       }
     </section>
 
-    <!-- Upcoming -->
+    <!-- Upcoming Deadlines -->
     <section class="dashboard__section">
       <div class="section-header">
         <h2 class="section-header__title">
@@ -215,6 +332,60 @@
         <div class="empty-state">
           <span class="empty-state__icon">📅</span>
           <p class="empty-state__text">Nothing scheduled for the next 7 days.</p>
+        </div>
+      }
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="repeat" [size]="18" />
+          Recent Activity
+        </h2>
+      </div>
+
+      @if (recentActivity().length > 0) {
+        <ul class="activity-list">
+          @for (event of recentActivity(); track event.id) {
+            <li class="activity-item" (click)="selectedTask.set(event.task)">
+              <span class="activity-item__icon" [class]="'activity-item__icon--' + event.kind">
+                <tp-icon [name]="event.icon" [size]="14" />
+              </span>
+              <span class="activity-item__text">
+                <strong>{{ event.label }}</strong> {{ event.task.title }}
+              </span>
+              <span class="activity-item__time">{{ timeAgo(event.at) }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="empty-state">
+          <span class="empty-state__icon">🕓</span>
+          <p class="empty-state__text">No recent activity yet.</p>
+        </div>
+      }
+    </section>
+
+    <!-- Recently Completed -->
+    <section class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">
+          <tp-icon name="check-circle" [size]="18" />
+          Recently Completed
+        </h2>
+      </div>
+
+      @if (recentlyCompleted().length > 0) {
+        <div class="task-list">
+          @for (task of recentlyCompleted(); track task.id) {
+            <tp-task-card [task]="task" [compact]="true" (taskOpen)="selectedTask.set($event)" />
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <span class="empty-state__icon">✅</span>
+          <p class="empty-state__text">Complete a task to see it here.</p>
         </div>
       }
     </section>

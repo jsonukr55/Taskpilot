@@ -75,6 +75,35 @@ export interface NoteSummary {
   updatedBy: string;
 }
 
+// ---- Quick access (favorites / pins / recently opened) ----
+// Stored per-user in users/{uid}.noteAccess — NOT on note docs, because
+// (a) group-note viewers can't write note docs under the rules, and
+// (b) note writes stamp updatedAt/updatedBy, which would reorder
+//     recency-sorted lists just for toggling a star.
+
+/** Lightweight pointer to a note plus a display snapshot. */
+export interface NoteQuickRef {
+  id:      string;
+  groupId: string | null;   // null = personal note
+  title:   string;
+  icon:    string | null;
+  /** Epoch millis of the action (favorited / pinned / opened).
+   *  Plain number — serverTimestamp() can't be used inside arrays. */
+  at:      number;
+}
+
+/** Per-user note quick-access state (persisted on the user profile). */
+export interface NoteAccessState {
+  favorites: NoteQuickRef[];
+  pinned:    NoteQuickRef[];
+  /** Newest first, capped by the service. */
+  recent:    NoteQuickRef[];
+}
+
+export function emptyNoteAccess(): NoteAccessState {
+  return { favorites: [], pinned: [], recent: [] };
+}
+
 // ---- Helpers ----
 
 export function newBlock(type: NoteBlockType = 'paragraph', html = ''): NoteBlock {

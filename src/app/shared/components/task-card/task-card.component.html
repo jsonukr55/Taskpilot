@@ -2,8 +2,20 @@
   class="task-row"
   [class.task-row--done]="task().status === 'completed'"
   [class.task-row--overdue]="isOverdue()"
+  [class.task-row--selectable]="selectable()"
+  [class.task-row--selected]="selectable() && selected()"
+  [class.task-row--active]="active()"
   (click)="taskOpen.emit(task())"
 >
+  @if (selectable()) {
+    <label class="task-row__select" (click)="$event.stopPropagation()">
+      <input type="checkbox" [checked]="selected()" (change)="selectChange.emit(task())" />
+      <span class="task-row__select-box" [class.on]="selected()">
+        @if (selected()) { <tp-icon name="check" [size]="11" /> }
+      </span>
+    </label>
+  }
+
   <button class="task-row__check" (click)="$event.stopPropagation(); toggleStatus()"
     [class.checked]="task().status === 'completed'"
     [class.in-progress]="task().status === 'in_progress'">

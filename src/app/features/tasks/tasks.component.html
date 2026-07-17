@@ -10,11 +10,55 @@
       <button class="btn btn-ghost btn-icon" (click)="toggleView()" data-tooltip [attr.data-tooltip]="viewMode() === 'list' ? 'Board view' : 'List view'">
         <tp-icon [name]="viewMode() === 'list' ? 'grid' : 'list'" [size]="16" />
       </button>
+      <button class="btn btn-sm" [class.btn-primary]="selectionMode()" [class.btn-ghost]="!selectionMode()"
+        (click)="toggleSelectionMode()" data-tooltip [attr.data-tooltip]="selectionMode() ? 'Exit selection' : 'Select tasks'">
+        <tp-icon name="check-square" [size]="16" />
+        {{ selectionMode() ? 'Done' : 'Select' }}
+      </button>
       <button class="btn btn-primary btn-sm" (click)="showCreateModal.set(true)">
         <tp-icon name="plus" [size]="14" /> New Task
       </button>
     </div>
   </div>
+
+  <!-- Smart filters: quick presets + saved -->
+  <div class="smart-filters">
+    @for (qf of smart.quickFilters(); track qf.id) {
+      <button class="filter-pill" [class.active]="smart.isActive(qf)" (click)="applyPreset(qf)">
+        <tp-icon [name]="qf.icon || 'filter'" [size]="12" /> {{ qf.label }}
+      </button>
+    }
+
+    @for (sf of smart.saved(); track sf.id) {
+      <span class="filter-pill filter-pill--saved" [class.active]="smart.isActive(sf)">
+        <button class="filter-pill__apply" (click)="applyPreset(sf)">
+          <tp-icon name="filter" [size]="12" /> {{ sf.label }}
+        </button>
+        <button class="filter-pill__remove" (click)="smart.removeSaved(sf.id)" data-tooltip="Remove saved filter">
+          <tp-icon name="x" [size]="11" />
+        </button>
+      </span>
+    }
+
+    @if (smart.hasActiveFilter()) {
+      <button class="filter-pill filter-pill--save" (click)="saveCurrentFilter()">
+        <tp-icon name="plus" [size]="12" /> Save filter
+      </button>
+    }
+  </div>
+
+  <!-- Recently used filters -->
+  @if (smart.recent().length > 0) {
+    <div class="smart-filters smart-filters--recent">
+      <span class="smart-filters__label">Recent</span>
+      @for (rf of smart.recent(); track rf.id) {
+        <button class="filter-pill filter-pill--recent" [class.active]="smart.isActive(rf)" (click)="applyPreset(rf)">
+          {{ rf.label }}
+        </button>
+      }
+      <button class="filter-pill filter-pill--clear" (click)="smart.clearRecent()">Clear recent</button>
+    </div>
+  }
 
   <!-- Filters -->
   <div class="tasks-page__filters">
@@ -97,7 +141,8 @@
               </div>
               @if (!collapsedGroups().has(group.status)) {
                 <div class="status-group__tasks">
-                  <div class="task-list-header">
+                  <div class="task-list-header" [class.task-list-header--select]="selectionMode()">
+                    @if (selectionMode()) { <span></span> }
                     <span></span>
                     <span>Name</span>
                     <span>Priority</span>
@@ -106,12 +151,16 @@
                     <span>Category</span>
                   </div>
                   @for (task of group.tasks; track task.id; let i = $index) {
-                    <tp-task-card [task]="task" [style.animation-delay]="(i * 15) + 'ms'"
+                    <tp-task-card [task]="task" [style.animation-delay]="(i * 15) + 'ms'" [attr.data-taskid]="task.id"
+                      [selectable]="selectionMode()" [selected]="isSelected(task.id)" (selectChange)="toggleSelect($event)"
+                      [active]="activeId() === task.id"
                       (taskOpen)="selectedTask.set($event)" (addSubtask)="startAddSubtask($event)" />
 
                     <!-- Existing subtasks -->
                     @for (sub of subtasksOf(task.id); track sub.id) {
-                      <tp-task-card class="subtask-nested" [task]="sub" (taskOpen)="selectedTask.set($event)" />
+                      <tp-task-card class="subtask-nested" [task]="sub"
+                        [selectable]="selectionMode()" [selected]="isSelected(sub.id)" (selectChange)="toggleSelect($event)"
+                        (taskOpen)="selectedTask.set($event)" />
                     }
 
                     <!-- Inline add-subtask input -->
@@ -147,7 +196,9 @@
           </div>
           <div class="board-column__tasks">
             @for (task of group.tasks; track task.id) {
-              <tp-task-card [task]="task" (taskOpen)="selectedTask.set($event)" />
+              <tp-task-card [task]="task"
+                [selectable]="selectionMode()" [selected]="isSelected(task.id)" (selectChange)="toggleSelect($event)"
+                (taskOpen)="selectedTask.set($event)" />
             }
             <button class="board-add-btn" (click)="showCreateModal.set(true)">
               <tp-icon name="plus" [size]="13" /> Add task
@@ -158,6 +209,39 @@
     </div>
   }
 </div>
+
+@if (selectionMode()) {
+  <div class="bulk-bar" [class.bulk-bar--active]="selectedCount() > 0">
+    <div class="bulk-bar__left">
+      <span class="bulk-bar__count">{{ selectedCount() }} selected</span>
+      @if (!allVisibleSelected()) {
+        <button class="bulk-bar__link" (click)="selectAllVisible()">Select all {{ visibleTaskIds().length }}</button>
+      }
+      @if (selectedCount() > 0) {
+        <button class="bulk-bar__link" (click)="clearSelection()">Clear</button>
+      }
+    </div>
+
+    <div class="bulk-bar__actions">
+      <button class="btn btn-sm btn-secondary" [disabled]="selectedCount() === 0" (click)="bulkComplete()">
+        <tp-icon name="check" [size]="14" /> Complete
+      </button>
+
+      <tp-select class="bulk-bar__select" placeholder="Set status…"   [options]="bulkStatusOptions"    [value]="bulkReset()" (changed)="onBulkStatus($event)" />
+      <tp-select class="bulk-bar__select" placeholder="Set priority…" [options]="bulkPriorityOptions"  [value]="bulkReset()" (changed)="onBulkPriority($event)" />
+      <tp-select class="bulk-bar__select" placeholder="Add category…" [options]="bulkCategoryOptions()" [value]="bulkReset()" (changed)="onBulkCategory($event)" />
+
+      <label class="bulk-bar__date" data-tooltip="Set due date">
+        <tp-icon name="calendar" [size]="14" />
+        <input type="date" [disabled]="selectedCount() === 0" (change)="onBulkDueDate($any($event.target).value)" />
+      </label>
+
+      <button class="btn btn-sm btn-danger" [disabled]="selectedCount() === 0" (click)="bulkDelete()">
+        <tp-icon name="trash-2" [size]="14" /> Delete
+      </button>
+    </div>
+  </div>
+}
 
 @if (showCreateModal()) {
   <tp-create-task-modal (close)="showCreateModal.set(false)" />

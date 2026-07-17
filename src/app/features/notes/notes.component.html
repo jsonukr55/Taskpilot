@@ -11,6 +11,56 @@
     </button>
   </header>
 
+  <!-- Quick access: pinned / favorites / recently opened -->
+  @if (access.hasQuickAccess()) {
+    <div class="qa">
+      @if (access.pinned().length) {
+        <section class="qa__sec">
+          <p class="qa__label"><tp-icon name="bookmark" [size]="12" /> Pinned</p>
+          <div class="qa__row">
+            @for (r of access.pinned(); track r.id) {
+              <button class="qa__chip" (click)="openRef(r)">
+                <span class="qa__icon">{{ r.icon || '📄' }}</span>
+                <span class="qa__title">{{ r.title }}</span>
+                @if (r.groupId) { <span class="qa__badge">group</span> }
+              </button>
+            }
+          </div>
+        </section>
+      }
+
+      @if (access.favorites().length) {
+        <section class="qa__sec">
+          <p class="qa__label"><tp-icon name="star" [size]="12" /> Favorites</p>
+          <div class="qa__row">
+            @for (r of access.favorites(); track r.id) {
+              <button class="qa__chip" (click)="openRef(r)">
+                <span class="qa__icon">{{ r.icon || '📄' }}</span>
+                <span class="qa__title">{{ r.title }}</span>
+                @if (r.groupId) { <span class="qa__badge">group</span> }
+              </button>
+            }
+          </div>
+        </section>
+      }
+
+      @if (recentToShow().length) {
+        <section class="qa__sec">
+          <p class="qa__label"><tp-icon name="clock" [size]="12" /> Recently opened</p>
+          <div class="qa__row">
+            @for (r of recentToShow(); track r.id) {
+              <button class="qa__chip qa__chip--recent" (click)="openRef(r)">
+                <span class="qa__icon">{{ r.icon || '📄' }}</span>
+                <span class="qa__title">{{ r.title }}</span>
+                @if (r.groupId) { <span class="qa__badge">group</span> }
+              </button>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+
   @if (notes.notesLoading()) {
     <div class="notes-grid">
       @for (i of [1,2,3]; track i) { <div class="skeleton" style="height:120px;border-radius:16px;"></div> }
@@ -24,14 +74,27 @@
     </div>
   } @else {
     <div class="notes-grid">
-      @for (n of notes.notes(); track n.id) {
-        <div class="note-card card-hover" (click)="open(n.id)">
+      @for (n of sortedNotes(); track n.id) {
+        <div class="note-card card-hover" [class.note-card--pinned]="access.isPinned(n.id)" (click)="open(n.id)">
           <div class="note-card__top">
             <span class="note-card__icon">{{ n.icon || '📄' }}</span>
-            <button class="btn-icon note-card__del" (click)="remove($event, n.id)" data-tooltip="Delete"><tp-icon name="trash-2" [size]="15" /></button>
+            <span class="note-card__actions">
+              <button class="btn-icon note-card__act note-card__act--pin" [class.on]="access.isPinned(n.id)"
+                      (click)="togglePin($event, n)" [attr.data-tooltip]="access.isPinned(n.id) ? 'Unpin' : 'Pin'">
+                <tp-icon name="bookmark" [size]="14" />
+              </button>
+              <button class="btn-icon note-card__act note-card__act--fav" [class.on]="access.isFavorite(n.id)"
+                      (click)="toggleFav($event, n)" [attr.data-tooltip]="access.isFavorite(n.id) ? 'Unfavorite' : 'Favorite'">
+                <tp-icon name="star" [size]="14" />
+              </button>
+              <button class="btn-icon note-card__del" (click)="remove($event, n.id)" data-tooltip="Delete">
+                <tp-icon name="trash-2" [size]="15" />
+              </button>
+            </span>
           </div>
           <h3 class="note-card__title">{{ n.title || 'Untitled' }}</h3>
           <p class="note-card__preview">{{ preview(n) }}</p>
+          <span class="note-card__meta">{{ edited(n) }}</span>
         </div>
       }
     </div>

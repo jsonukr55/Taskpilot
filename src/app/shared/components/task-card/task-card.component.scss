@@ -31,6 +31,49 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
 
   &--overdue .task-row__title { color: var(--text-primary); }
 
+  // Multi-select mode: prepend a checkbox column (opt-in via --selectable)
+  &--selectable {
+    grid-template-columns: 22px $task-cols;
+
+    @include mobile-only {
+      grid-template-columns: 22px 28px 1fr 44px 90px;
+    }
+  }
+
+  &--selected {
+    background: var(--surface-brand);
+    &:hover { background: var(--surface-brand); }
+  }
+
+  &--active {
+    background: var(--bg-tertiary);
+    box-shadow: inset 2px 0 0 var(--accent-500);
+  }
+
+  &__select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    justify-self: center;
+
+    input { position: absolute; opacity: 0; width: 0; height: 0; }
+  }
+
+  &__select-box {
+    @include flex-center;
+    width: 16px;
+    height: 16px;
+    border-radius: $radius-sm;
+    border: 1.5px solid var(--border-default);
+    background: transparent;
+    color: white;
+    transition: all $transition-fast;
+
+    &:hover { border-color: var(--accent-400); }
+    &.on { background: var(--accent-500); border-color: var(--accent-500); }
+  }
+
   // Circle checkbox
   &__check {
     width: 16px;

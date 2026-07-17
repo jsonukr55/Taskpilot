@@ -485,3 +485,12 @@
 // Role ring on line-assignee avatars
 .avatar.role-editor { box-shadow: 0 0 0 2px $indigo-500; }
 .avatar.role-viewer { box-shadow: 0 0 0 2px var(--text-tertiary); }
+
+// ---- Quick-access toggles (favorite / pin) in the top bar ----
+.ne-qa {
+  color: var(--text-tertiary);
+
+  &.on svg { fill: currentColor; }
+  &--pin.on { color: var(--accent-500); }
+  &--fav.on { color: $amber-500; }
+}

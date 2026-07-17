@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, computed, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, computed, signal } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { TaskService } from '@core/services/task.service';
@@ -6,6 +6,7 @@ import { CategoryService } from '@core/services/category.service';
 import { AuthService } from '@core/services/auth.service';
 import { AiService } from '@core/services/ai.service';
 import { NoteService } from '@core/services/note.service';
+import { DashboardService } from '@core/services/dashboard.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskCardComponent } from '@shared/components/task-card/task-card.component';
@@ -16,6 +17,7 @@ import {
 } from '@angular/fire/firestore';
 import { Insight, InsightType } from '@shared/models/schedule.model';
 import { Task } from '@shared/models/task.model';
+import { ActivityEvent } from '@shared/models/dashboard.model';
 
 @Component({
   selector:   'tp-dashboard',
@@ -24,14 +26,26 @@ import { Task } from '@shared/models/task.model';
   templateUrl: './dashboard.component.html',
   styleUrl:    './dashboard.component.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   readonly tasks      = inject(TaskService);
   readonly categories = inject(CategoryService);
   readonly auth       = inject(AuthService);
   readonly ai         = inject(AiService);
+  readonly dash       = inject(DashboardService);
   private readonly notes     = inject(NoteService);
   private readonly router    = inject(Router);
   private readonly firestore = inject(Firestore);
+
+  // ---- Reusable dashboard signals (all derived in DashboardService) ----
+  readonly stats             = this.dash.stats;
+  readonly focusTask         = this.dash.focusTask;
+  readonly productivityScore = this.dash.productivityScore;
+  readonly weekly            = this.dash.weeklyProductivity;
+  readonly categoryProgress  = this.dash.categoryProgress;
+  readonly upcomingTasks     = this.dash.upcomingDeadlines;
+  readonly recentlyCompleted = this.dash.recentlyCompleted;
+  readonly recentActivity    = this.dash.recentActivity;
+  readonly recommendations   = this.dash.recommendations;
 
   readonly creatingNote = signal(false);
 
@@ -51,38 +65,6 @@ export class DashboardComponent implements OnInit {
   readonly generatingInsights = signal(false);
   readonly selectedTask       = signal<Task | null>(null);
 
-  // ---- Computed Stats ----
-  readonly stats = computed(() => {
-    const all       = this.tasks.tasks();
-    const today     = this.tasks.todayTasks();
-    const overdue   = this.tasks.overdueTasks();
-    const completed = all.filter(t => t.status === 'completed');
-    const rate      = this.tasks.completionRate();
-
-    return { total: all.length, today: today.length, overdue: overdue.length, completed: completed.length, rate };
-  });
-
-  readonly tasksByCategory = computed(() => {
-    const cats  = this.categories.rootCategories();
-    const tasks = this.tasks.tasks();
-    return cats.map(cat => ({
-      category: cat,
-      count:    tasks.filter(t => t.categoryIds.includes(cat.id)).length,
-      done:     tasks.filter(t => t.categoryIds.includes(cat.id) && t.status === 'completed').length
-    })).filter(r => r.count > 0);
-  });
-
-  readonly recentlyCompleted = computed(() =>
-    this.tasks.tasks()
-      .filter(t => t.status === 'completed' && t.completedAt)
-      .sort((a, b) => (b.completedAt?.seconds ?? 0) - (a.completedAt?.seconds ?? 0))
-      .slice(0, 3)
-  );
-
-  readonly upcomingTasks = computed(() =>
-    this.tasks.getTasksDueInDays(7).slice(0, 5)
-  );
-
   readonly greeting = computed(() => {
     const hour = new Date().getHours();
     const name = this.auth.displayName().split(' ')[0];
@@ -91,13 +73,47 @@ export class DashboardComponent implements OnInit {
     return `Good evening, ${name}`;
   });
 
+  /** Circumference of the productivity ring (r=26) for the SVG dash math. */
+  readonly ringCircumference = 2 * Math.PI * 26;
+
   private insightUnsub?: () => void;
+  private insightTimer?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
     this.loadInsights();
     // Generate fresh insights if none exist (wait for tasks to load)
-    setTimeout(() => this.maybeGenerateInsights(), 3500);
+    this.insightTimer = setTimeout(() => this.maybeGenerateInsights(), 3500);
   }
+
+  ngOnDestroy(): void {
+    this.insightUnsub?.();
+    if (this.insightTimer) clearTimeout(this.insightTimer);
+  }
+
+  // ---- Focus task quick actions ----
+
+  /** Mark the current focus task complete (optimistic-free, via listener echo). */
+  completeFocus(task: Task): void {
+    this.tasks.updateStatus(task.id, 'completed');
+  }
+
+  /** Short "x ago" / "in x" label for activity + relative times. */
+  timeAgo(ts?: Timestamp | null): string {
+    if (!ts) return '';
+    const diffMs = Date.now() - ts.toMillis();
+    const abs    = Math.abs(diffMs);
+    const min    = Math.round(abs / 60_000);
+    const suffix = diffMs >= 0 ? 'ago' : 'from now';
+    if (min < 1)  return 'just now';
+    if (min < 60) return `${min}m ${suffix}`;
+    const hr = Math.round(min / 60);
+    if (hr < 24)  return `${hr}h ${suffix}`;
+    const days = Math.round(hr / 24);
+    if (days < 7) return `${days}d ${suffix}`;
+    return ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  trackByActivity = (_: number, e: ActivityEvent): string => e.id;
 
   private loadInsights(): void {
     const uid = this.auth.userId();

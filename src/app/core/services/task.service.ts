@@ -22,10 +22,16 @@ export interface TaskFilter {
   dueAfter?:    Date;
   search?:      string;
   isOverdue?:   boolean;
+  /** Only tasks due within today's local calendar day. */
+  dueToday?:    boolean;
+  /** Only tasks updated within the last N days. */
+  updatedWithinDays?:   number;
+  /** Only completed tasks whose completedAt is within the last N days. */
+  completedWithinDays?: number;
 }
 
 export interface TaskSortOption {
-  field:     'dueDate' | 'priority' | 'createdAt' | 'title';
+  field:     'dueDate' | 'priority' | 'createdAt' | 'updatedAt' | 'title';
   direction: 'asc' | 'desc';
 }
 
@@ -73,6 +79,27 @@ export class TaskService {
         t.dueDate && t.dueDate.toDate() < now && t.status !== 'completed'
       );
     }
+    if (f.dueToday) {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const startMs = start.getTime();
+      list = list.filter(t => {
+        if (!t.dueDate) return false;
+        const d = t.dueDate.toMillis();
+        return d >= startMs && d < startMs + 86_400_000;
+      });
+    }
+    if (f.dueBefore) list = list.filter(t => t.dueDate && t.dueDate.toDate() <  f.dueBefore!);
+    if (f.dueAfter)  list = list.filter(t => t.dueDate && t.dueDate.toDate() >= f.dueAfter!);
+    if (f.updatedWithinDays != null) {
+      const cutoff = Date.now() - f.updatedWithinDays * 86_400_000;
+      list = list.filter(t => t.updatedAt && t.updatedAt.toMillis() >= cutoff);
+    }
+    if (f.completedWithinDays != null) {
+      const cutoff = Date.now() - f.completedWithinDays * 86_400_000;
+      list = list.filter(t =>
+        t.status === 'completed' && t.completedAt && t.completedAt.toMillis() >= cutoff
+      );
+    }
     if (q) {
       list = list.filter(t =>
         t.title.toLowerCase().includes(q) ||
@@ -99,6 +126,10 @@ export class TaskService {
         case 'createdAt':
           aVal = a.createdAt.seconds;
           bVal = b.createdAt.seconds;
+          break;
+        case 'updatedAt':
+          aVal = a.updatedAt?.seconds ?? 0;
+          bVal = b.updatedAt?.seconds ?? 0;
           break;
         case 'title':
           aVal = a.title.toLowerCase();
@@ -329,22 +360,133 @@ export class TaskService {
     await deleteDoc(doc(this.firestore, 'tasks', id));
   }
 
+  /**
+   * Duplicate a task (copies its editable fields into a new "… (copy)" task).
+   * The clone starts as 'todo' with no completion timestamp. Returns the new id.
+   */
+  async duplicateTask(id: string): Promise<string | null> {
+    const src = this.getTaskById(id);
+    if (!src) return null;
+    return this.createTask({
+      title:          `${src.title} (copy)`,
+      description:    src.description ?? '',
+      status:         'todo',
+      priority:       src.priority,
+      startDate:      src.startDate ?? null,
+      dueDate:        src.dueDate ?? null,
+      dueTime:        src.dueTime ?? null,
+      estimatedHours: src.estimatedHours ?? null,
+      actualHours:    null,
+      parentId:       src.parentId ?? null,
+      categoryIds:    [...src.categoryIds],
+      tags:           [...src.tags],
+      checklist:      src.checklist.map(c => ({ ...c, completed: false, completedAt: null })),
+      timeBlocks:     [],
+      recurrence:     src.recurrence ?? null,
+      isScheduled:    false,
+      completedAt:    null,
+      imageUrl:       src.imageUrl ?? null,
+      reminders:      [],
+      aiMetadata:     null,
+      ...(src.groupId ? { groupId: src.groupId } : {}),
+      ...(src.assigneeIds ? { assigneeIds: [...src.assigneeIds] } : {}),
+    });
+  }
+
   async bulkDelete(ids: string[]): Promise<void> {
-    const batch = writeBatch(this.firestore);
-    ids.forEach(id => batch.delete(doc(this.firestore, 'tasks', id)));
-    await batch.commit();
+    for (let i = 0; i < ids.length; i += TaskService.BATCH_LIMIT) {
+      const chunk = ids.slice(i, i + TaskService.BATCH_LIMIT);
+      const batch = writeBatch(this.firestore);
+      chunk.forEach(id => batch.delete(doc(this.firestore, 'tasks', id)));
+      await batch.commit();
+    }
   }
 
   async bulkUpdateStatus(ids: string[], status: TaskStatus): Promise<void> {
-    const batch = writeBatch(this.firestore);
-    ids.forEach(id =>
-      batch.update(doc(this.firestore, 'tasks', id), {
-        status,
-        updatedAt: serverTimestamp(),
-        ...(status === 'completed' ? { completedAt: serverTimestamp() } : {})
-      })
-    );
-    await batch.commit();
+    await this.commitInChunks(ids, id => ({
+      status,
+      ...(status === 'completed' ? { completedAt: serverTimestamp() } : {})
+    }));
+  }
+
+  // ---- Bulk operations (multi-selection) ----
+  // All batched + chunked to respect Firestore's 500-write limit. Writes
+  // stay optimistic-free: the tasks listener echoes each change back into
+  // the signals (usually <500ms), so the UI updates from one source of truth.
+
+  /** Firestore batches cap at 500 writes; stay under with a safety margin. */
+  private static readonly BATCH_LIMIT = 400;
+
+  /**
+   * Apply a per-id partial update to many tasks in chunked batches.
+   * `build` returns the fields to set for a given id (updatedAt is added).
+   */
+  private async commitInChunks(
+    ids: string[],
+    build: (id: string) => Record<string, unknown>
+  ): Promise<void> {
+    for (let i = 0; i < ids.length; i += TaskService.BATCH_LIMIT) {
+      const chunk = ids.slice(i, i + TaskService.BATCH_LIMIT);
+      const batch = writeBatch(this.firestore);
+      chunk.forEach(id =>
+        batch.update(doc(this.firestore, 'tasks', id), {
+          ...build(id),
+          updatedAt: serverTimestamp()
+        })
+      );
+      await batch.commit();
+    }
+  }
+
+  /** Mark many tasks complete (sets completedAt). */
+  bulkComplete(ids: string[]): Promise<void> {
+    return this.bulkUpdateStatus(ids, 'completed');
+  }
+
+  /** Reopen many tasks back to 'todo' (clears completedAt). */
+  bulkRestore(ids: string[]): Promise<void> {
+    return this.commitInChunks(ids, () => ({ status: 'todo', completedAt: null }));
+  }
+
+  /**
+   * Archive many tasks. The schema has no dedicated `archived` field, so
+   * archiving maps to the existing `cancelled` status (reversible via
+   * bulkRestore). This keeps the operation useful without a schema change.
+   */
+  bulkArchive(ids: string[]): Promise<void> {
+    return this.commitInChunks(ids, () => ({ status: 'cancelled' }));
+  }
+
+  /** Set the same priority on many tasks. */
+  bulkSetPriority(ids: string[], priority: TaskPriority): Promise<void> {
+    return this.commitInChunks(ids, () => ({ priority }));
+  }
+
+  /** Set the same due date (or clear it) on many tasks. */
+  bulkSetDueDate(ids: string[], dueDate: Timestamp | null): Promise<void> {
+    return this.commitInChunks(ids, () => ({ dueDate }));
+  }
+
+  /**
+   * Change categories on many tasks.
+   *  - 'set'    → replace with `categoryIds`
+   *  - 'add'    → union with existing
+   *  - 'remove' → subtract from existing
+   */
+  bulkSetCategories(
+    ids: string[],
+    categoryIds: string[],
+    mode: 'set' | 'add' | 'remove' = 'set'
+  ): Promise<void> {
+    const byId = new Map(this.tasks().map(t => [t.id, t]));
+    return this.commitInChunks(ids, id => {
+      if (mode === 'set') return { categoryIds };
+      const current = byId.get(id)?.categoryIds ?? [];
+      const next = mode === 'add'
+        ? [...new Set([...current, ...categoryIds])]
+        : current.filter(c => !categoryIds.includes(c));
+      return { categoryIds: next };
+    });
   }
 
   async toggleChecklistItem(taskId: string, itemId: string): Promise<void> {

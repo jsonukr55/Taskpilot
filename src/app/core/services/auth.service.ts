@@ -9,6 +9,7 @@ import {
   Firestore, doc, setDoc, getDoc, serverTimestamp
 } from '@angular/fire/firestore';
 import { UserProfile, DEFAULT_PREFERENCES } from '@shared/models/user.model';
+import { NoteAccessState } from '@shared/models/note.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -128,5 +129,16 @@ export class AuthService {
       updatedAt: serverTimestamp()
     }, { merge: true });
     this.userProfile.update(p => p ? { ...p, preferences: { ...p.preferences, ...prefs } } : null);
+  }
+
+  /** Persist the user's note quick-access state (favorites/pins/recents). */
+  async updateNoteAccess(access: NoteAccessState): Promise<void> {
+    const uid = this.userId();
+    if (!uid) return;
+    await setDoc(doc(this.firestore, 'users', uid), {
+      noteAccess: access,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    this.userProfile.update(p => p ? { ...p, noteAccess: access } : null);
   }
 }

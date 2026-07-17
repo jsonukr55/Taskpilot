@@ -363,3 +363,242 @@
   &__icon { font-size: 2rem; }
   &__text { font-size: $font-size-sm; color: var(--text-tertiary); }
 }
+
+// ---- Hero row: Focus + Productivity Score ----
+.dashboard__hero {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: $space-6;
+  margin-bottom: $space-6;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; gap: $space-4; }
+}
+
+.focus-card {
+  @include card(false);
+  padding: $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  &__eyebrow {
+    @include flex-start;
+    gap: $space-2;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-brand);
+  }
+
+  &__task {
+    @include flex-col;
+    align-items: flex-start;
+    gap: $space-2;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    padding: 0;
+  }
+
+  &__reason {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    color: var(--text-tertiary);
+    padding: 2px $space-2;
+    background: var(--bg-tertiary);
+    border-radius: $radius-full;
+
+    &[data-priority='urgent'] { color: $rose-500;   background: var(--surface-danger); }
+    &[data-priority='high']   { color: $amber-500;  background: var(--surface-warning); }
+  }
+
+  &__title {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+    line-height: $line-height-tight;
+  }
+
+  &__actions { @include flex-start; gap: $space-2; }
+
+  &__empty {
+    @include flex-col;
+    align-items: flex-start;
+    gap: $space-3;
+    color: var(--text-secondary);
+
+    &-icon { font-size: 1.75rem; }
+    p { font-size: $font-size-sm; }
+  }
+}
+
+.score-card {
+  @include card(false);
+  padding: $space-5;
+  @include flex-col;
+  align-items: center;
+  justify-content: center;
+  gap: $space-3;
+  color: $emerald-500;
+
+  &[data-band='Good']        { color: $indigo-500; }
+  &[data-band='Fair']        { color: $amber-500; }
+  &[data-band='Needs focus'] { color: $rose-500; }
+
+  &__ring-wrap { position: relative; width: 120px; height: 120px; }
+  &__ring { transition: stroke-dashoffset $transition-slow; }
+
+  &__center {
+    position: absolute;
+    inset: 0;
+    @include flex-center;
+    gap: 1px;
+  }
+
+  &__value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  &__max { font-size: $font-size-sm; color: var(--text-tertiary); }
+
+  &__meta { @include flex-col; align-items: center; gap: 2px; }
+  &__label {
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+  }
+  &__band { font-size: $font-size-sm; font-weight: $font-weight-semibold; }
+}
+
+// ---- Smart Recommendations ----
+.rec-list { @include flex-col; gap: $space-3; }
+
+.rec-card {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+  padding: $space-4;
+  border-radius: $radius-lg;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+
+  &__icon { font-size: 1.35rem; flex-shrink: 0; }
+  &__body { flex: 1; }
+  &__title {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  &__text { font-size: $font-size-sm; color: var(--text-secondary); line-height: $line-height-relaxed; }
+  &__action {
+    display: inline-block;
+    margin-top: $space-2;
+    font-size: $font-size-sm;
+    color: var(--text-brand);
+    &:hover { text-decoration: underline; }
+  }
+
+  &--warning { border-color: rgba(245, 158, 11, 0.3); background: var(--surface-warning); }
+  &--success { border-color: rgba(16, 185, 129, 0.3); background: var(--surface-success); }
+}
+
+// ---- Weekly chart ----
+.week-chart {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: $space-2;
+  align-items: end;
+  height: 120px;
+  margin-bottom: $space-3;
+
+  &__col {
+    @include flex-col;
+    align-items: center;
+    gap: $space-2;
+    height: 100%;
+    justify-content: flex-end;
+
+    &--today .week-chart__label { color: var(--text-brand); font-weight: $font-weight-semibold; }
+    &--today .week-chart__bar   { background: var(--accent-500); }
+  }
+
+  &__bar-wrap {
+    width: 100%;
+    max-width: 28px;
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  &__bar {
+    width: 100%;
+    min-height: 3px;
+    background: var(--surface-brand);
+    border-radius: $radius-sm;
+    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    &[data-count='0'] { opacity: 0.35; }
+  }
+
+  &__label { font-size: $font-size-xs; color: var(--text-tertiary); }
+}
+
+.week-summary {
+  @include flex-between;
+  font-size: $font-size-sm;
+  color: var(--text-secondary);
+  strong { color: var(--text-primary); }
+}
+
+// ---- Activity list ----
+.activity-list {
+  @include flex-col;
+  gap: $space-1;
+  list-style: none;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-2 $space-2;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: var(--bg-tertiary); }
+
+  &__icon {
+    @include flex-center;
+    width: 28px;
+    height: 28px;
+    border-radius: $radius-full;
+    flex-shrink: 0;
+    background: var(--bg-tertiary);
+    color: var(--text-tertiary);
+
+    &--completed { background: var(--surface-success); color: $emerald-500; }
+    &--created   { background: var(--surface-brand);   color: var(--text-brand); }
+    &--updated   { background: var(--surface-warning); color: $amber-500; }
+  }
+
+  &__text {
+    flex: 1;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+    @include text-truncate;
+    strong { color: var(--text-primary); font-weight: $font-weight-medium; }
+  }
+
+  &__time { font-size: $font-size-xs; color: var(--text-tertiary); flex-shrink: 0; }
+}

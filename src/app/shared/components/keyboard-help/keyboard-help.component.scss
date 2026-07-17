@@ -1,0 +1,96 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:host { display: contents; }
+
+.kb-help {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  width: min(560px, calc(100vw - #{$space-6}));
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: $radius-xl;
+  box-shadow: $shadow-xl;
+  animation: slide-up $transition-normal both;
+
+  &__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.4);
+    animation: fade-in $transition-fast both;
+  }
+
+  &__head {
+    @include flex-between;
+    padding: $space-4 $space-5;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  &__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
+  }
+
+  &__body {
+    padding: $space-4 $space-5;
+    overflow-y: auto;
+    @include custom-scrollbar;
+  }
+
+  &__group { margin-bottom: $space-5; &:last-child { margin-bottom: 0; } }
+
+  &__group-name {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin-bottom: $space-2;
+  }
+
+  &__row {
+    @include flex-between;
+    padding: $space-2 0;
+    gap: $space-4;
+  }
+
+  &__desc { font-size: $font-size-sm; color: var(--text-secondary); }
+
+  &__keys {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    flex-shrink: 0;
+  }
+
+  &__combo { display: inline-flex; align-items: center; gap: 3px; }
+
+  &__or { font-size: $font-size-xs; color: var(--text-tertiary); }
+
+  &__empty { font-size: $font-size-sm; color: var(--text-tertiary); text-align: center; padding: $space-4; }
+
+  kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: $radius-sm;
+    box-shadow: 0 1px 0 var(--border-default);
+  }
+}

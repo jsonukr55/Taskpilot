@@ -1,11 +1,12 @@
 import {
   Component, inject, input, computed, signal, effect, untracked,
-  OnInit, OnDestroy, HostListener
+  OnDestroy, HostListener
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { GroupService } from '@core/services/group.service';
 import { NoteService } from '@core/services/note.service';
+import { NoteAccessService } from '@core/services/note-access.service';
 import { AuthService } from '@core/services/auth.service';
 import { AiService } from '@core/services/ai.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
@@ -35,26 +36,65 @@ interface Pos { x: number; y: number; }
   templateUrl: './note-editor.component.html',
   styleUrl:    './note-editor.component.scss'
 })
-export class NoteEditorComponent implements OnInit, OnDestroy {
+export class NoteEditorComponent implements OnDestroy {
   groupId = input<string>('');           // empty → personal (top-level) note
   noteId  = input.required<string>();
 
   readonly groups = inject(GroupService);
   readonly notes  = inject(NoteService);
+  readonly access = inject(NoteAccessService);
   private readonly auth = inject(AuthService);
   private readonly ai   = inject(AiService);
+
+  // Open/re-open the note whenever the route params change. An effect (not
+  // ngOnInit) because /notes/A → /notes/B reuses this component — only the
+  // inputs change, ngOnInit never re-runs. flushAll first so pending edits
+  // of the previous note aren't lost (they carry their own note ids).
+  private readonly openNoteRef = effect(() => {
+    const gid = this.gid();
+    const id  = this.noteId();
+    untracked(() => {
+      void this.notes.flushAll();
+      this.notes.openNote(gid, id);
+    });
+  }, { allowSignalWrites: true });
+
+  // Record "recently opened" once per note (activeNote re-emits on every
+  // remote snapshot; the guard keeps this to a single write per visit).
+  private lastRecordedId: string | null = null;
+  private readonly recordOpenRef = effect(() => {
+    const n = this.note();
+    if (n && n.id === this.noteId() && n.id !== this.lastRecordedId) {
+      this.lastRecordedId = n.id;
+      // untracked: recordOpen writes the access-state signal; this effect
+      // must neither throw (NG0600) nor subscribe to that state.
+      untracked(() => this.access.recordOpen(n));
+    }
+  }, { allowSignalWrites: true });
 
   readonly BLOCK_TYPE_LABELS = BLOCK_TYPE_LABELS;
   readonly TYPE_MENU: NoteBlockType[] = ['paragraph', 'h1', 'h2', 'h3', 'bulleted', 'numbered', 'todo', 'quote', 'callout', 'divider'];
 
-  // AI "skills" offered in the selection menu. mode: replace the text, or insert a callout below.
-  readonly AI_ACTIONS: Array<{ key: string; label: string; icon: string; instruction: string; mode: 'replace' | 'insert' }> = [
-    { key: 'improve',   label: 'Improve writing',        icon: 'sparkles',       mode: 'replace', instruction: 'Improve the writing: make it clearer, more polished and fluent while preserving the original meaning and language.' },
-    { key: 'grammar',   label: 'Fix spelling & grammar', icon: 'check-circle',   mode: 'replace', instruction: 'Correct all spelling, grammar and punctuation mistakes. Keep the wording and meaning otherwise unchanged.' },
-    { key: 'shorter',   label: 'Make shorter',           icon: 'zap',            mode: 'replace', instruction: 'Make this text shorter and more concise while keeping the key points.' },
-    { key: 'longer',    label: 'Make longer',            icon: 'plus',           mode: 'replace', instruction: 'Expand this text with more detail and explanation.' },
-    { key: 'summarize', label: 'Summarize',              icon: 'list',           mode: 'insert',  instruction: 'Summarize this text in one or two concise sentences.' },
-    { key: 'explain',   label: 'Explain',                icon: 'message-circle', mode: 'insert',  instruction: 'Explain what this text means in simple, plain language.' }
+  // AI "skills" offered in the selection menu.
+  //  mode 'replace' → rewrite the focused block in place.
+  //  mode 'insert'  → add new block(s) below, preserving the original.
+  //  insertAs shapes the inserted output (single callout, a bulleted/todo
+  //  list parsed from lines, or mixed 'lines' → paragraphs + bullets).
+  readonly AI_ACTIONS: Array<{ key: string; label: string; icon: string; instruction: string; mode: 'replace' | 'insert'; insertAs?: 'callout' | 'bulleted' | 'todo' | 'lines' }> = [
+    { key: 'improve',      label: 'Improve writing',        icon: 'sparkles',     mode: 'replace', instruction: 'Improve the writing: make it clearer, more polished and fluent while preserving the original meaning and language.' },
+    { key: 'grammar',      label: 'Fix spelling & grammar', icon: 'check-circle', mode: 'replace', instruction: 'Correct all spelling, grammar and punctuation mistakes. Keep the wording and meaning otherwise unchanged.' },
+    { key: 'rewrite',      label: 'Rewrite',                icon: 'repeat',       mode: 'replace', instruction: 'Rewrite this text in a fresh way while preserving its meaning and language.' },
+    { key: 'professional', label: 'Professional tone',      icon: 'user',         mode: 'replace', instruction: 'Rewrite this text in a professional, formal business tone.' },
+    { key: 'shorter',      label: 'Make shorter',           icon: 'zap',          mode: 'replace', instruction: 'Make this text shorter and more concise while keeping the key points.' },
+    { key: 'longer',       label: 'Make longer',            icon: 'plus',         mode: 'replace', instruction: 'Expand this text with more detail and explanation.' },
+    { key: 'translate',    label: 'Translate…',             icon: 'message-square', mode: 'replace', instruction: '' },
+    { key: 'paragraph',    label: 'To paragraph',           icon: 'type',         mode: 'replace', instruction: 'Rewrite this as one or more flowing prose paragraphs. Remove any list or bullet formatting.' },
+    { key: 'bullets',      label: 'To bullet points',       icon: 'list',         mode: 'insert', insertAs: 'bulleted', instruction: 'Rewrite the key points of this text as a concise bulleted list. Output each point on its own line beginning with "- ".' },
+    { key: 'summarize',    label: 'Summarize',              icon: 'file-text',    mode: 'insert', insertAs: 'callout',  instruction: 'Summarize this text in one or two concise sentences.' },
+    { key: 'actions',      label: 'Extract action items',   icon: 'check-square', mode: 'insert', insertAs: 'todo',     instruction: 'Extract the concrete action items or tasks from this text. Output each as its own line beginning with "- ". If there are none, output a single line: "No action items".' },
+    { key: 'meeting',      label: 'Meeting summary',        icon: 'users',        mode: 'insert', insertAs: 'lines',    instruction: 'Summarize this as concise meeting notes with short lines. Prefix any decisions or action items with "- ".' },
+    { key: 'email',        label: 'Draft email',            icon: 'send',         mode: 'insert', insertAs: 'lines',    instruction: 'Draft a professional email based on this content: include a subject line, greeting, body and sign-off. Use short lines; prefix any list items with "- ".' },
+    { key: 'explain',      label: 'Explain',                icon: 'message-circle', mode: 'insert', insertAs: 'callout', instruction: 'Explain what this text means in simple, plain language.' },
   ];
   readonly aiBusy = signal<string | null>(null);
   readonly copied = signal(false);
@@ -160,9 +200,6 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
     }, { allowSignalWrites: true });
   }
 
-  ngOnInit(): void {
-    this.notes.openNote(this.gid(), this.noteId());
-  }
   ngOnDestroy(): void {
     void this.notes.flushAll();
     this.notes.closeNote();
@@ -453,7 +490,7 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
   }
 
   /** Run a Groq-powered "skill" on the selection (or the whole line if nothing selected). */
-  async runAi(action: { key: string; instruction: string; mode: 'replace' | 'insert' }): Promise<void> {
+  async runAi(action: { key: string; instruction: string; mode: 'replace' | 'insert'; insertAs?: 'callout' | 'bulleted' | 'todo' | 'lines' }): Promise<void> {
     const id = this.focusedBlockId();
     const block = id ? this.localBlocks().find(b => b.id === id) : null;
     if (!id || !block) return;
@@ -461,21 +498,25 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
     const source = selected || stripTags(block.html);
     if (!source.trim()) { this.bubble.set(null); return; }
 
+    // Translate needs a target language chosen at run time.
+    let instruction = action.instruction;
+    if (action.key === 'translate') {
+      const lang = prompt('Translate to which language?', 'Spanish');
+      if (!lang?.trim()) { this.bubble.set(null); return; }
+      instruction = `Translate this text into ${lang.trim()}. Output only the translation, preserving meaning, tone and any list structure.`;
+    }
+
     this.aiBusy.set(action.key);
     try {
-      const result = await this.ai.transformText(action.instruction, source);
-      if (action.mode === 'insert') {
-        const blocks = this.localBlocks();
-        const idx = blocks.findIndex(b => b.id === id);
-        const nb = newBlock('callout', textToHtml(result));
-        const next = [...blocks];
-        next.splice(idx + 1, 0, nb);
-        this.setBlocks(next);
-        this.focusBlock(nb.id);
-      } else {
+      const result = (await this.ai.transformText(instruction, source)).trim();
+      if (!result) return;
+
+      if (action.mode === 'replace') {
         const html = textToHtml(result);
         this.patchBlock(id, { html });
         this.setBlockDom(id, html);
+      } else {
+        this.insertResultBlocks(id, result, action.insertAs ?? 'callout');
       }
     } catch {
       alert('AI request failed. Check your connection and try again.');
@@ -483,6 +524,37 @@ export class NoteEditorComponent implements OnInit, OnDestroy {
       this.aiBusy.set(null);
       this.bubble.set(null);
     }
+  }
+
+  /**
+   * Insert AI output as new block(s) directly below `afterId`, never
+   * touching existing blocks (so no formatting is lost):
+   *  - 'callout'          → one callout block
+   *  - 'bulleted'/'todo'  → one list block per line
+   *  - 'lines'            → bulleted for bullet lines, paragraphs otherwise
+   */
+  private insertResultBlocks(afterId: string, result: string, insertAs: 'callout' | 'bulleted' | 'todo' | 'lines'): void {
+    const blocks = this.localBlocks();
+    const idx = blocks.findIndex(b => b.id === afterId);
+    if (idx < 0) return;
+
+    let created: NoteBlock[];
+    if (insertAs === 'callout') {
+      created = [newBlock('callout', textToHtml(result))];
+    } else if (insertAs === 'bulleted' || insertAs === 'todo') {
+      const lines = splitLines(result);
+      created = (lines.length ? lines : [result]).map(l => newBlock(insertAs, textToHtml(stripBullet(l))));
+    } else {
+      created = splitLines(result).map(l =>
+        isBulletLine(l) ? newBlock('bulleted', textToHtml(stripBullet(l))) : newBlock('paragraph', textToHtml(l))
+      );
+      if (!created.length) created = [newBlock('paragraph', textToHtml(result))];
+    }
+
+    const next = [...blocks];
+    next.splice(idx + 1, 0, ...created);
+    this.setBlocks(next);
+    this.focusBlock(created[created.length - 1].id);
   }
 
   private syncFocused(): void {
@@ -750,6 +822,21 @@ function escapeHtml(s: string): string {
 /** Plain text → block HTML (escaped, newlines become <br>). */
 function textToHtml(s: string): string {
   return escapeHtml(s).replace(/\n/g, '<br>');
+}
+
+/** Split AI output into non-empty trimmed lines. */
+function splitLines(s: string): string[] {
+  return s.split('\n').map(l => l.trim()).filter(Boolean);
+}
+
+/** Does the line start with a bullet / number marker? */
+function isBulletLine(line: string): boolean {
+  return /^([-*•]|\d+[.)])\s+/.test(line);
+}
+
+/** Remove a leading bullet / number marker from a line. */
+function stripBullet(line: string): string {
+  return line.replace(/^([-*•]|\d+[.)])\s+/, '').trim();
 }
 
 /** Serialize a note to rich HTML, grouping consecutive list items into <ul>/<ol>. */

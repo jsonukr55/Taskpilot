@@ -39,6 +39,83 @@
 
   &__title { font-size: $font-size-lg; font-weight: $font-weight-semibold; @include text-truncate; }
   &__preview { font-size: $font-size-sm; color: var(--text-secondary); @include text-clamp(2); }
+
+  // Quick-access affordances
+  &__actions { display: inline-flex; align-items: center; gap: 2px; }
+
+  &__act {
+    opacity: 0;
+    color: var(--text-tertiary);
+
+    &.on {
+      opacity: 1;
+      svg { fill: currentColor; }
+    }
+    &--pin.on { color: var(--accent-500); }
+    &--fav.on { color: $amber-500; }
+  }
+  &:hover &__act { opacity: 1; }
+
+  &__meta { font-size: $font-size-xs; color: var(--text-tertiary); margin-top: auto; }
+
+  &--pinned { border-color: rgba(var(--accent-rgb), 0.35); }
+}
+
+// ---- Quick access strip (pinned / favorites / recently opened) ----
+.qa {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  margin-bottom: $space-6;
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin-bottom: $space-2;
+  }
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-2;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    max-width: 240px;
+    height: 32px;
+    padding: 0 $space-3;
+    border-radius: $radius-full;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover { border-color: var(--border-default); background: var(--bg-tertiary); }
+    &--recent { color: var(--text-secondary); }
+  }
+
+  &__icon { font-size: $font-size-sm; flex-shrink: 0; }
+  &__title { @include text-truncate; }
+
+  &__badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: $radius-full;
+    background: var(--surface-brand);
+    color: var(--text-brand);
+  }
 }
 
 .notes-empty {

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
 import { GroupService } from '@core/services/group.service';
+import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { IconComponent } from '../icon/icon.component';
 import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
 import { Task, TaskStatus, TaskPriority, ChecklistItem } from '@shared/models/task.model';
@@ -27,6 +28,11 @@ export class TaskDrawerComponent implements OnDestroy {
   private readonly taskService = inject(TaskService);
   readonly categories = inject(CategoryService);
   private readonly groups = inject(GroupService);
+  private readonly kb = inject(KeyboardShortcutService);
+  private readonly disposeShortcuts = this.kb.register({
+    keys: 'mod+s', description: 'Save task', group: 'Task editor', allowInInput: true,
+    handler: () => this.saveNow(),
+  });
 
   // ---- Assignees ----
   readonly assignMenuOpen  = signal(false);
@@ -117,9 +123,16 @@ export class TaskDrawerComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.debounceTimer);
+    this.disposeShortcuts();
   }
 
   close(): void { this.closed.emit(); }
+
+  /** Force an immediate save (Ctrl/⌘+S), bypassing the autosave debounce. */
+  saveNow(): void {
+    clearTimeout(this.debounceTimer);
+    void this.flushSave();
+  }
 
   scheduleAutoSave(): void {
     if (!this.initialized || !this.editTitle().trim()) return;

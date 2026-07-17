@@ -5,6 +5,7 @@ import {
   CollectionReference, DocumentReference
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
+import { NoteAccessService } from './note-access.service';
 import { Note, NoteComment, NoteBlock, starterBlocks } from '@shared/models/note.model';
 
 // ============================================================
@@ -16,8 +17,9 @@ const SAVE_DEBOUNCE_MS = 350;
 
 @Injectable({ providedIn: 'root' })
 export class NoteService {
-  private readonly firestore = inject(Firestore);
-  private readonly auth      = inject(AuthService);
+  private readonly firestore  = inject(Firestore);
+  private readonly auth       = inject(AuthService);
+  private readonly noteAccess = inject(NoteAccessService);
 
   // Notes list (either a group's notes or the user's personal notes)
   readonly notes        = signal<Note[]>([]);
@@ -26,6 +28,8 @@ export class NoteService {
 
   // Active note (editor) + its comments
   readonly activeNote = signal<Note | null>(null);
+  /** True when the opened note no longer exists / can't be read (deleted elsewhere). */
+  readonly activeNoteMissing = signal(false);
   readonly comments   = signal<NoteComment[]>([]);
   private noteUnsub?: () => void;
   private commentsUnsub?: () => void;
@@ -91,12 +95,25 @@ export class NoteService {
   openNote(groupId: string | null, noteId: string): void {
     this.closeNote();
     this.noteUnsub = onSnapshot(this.noteDoc(groupId, noteId), snap => {
-      this.activeNote.set(snap.exists() ? ({ id: snap.id, ...snap.data() } as Note) : null);
+      const exists = snap.exists();
+      // Server says the note is gone (not just an offline cache miss) —
+      // self-heal: drop any stale favorite/pin/recent refs to it.
+      const gone = !exists && !snap.metadata.fromCache;
+      if (gone) this.noteAccess.forget(noteId);
+      this.activeNoteMissing.set(gone);
+      this.activeNote.set(exists ? ({ id: snap.id, ...snap.data() } as Note) : null);
+    }, () => {
+      // Permission error — e.g. a personal note deleted elsewhere (rules
+      // can't evaluate ownerId on a missing doc) or group access revoked.
+      // Either way the note is unreachable: treat as gone.
+      this.noteAccess.forget(noteId);
+      this.activeNoteMissing.set(true);
+      this.activeNote.set(null);
     });
     const cq = query(this.commentsColOf(groupId, noteId), orderBy('createdAt', 'asc'));
     this.commentsUnsub = onSnapshot(cq, snap => {
       this.comments.set(snap.docs.map(d => ({ id: d.id, ...d.data() } as NoteComment)));
-    });
+    }, () => { /* unreadable alongside a missing note — keep prior state */ });
   }
 
   closeNote(): void {
@@ -104,6 +121,7 @@ export class NoteService {
     this.commentsUnsub?.();
     this.noteUnsub = this.commentsUnsub = undefined;
     this.activeNote.set(null);
+    this.activeNoteMissing.set(false);
     this.comments.set([]);
   }
 
@@ -128,6 +146,9 @@ export class NoteService {
 
   async deleteNote(groupId: string | null, noteId: string): Promise<void> {
     await deleteDoc(this.noteDoc(groupId, noteId));
+    // Drop the note from the user's favorites/pins/recents (central hook —
+    // covers every delete call site).
+    this.noteAccess.forget(noteId);
   }
 
   private async writeNote(groupId: string | null, noteId: string, changes: Partial<Note>): Promise<void> {

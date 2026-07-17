@@ -17,8 +17,14 @@ import { IconComponent } from '../icon/icon.component';
 export class TaskCardComponent {
   task    = input.required<Task>();
   compact = input(false);
-  taskOpen   = output<Task>();
-  addSubtask = output<Task>();
+  /** Opt-in multi-select mode: shows a selection checkbox (default off). */
+  selectable = input(false);
+  selected   = input(false);
+  /** Keyboard-navigation highlight (default off). */
+  active     = input(false);
+  taskOpen     = output<Task>();
+  addSubtask   = output<Task>();
+  selectChange = output<Task>();
 
   private readonly categories  = inject(CategoryService);
   private readonly taskService = inject(TaskService);

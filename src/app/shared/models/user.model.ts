@@ -1,4 +1,5 @@
 import { Timestamp } from '@angular/fire/firestore';
+import { NoteAccessState } from './note.model';
 
 // ============================================================
 // User Model
@@ -50,6 +51,10 @@ export interface UserProfile {
 
   /** Last seen AI insight IDs to avoid re-showing */
   seenInsightIds: string[];
+
+  /** Note quick-access state (favorites/pins/recents). Optional —
+   *  pre-existing profiles lack it; readers must fall back to empty. */
+  noteAccess?: NoteAccessState;
 
   createdAt:   Timestamp;
   updatedAt:   Timestamp;

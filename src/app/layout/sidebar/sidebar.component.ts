@@ -1,4 +1,4 @@
-import { Component, input, output, inject, computed, signal } from '@angular/core';
+import { Component, input, output, inject, computed } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { TaskService } from '@core/services/task.service';
@@ -51,8 +51,8 @@ export class SidebarComponent {
     this.categories.rootCategories().slice(0, 5)
   );
 
-  // ---- Appearance popover ----------------------------------------
-  readonly appearanceOpen = signal(false);
+  // ---- Appearance popover (state shared via ThemeService) --------
+  readonly appearanceOpen = this.theme.appearanceOpen;
 
   readonly themeModes: { value: Theme; label: string; icon: string }[] = [
     { value: 'light',  label: 'Light',  icon: 'sun' },

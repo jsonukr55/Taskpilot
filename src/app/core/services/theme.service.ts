@@ -38,6 +38,9 @@ export class ThemeService {
   readonly resolvedTheme = signal<'light' | 'dark'>('light');
   readonly accentColor   = signal<string>(DEFAULT_ACCENT);
 
+  /** Appearance popover visibility — shared so the command palette can open it. */
+  readonly appearanceOpen = signal(false);
+
   readonly presets = ACCENT_PRESETS;
 
   private mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

@@ -161,6 +161,19 @@
                 </div>
               </div>
             }
+
+            @if (!daily.isLocked() && blockerSuggestions().length) {
+              <div class="daily__suggest">
+                <p class="daily__suggest-label">Overdue tasks — flag as blockers?</p>
+                <div class="daily__chips">
+                  @for (s of blockerSuggestions(); track s.taskId) {
+                    <button class="daily__suggest-chip daily__suggest-chip--blocker" (click)="addBlocker(s)">
+                      <tp-icon name="alert-circle" [size]="12" /> {{ s.text }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
           </div>
         }
 
@@ -300,6 +313,39 @@
               </div>
             </div>
           }
+
+          <!-- AI summaries -->
+          <div class="daily__summaries">
+            <div class="daily__preview-head">
+              <h3 class="daily__section-title"><tp-icon name="sparkles" [size]="15" /> AI summary</h3>
+              <div class="daily__preview-actions">
+                <button class="btn btn-secondary btn-sm" (click)="generateSummary('professional')" [disabled]="summaryBusy()">Professional</button>
+                <button class="btn btn-secondary btn-sm" (click)="generateSummary('manager')" [disabled]="summaryBusy()">Manager</button>
+                <button class="btn btn-secondary btn-sm" (click)="generateSummary('teams')" [disabled]="summaryBusy()">Teams</button>
+              </div>
+            </div>
+
+            @if (summaryBusy()) {
+              <p class="daily__summary-status">Generating {{ summaryKind() ? summaryLabels[summaryKind()!] : '' }} summary…</p>
+            }
+            @if (summaryText()) {
+              <div class="daily__summary-result">
+                <div class="daily__summary-bar">
+                  <span class="daily__summary-kind">
+                    {{ summaryKind() ? summaryLabels[summaryKind()!] : '' }} summary
+                    <span class="daily__summary-src" [attr.data-src]="summarySource()">{{ summarySource() === 'ai' ? 'AI' : 'Local' }}</span>
+                  </span>
+                  <div class="daily__summary-actions">
+                    <button class="btn btn-ghost btn-sm" (click)="copySummary()">
+                      <tp-icon [name]="summaryCopied() ? 'check' : 'copy'" [size]="13" /> {{ summaryCopied() ? 'Copied' : 'Copy' }}
+                    </button>
+                    <button class="btn-icon" (click)="clearSummary()" data-tooltip="Dismiss"><tp-icon name="x" [size]="14" /></button>
+                  </div>
+                </div>
+                <pre class="daily__summary-text">{{ summaryText() }}</pre>
+              </div>
+            }
+          </div>
         </section>
       }
     </div>

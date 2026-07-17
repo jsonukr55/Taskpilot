@@ -2,11 +2,11 @@ import { Component, output, inject, viewChild, ElementRef, OnInit, OnDestroy } f
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { TaskService } from '@core/services/task.service';
-import { SearchService, NoteHit } from '@core/services/search.service';
+import { SearchService } from '@core/services/search.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
-import { Task } from '@shared/models/task.model';
+import { SearchResult } from '@shared/models/search.model';
 
 @Component({
   selector:   'tp-topbar',
@@ -28,10 +28,9 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private disposeShortcuts?: () => void;
 
   ngOnInit(): void {
-    this.disposeShortcuts = this.kb.registerAll([
-      { keys: 'mod+k', description: 'Focus search', group: 'Global', allowInInput: true, handler: () => this.focusSearch() },
-      { keys: '/',     description: 'Focus search', group: 'Global', handler: () => this.focusSearch() },
-    ]);
+    this.disposeShortcuts = this.kb.register(
+      { keys: '/', description: 'Focus search', group: 'Global', handler: () => this.focusSearch() },
+    );
   }
 
   ngOnDestroy(): void {
@@ -44,13 +43,24 @@ export class TopbarComponent implements OnInit, OnDestroy {
     el?.select();
   }
 
-  openTask(t: Task): void {
+  /** Navigate to a result and close the dropdown. */
+  select(result: SearchResult | null): void {
+    if (!result) return;
     this.search.close();
-    this.router.navigate(['/tasks', t.id]);
+    this.router.navigate(result.route, result.queryParams ? { queryParams: result.queryParams } : {});
   }
 
-  openNote(hit: NoteHit): void {
-    this.search.close();
-    this.router.navigate(hit.link);
+  // ---- Keyboard navigation within the search dropdown ----
+  onSearchKey(e: KeyboardEvent): void {
+    if (!this.search.open()) return;
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); this.search.moveActive(1); this.scrollActiveIntoView(); break;
+      case 'ArrowUp':   e.preventDefault(); this.search.moveActive(-1); this.scrollActiveIntoView(); break;
+      case 'Enter':     e.preventDefault(); this.select(this.search.activeResult()); break;
+    }
+  }
+
+  private scrollActiveIntoView(): void {
+    setTimeout(() => document.querySelector('.search-item.active')?.scrollIntoView({ block: 'nearest' }), 0);
   }
 }

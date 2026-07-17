@@ -8,6 +8,7 @@ import { TaskService } from '@core/services/task.service';
 import { ToastService } from '@core/services/toast.service';
 import { AuthService } from '@core/services/auth.service';
 import { NoteService } from '@core/services/note.service';
+import { ReportSummaryService, ReportSummaryKind } from '@core/services/report-summary.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { Group, groupMembers, GroupMember } from '@shared/models/group.model';
@@ -49,6 +50,7 @@ export class DailyReportComponent implements OnDestroy {
   private readonly toast  = inject(ToastService);
   private readonly auth   = inject(AuthService);
   private readonly notes  = inject(NoteService);
+  private readonly summaries = inject(ReportSummaryService);
   private readonly router = inject(Router);
 
   // ---- Team selection ----
@@ -138,6 +140,23 @@ export class DailyReportComponent implements OnDestroy {
     const usedText = new Set(this.progressLines().map(l => l.text.trim()).filter(Boolean));
     return this.carryOverPlan().filter(l => !usedText.has(l.text.trim()));
   });
+
+  /** Overdue open tasks → likely blockers to flag in the Plan section. */
+  readonly blockerSuggestions = computed<TaskSuggestion[]>(() => {
+    const now  = new Date();
+    const used = new Set(this.planLines().map(l => l.taskId).filter(Boolean));
+    return this.tasks.tasks()
+      .filter(t => t.status !== 'completed' && t.status !== 'cancelled')
+      .filter(t => !!t.dueDate && t.dueDate.toDate() < now)   // overdue = blocker candidate
+      .filter(t => !used.has(t.id))
+      .map(t => ({ taskId: t.id, text: t.title }));
+  });
+
+  /** Add a blocker as a clearly-prefixed Plan line (schema has no blockers
+   *  field, so blockers live in the Plan section, flagged for attention). */
+  addBlocker(s: TaskSuggestion): void {
+    this.appendLine('plan', `🚧 Blocked: ${s.text}`, s.taskId);
+  }
 
   constructor() {
     // Auto-select a team once groups load: prefer the last-used one, else the first.
@@ -484,6 +503,55 @@ export class DailyReportComponent implements OnDestroy {
     const group = this.selectedGroup();
     const noteId = this.groupNoteId();
     if (group && noteId) this.router.navigate(['/groups', group.id, 'notes', noteId]);
+  }
+
+  // ---- AI summaries (Professional / Manager / Teams) ----
+
+  readonly summaryKind   = signal<ReportSummaryKind | null>(null);
+  readonly summaryText   = signal('');
+  readonly summarySource = signal<'ai' | 'local' | null>(null);
+  readonly summaryBusy   = signal(false);
+  readonly summaryCopied = signal(false);
+
+  readonly summaryLabels: Record<ReportSummaryKind, string> = {
+    professional: 'Professional', manager: 'Manager', teams: 'Teams',
+  };
+
+  async generateSummary(kind: ReportSummaryKind): Promise<void> {
+    if (this.summaryBusy()) return;
+    this.summaryBusy.set(true);
+    this.summaryKind.set(kind);
+    this.summaryCopied.set(false);
+    try {
+      const res = await this.summaries.summarize(kind, this.daily.reportView(), {
+        submitted: this.submittedCount(),
+        total:     this.roster().length,
+      });
+      this.summaryText.set(res.text);
+      this.summarySource.set(res.source);
+    } catch {
+      this.toast.error('Could not generate the summary');
+    } finally {
+      this.summaryBusy.set(false);
+    }
+  }
+
+  async copySummary(): Promise<void> {
+    const text = this.summaryText();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      this.summaryCopied.set(true);
+      setTimeout(() => this.summaryCopied.set(false), 1800);
+    } catch {
+      this.toast.error('Could not access the clipboard');
+    }
+  }
+
+  clearSummary(): void {
+    this.summaryKind.set(null);
+    this.summaryText.set('');
+    this.summarySource.set(null);
   }
 
   async lock(): Promise<void> {

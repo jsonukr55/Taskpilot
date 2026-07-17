@@ -1,0 +1,110 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:host { display: contents; }
+
+.cmdp {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  width: min(600px, calc(100vw - #{$space-6}));
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: $radius-xl;
+  box-shadow: $shadow-xl;
+  overflow: hidden;
+  animation: slide-up $transition-normal both;
+
+  &__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.4);
+    animation: fade-in $transition-fast both;
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  &__search-icon { color: var(--text-tertiary); flex-shrink: 0; }
+
+  &__input {
+    flex: 1;
+    border: none;
+    background: none;
+    outline: none;
+    font-size: $font-size-base;
+    color: var(--text-primary);
+    font-family: inherit;
+    &::placeholder { color: var(--text-tertiary); }
+  }
+
+  &__hint {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: $radius-sm;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    color: var(--text-tertiary);
+  }
+
+  &__list {
+    overflow-y: auto;
+    padding: $space-2;
+    @include custom-scrollbar;
+  }
+
+  &__group {
+    & + & { margin-top: $space-1; }
+
+    &-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-tertiary);
+      padding: $space-2 $space-2 $space-1;
+    }
+  }
+
+  &__row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: $space-2 $space-3;
+    border: none;
+    border-radius: $radius-md;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+
+    &.active { background: var(--surface-brand); }
+
+    &-icon {
+      @include flex-center;
+      width: 22px;
+      flex-shrink: 0;
+      font-size: $font-size-sm;
+      color: var(--text-secondary);
+    }
+
+    &-title { flex: 1; min-width: 0; font-size: $font-size-sm; color: var(--text-primary); @include text-truncate; }
+    &-sub { flex-shrink: 0; font-size: $font-size-xs; color: var(--text-tertiary); }
+  }
+
+  &__empty {
+    padding: $space-6;
+    text-align: center;
+    font-size: $font-size-sm;
+    color: var(--text-tertiary);
+  }
+}

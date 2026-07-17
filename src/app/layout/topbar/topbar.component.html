@@ -11,46 +11,38 @@
       #searchInput
       class="topbar__search-input"
       type="text"
-      placeholder="Search tasks & notes…"
+      placeholder="Search everything…"
       [value]="search.queryText()"
       (input)="search.setQuery($any($event.target).value)"
+      (keydown)="onSearchKey($event)"
       (keydown.escape)="search.close()"
     >
     @if (search.queryText()) {
       <button class="topbar__search-clear" (click)="search.close()"><tp-icon name="x" [size]="14" /></button>
     } @else {
-      <kbd class="topbar__search-kbd">⌘K</kbd>
+      <kbd class="topbar__search-kbd">/</kbd>
     }
 
     <!-- Results dropdown -->
     @if (search.open()) {
       <div class="search-results">
-        @if (search.taskHits().length) {
+        @for (sec of search.sections(); track sec.category) {
           <div class="search-sec">
-            <p class="search-sec__label"><tp-icon name="check-square" [size]="12" /> Tasks</p>
-            @for (t of search.taskHits(); track t.id) {
-              <button class="search-item" (click)="openTask(t)">
-                <span class="search-item__title">{{ t.title }}</span>
-                <span class="search-item__badge">{{ t.status === 'in_progress' ? 'In progress' : t.status === 'completed' ? 'Done' : 'Open' }}</span>
+            <p class="search-sec__label"><tp-icon [name]="sec.icon" [size]="12" /> {{ sec.label }}</p>
+            @for (r of sec.results; track r.category + r.id) {
+              <button class="search-item" [class.active]="search.isActive(r)" (click)="select(r)">
+                <span class="search-item__icon">
+                  @if (r.emoji) { {{ r.emoji }} } @else { <tp-icon [name]="r.icon" [size]="14" /> }
+                </span>
+                <span class="search-item__title">{{ r.title }}</span>
+                @if (r.subtitle) { <span class="search-item__badge">{{ r.subtitle }}</span> }
               </button>
             }
           </div>
         }
 
-        @for (sec of search.noteSections(); track sec.source) {
-          <div class="search-sec">
-            <p class="search-sec__label"><tp-icon name="file-text" [size]="12" /> {{ sec.source }}</p>
-            @for (h of sec.notes; track h.note.id) {
-              <button class="search-item search-item--note" (click)="openNote(h)">
-                <span class="search-item__title">{{ h.note.title || 'Untitled' }}</span>
-                <span class="search-item__preview">{{ search.preview(h.note) }}</span>
-              </button>
-            }
-          </div>
-        }
-
-        @if (search.loading()) {
-          <div class="search-status"><span class="search-spinner"></span> Searching notes…</div>
+        @if (search.loading() && !search.hasResults()) {
+          <div class="search-status"><span class="search-spinner"></span> Searching…</div>
         } @else if (!search.hasResults()) {
           <div class="search-status">No results for “{{ search.queryText() }}”.</div>
         }

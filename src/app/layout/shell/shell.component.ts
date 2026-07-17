@@ -4,16 +4,18 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 import { TopbarComponent } from '../topbar/topbar.component';
 import { ToastComponent } from '@shared/components/toast/toast.component';
 import { KeyboardHelpComponent } from '@shared/components/keyboard-help/keyboard-help.component';
+import { CommandPaletteComponent } from '@shared/components/command-palette/command-palette.component';
 import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
 import { SchedulingService } from '@core/services/scheduling.service';
 import { GroupService } from '@core/services/group.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
+import { CommandPaletteService } from '@core/services/command-palette.service';
 
 @Component({
   selector:   'tp-shell',
   standalone: true,
-  imports:    [RouterOutlet, SidebarComponent, TopbarComponent, ToastComponent, KeyboardHelpComponent],
+  imports:    [RouterOutlet, SidebarComponent, TopbarComponent, ToastComponent, KeyboardHelpComponent, CommandPaletteComponent],
   template: `
     <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
       @if (!sidebarCollapsed()) {
@@ -32,6 +34,7 @@ import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.servic
     </div>
     <tp-toast />
     @if (kb.helpOpen()) { <tp-keyboard-help /> }
+    @if (palette.open()) { <tp-command-palette /> }
   `,
   styleUrl: './shell.component.scss'
 })
@@ -42,6 +45,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   private readonly groups     = inject(GroupService);
   private readonly router     = inject(Router);
   readonly kb                 = inject(KeyboardShortcutService);
+  readonly palette            = inject(CommandPaletteService);
 
   readonly sidebarCollapsed = signal(window.innerWidth < 768);
 

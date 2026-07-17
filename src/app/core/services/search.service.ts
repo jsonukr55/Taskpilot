@@ -1,10 +1,11 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Firestore, collection, query, where, getDocs } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, orderBy, limit, getDocs } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { TaskService } from './task.service';
 import { GroupService } from './group.service';
 import { CategoryService } from './category.service';
 import { Note } from '@shared/models/note.model';
+import { Group } from '@shared/models/group.model';
 import {
   SearchResult, SearchSection, SearchCategory, fuzzyScore, scoreEntity,
 } from '@shared/models/search.model';
@@ -14,6 +15,7 @@ export interface NoteHit { note: Note; source: string; link: string[]; }
 
 const NOTE_DEBOUNCE_MS = 500;
 const PER_CATEGORY = 5;
+const NOTE_SCAN_LIMIT = 80;   // bound each collection read (avoid unbounded getDocs)
 
 // Section order + metadata (also defines the flat keyboard-nav order).
 const SECTION_META: { category: SearchCategory; label: string; icon: string }[] = [
@@ -90,11 +92,16 @@ export class SearchService {
       });
     }
 
-    // People (self + members of shared groups)
+    // People (self + members of shared groups). Build a uid→group index once
+    // instead of a .find() per person (was O(people × groups)).
+    const groupByMember = new Map<string, Group>();
+    for (const gr of this.groups.groups()) {
+      for (const uid of gr.memberIds) if (!groupByMember.has(uid)) groupByMember.set(uid, gr);
+    }
     for (const p of this.groups.assignablePeople()) {
       const score = fuzzyScore(q, p.displayName);
       if (score > 0) {
-        const g = this.groups.groups().find(gr => gr.memberIds.includes(p.uid));
+        const g = groupByMember.get(p.uid);
         out.push({
           id: p.uid, category: 'user',
           title: p.isSelf ? `${p.displayName} (you)` : p.displayName,
@@ -196,11 +203,18 @@ export class SearchService {
     const uid = this.auth.userId();
     try {
       if (uid) {
-        const personal = await getDocs(query(collection(this.firestore, 'notes'), where('ownerId', '==', uid)));
+        // Personal notes: equality filter + limit only (no orderBy — that would
+        // need a composite index the app deliberately avoids).
+        const personal = await getDocs(query(
+          collection(this.firestore, 'notes'), where('ownerId', '==', uid), limit(NOTE_SCAN_LIMIT)
+        ));
         personal.docs.forEach(d => this.pushNote(results, q, { id: d.id, ...d.data() } as Note, 'My notes', ['/notes', d.id]));
 
+        // Group notes: most-recent-first, bounded (single-field index only).
         for (const g of this.groups.groups()) {
-          const snap = await getDocs(collection(this.firestore, 'groups', g.id, 'notes'));
+          const snap = await getDocs(query(
+            collection(this.firestore, 'groups', g.id, 'notes'), orderBy('updatedAt', 'desc'), limit(NOTE_SCAN_LIMIT)
+          ));
           snap.docs.forEach(d => this.pushNote(results, q, { id: d.id, ...d.data() } as Note, g.name, ['/groups', g.id, 'notes', d.id]));
         }
       }

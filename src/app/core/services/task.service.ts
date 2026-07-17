@@ -170,6 +170,18 @@ export class TaskService {
     return Math.round((done / all) * 100);
   });
 
+  /** parentId → subtasks, built once per tasks() change. Lets getSubtasks be
+   *  O(1) instead of an O(N) scan per call (the task list calls it per row). */
+  private readonly subtasksByParent = computed(() => {
+    const map = new Map<string, Task[]>();
+    for (const t of this.tasks()) {
+      if (!t.parentId) continue;
+      const arr = map.get(t.parentId);
+      if (arr) arr.push(t); else map.set(t.parentId, [t]);
+    }
+    return map;
+  });
+
   // ---- Group tasks (separate listener, scoped to one open group) ----
   readonly groupTasks = signal<Task[]>([]);
   private groupTasksUnsub?: () => void;
@@ -521,7 +533,7 @@ export class TaskService {
   }
 
   getSubtasks(parentId: string): Task[] {
-    return this.tasks().filter(t => t.parentId === parentId);
+    return this.subtasksByParent().get(parentId) ?? [];
   }
 
   getTasksByCategory(categoryId: string): Task[] {

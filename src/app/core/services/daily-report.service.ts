@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed, NgZone } from '@angular/core';
 import {
   Firestore, collection, doc, getDoc, getDocs, onSnapshot,
-  query, where, setDoc, updateDoc, serverTimestamp, Timestamp
+  query, where, orderBy, limit, documentId, setDoc, updateDoc, serverTimestamp, Timestamp
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { WorkingCalendarService } from './working-calendar.service';
@@ -230,17 +230,19 @@ export class DailyReportService {
 
   // ---- History ----
 
-  /** Recent reports for a group, newest first. Sorted client-side so no
-   *  composite index is required (one doc per working day → small set). */
+  /** Recent reports for a group, newest first. Bounded + ordered at the query
+   *  via a documentId() range (ids are `${groupId}_${date}`, so id order == date
+   *  order). Needs only the automatic key index — no composite index, and the
+   *  read is capped instead of pulling the whole collection. */
   async listRecentReports(groupId: string, max = 20): Promise<DailyReport[]> {
     const snap = await getDocs(query(
       collection(this.firestore, 'dailyReports'),
-      where('groupId', '==', groupId)
+      orderBy(documentId(), 'desc'),
+      where(documentId(), '>=', `${groupId}_`),
+      where(documentId(), '<=', `${groupId}_`),
+      limit(max)
     ));
-    return snap.docs
-      .map(d => ({ id: d.id, ...d.data() } as DailyReport))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, max);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as DailyReport));
   }
 
   /** Load a past report's full content as a read-only ReportView. */

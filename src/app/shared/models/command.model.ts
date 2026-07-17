@@ -14,7 +14,7 @@ export interface PaletteRow {
   /** Section heading this row appears under. */
   group:     string;
   /** Executed immediately when the row is chosen. */
-  run:       () => void | Promise<unknown>;
+  run:       (query?: string) => void | Promise<unknown>;
 }
 
 /** A registered command (source for palette rows). */
@@ -29,7 +29,7 @@ export interface PaletteCommand {
   keywords?: string;
   /** Shown in the default (empty-query) view. */
   primary?:  boolean;
-  run:       () => void | Promise<unknown>;
+  run:       (query?: string) => void | Promise<unknown>;
 }
 
 export interface PaletteGroup {

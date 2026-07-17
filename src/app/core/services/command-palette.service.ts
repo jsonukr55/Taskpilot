@@ -138,8 +138,9 @@ export class CommandPaletteService {
   }
 
   async runRow(row: PaletteRow): Promise<void> {
+    const query = this.query();   // capture before close() clears it
     this.close();
-    try { await row.run(); } catch (e) { console.warn('[Palette] command failed', e); }
+    try { await row.run(query); } catch (e) { console.warn('[Palette] command failed', e); }
   }
 
   // ---- Command registry -----------------------------------------------
@@ -158,7 +159,7 @@ export class CommandPaletteService {
 
       // Actions
       { id: 'search',   group: 'Actions', icon: 'search', title: 'Search everything', keywords: 'find search', primary: true,
-        run: () => this.handoffToSearch() },
+        run: (q) => this.handoffToSearch(q ?? '') },
       { id: 'ask-ai',   group: 'Actions', icon: 'cpu', title: 'Ask AI', keywords: 'ai assistant chat', primary: true,
         run: () => nav('/ai-chat') },
       { id: 'settings', group: 'Actions', icon: 'settings', title: 'Appearance settings', keywords: 'settings preferences appearance', primary: true,
@@ -227,9 +228,9 @@ export class CommandPaletteService {
     await this.router.navigate(['/notes', id]);
   }
 
-  private handoffToSearch(): void {
-    const q = this.query();
-    // Focus the topbar search and run the universal search with the query.
+  private handoffToSearch(q: string): void {
+    // Focus the topbar search and run the universal search with the query
+    // captured before the palette closed.
     setTimeout(() => {
       const el = document.querySelector<HTMLInputElement>('.topbar__search-input');
       el?.focus();

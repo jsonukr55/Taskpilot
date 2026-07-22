@@ -531,6 +531,191 @@ export const joinGroup = functions.https.onRequest(async (req, res) => {
 });
 
 // ============================================================
+// Organizations & global admin (parallel to groups/joinGroup)
+// ============================================================
+
+// Emails allowed to self-promote to the FIRST admin (bootstrap). Edit to taste.
+const BOOTSTRAP_ADMIN_EMAILS = ['linkmanishgupta@gmail.com', 'jsonukr55.sg@gmail.com'];
+
+async function callerIsAdmin(uid: string): Promise<boolean> {
+  const snap = await admin.firestore().collection('users').doc(uid).get();
+  return snap.exists && snap.data()?.globalRole === 'admin';
+}
+
+const ORG_STATUS_BY_CODE: Record<string, number> = {
+  'unauthenticated':     401,
+  'permission-denied':   403,
+  'not-found':           404,
+  'failed-precondition': 409,
+};
+
+// ---- setGlobalRole: promote/demote a platform admin (admin or bootstrap) ----
+export const setGlobalRole = functions.https.onRequest(async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  try {
+    const caller = await verifyToken(req);
+    const { email, role } = req.body as { email: string; role: 'admin' | null };
+    if (!email) { res.status(400).json({ error: 'email required' }); return; }
+
+    const callerEmail = (caller.email ?? '').toLowerCase();
+    const bootstrap   = BOOTSTRAP_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(callerEmail);
+    if (!bootstrap && !(await callerIsAdmin(caller.uid))) {
+      res.status(403).json({ error: 'Only an admin can change roles.' });
+      return;
+    }
+
+    const target = await admin.auth().getUserByEmail(email.trim()).catch(() => null);
+    if (!target) { res.status(404).json({ error: 'No account found for that email.' }); return; }
+
+    // Never remove the last remaining admin.
+    if (role === null) {
+      const admins = await admin.firestore().collection('users').where('globalRole', '==', 'admin').get();
+      if (admins.size <= 1 && admins.docs.some(d => d.id === target.uid)) {
+        res.status(409).json({ error: "Can't remove the last admin." });
+        return;
+      }
+    }
+
+    await admin.firestore().collection('users').doc(target.uid).set({
+      globalRole: role === 'admin' ? 'admin' : admin.firestore.FieldValue.delete(),
+      updatedAt:  admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    res.json({ uid: target.uid, email: email.trim(), role });
+  } catch (err) {
+    console.error('setGlobalRole error:', err);
+    res.status(500).json({ error: 'Could not update the role.' });
+  }
+});
+
+// ---- joinOrg: redeem an org invite token (mirrors joinGroup) ----
+export const joinOrg = functions.https.onRequest(async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  try {
+    const user = await verifyToken(req);
+    const { token } = req.body as { token: string };
+    if (!token) { res.status(400).json({ error: 'token required' }); return; }
+
+    const db = admin.firestore();
+    const result = await db.runTransaction(async (tx) => {
+      const inviteRef  = db.collection('orgInvites').doc(token);
+      const inviteSnap = await tx.get(inviteRef);
+      if (!inviteSnap.exists) throw new functions.https.HttpsError('not-found', 'This invite link is invalid.');
+      const invite = inviteSnap.data() as {
+        orgId: string; revoked: boolean; maxUses: number | null; useCount: number;
+        expiresAt: admin.firestore.Timestamp | null;
+      };
+      if (invite.revoked) throw new functions.https.HttpsError('failed-precondition', 'This invite has been revoked.');
+      if (invite.expiresAt && invite.expiresAt.toMillis() < Date.now()) {
+        throw new functions.https.HttpsError('failed-precondition', 'This invite link has expired.');
+      }
+      if (invite.maxUses != null && invite.useCount >= invite.maxUses) {
+        throw new functions.https.HttpsError('failed-precondition', 'This invite link has already been used.');
+      }
+
+      const orgRef  = db.collection('organizations').doc(invite.orgId);
+      const orgSnap = await tx.get(orgRef);
+      if (!orgSnap.exists) throw new functions.https.HttpsError('not-found', 'That organization no longer exists.');
+      const org = orgSnap.data() as { name: string; icon: string; memberIds: string[]; roles: Record<string, string> };
+
+      const alreadyMember = (org.memberIds ?? []).includes(user.uid);
+      const profileSnap = await tx.get(db.collection('users').doc(user.uid));
+      const profile = profileSnap.data() as { displayName?: string; photoURL?: string | null } | undefined;
+      const displayName = profile?.displayName ?? user.name ?? user.email ?? 'Member';
+      const photoURL    = profile?.photoURL ?? user.picture ?? null;
+
+      if (!alreadyMember) {
+        tx.update(orgRef, {
+          memberIds: admin.firestore.FieldValue.arrayUnion(user.uid),
+          [`roles.${user.uid}`]:          'member',
+          [`memberProfiles.${user.uid}`]: { displayName, photoURL },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        tx.update(inviteRef, { useCount: admin.firestore.FieldValue.increment(1) });
+      }
+
+      return {
+        orgId:       invite.orgId,
+        orgName:     org.name,
+        orgIcon:     org.icon,
+        role:        'member',
+        memberCount: (org.memberIds ?? []).length + (alreadyMember ? 0 : 1),
+        alreadyMember,
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    if (err instanceof functions.https.HttpsError) {
+      res.status(ORG_STATUS_BY_CODE[err.code] ?? 400).json({ error: err.message });
+      return;
+    }
+    console.error('joinOrg error:', err);
+    res.status(500).json({ error: 'Could not join the organization.' });
+  }
+});
+
+// ---- addOrgMember: owner/admin adds an existing user by email ----
+export const addOrgMember = functions.https.onRequest(async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  try {
+    const caller = await verifyToken(req);
+    const { orgId, email } = req.body as { orgId: string; email: string };
+    if (!orgId || !email) { res.status(400).json({ error: 'orgId and email required' }); return; }
+
+    const target = await admin.auth().getUserByEmail(email.trim()).catch(() => null);
+    if (!target) { res.status(404).json({ error: 'No account found for that email. Send them an invite link instead.' }); return; }
+
+    const db = admin.firestore();
+    const result = await db.runTransaction(async (tx) => {
+      const orgRef = db.collection('organizations').doc(orgId);
+      const [orgSnap, callerSnap, targetSnap] = await Promise.all([
+        tx.get(orgRef),
+        tx.get(db.collection('users').doc(caller.uid)),
+        tx.get(db.collection('users').doc(target.uid)),
+      ]);
+      if (!orgSnap.exists) throw new functions.https.HttpsError('not-found', 'Organization not found.');
+      const org = orgSnap.data() as { ownerId: string; memberIds: string[] };
+
+      const callerAdmin = callerSnap.data()?.globalRole === 'admin';
+      if (org.ownerId !== caller.uid && !callerAdmin) {
+        throw new functions.https.HttpsError('permission-denied', 'Only the org owner or an admin can add members.');
+      }
+
+      const profile = targetSnap.data() as { displayName?: string; photoURL?: string | null } | undefined;
+      const displayName = profile?.displayName ?? target.displayName ?? target.email ?? 'Member';
+      const photoURL    = profile?.photoURL ?? target.photoURL ?? null;
+
+      const alreadyMember = (org.memberIds ?? []).includes(target.uid);
+      if (!alreadyMember) {
+        tx.update(orgRef, {
+          memberIds: admin.firestore.FieldValue.arrayUnion(target.uid),
+          [`roles.${target.uid}`]:          'member',
+          [`memberProfiles.${target.uid}`]: { displayName, photoURL },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+      return { uid: target.uid, displayName, alreadyMember };
+    });
+
+    res.json(result);
+  } catch (err) {
+    if (err instanceof functions.https.HttpsError) {
+      res.status(ORG_STATUS_BY_CODE[err.code] ?? 400).json({ error: err.message });
+      return;
+    }
+    console.error('addOrgMember error:', err);
+    res.status(500).json({ error: 'Could not add the member.' });
+  }
+});
+
+// ============================================================
 // Scheduled: clean up expired insights
 // ============================================================
 export const cleanupExpiredInsights = functions.pubsub.schedule('every 24 hours').onRun(async () => {

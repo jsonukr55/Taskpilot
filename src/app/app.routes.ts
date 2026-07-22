@@ -89,6 +89,31 @@ export const routes: Routes = [
         title: 'Analytics — TaskPilot'
       },
       {
+        path: 'organizations',
+        loadComponent: () => import('./features/organizations/organizations.component').then(m => m.OrganizationsComponent),
+        title: 'Organizations — TaskPilot'
+      },
+      {
+        path: 'organizations/:orgId',
+        loadComponent: () => import('./features/organizations/org-detail/org-detail.component').then(m => m.OrgDetailComponent),
+        title: 'Organization — TaskPilot'
+      },
+      {
+        path: 'organizations/:orgId/spaces/:spaceId',
+        loadComponent: () => import('./features/organizations/space-detail/space-detail.component').then(m => m.SpaceDetailComponent),
+        title: 'Space — TaskPilot'
+      },
+      {
+        path: 'org-join/:token',
+        loadComponent: () => import('./features/organizations/join-org/join-org.component').then(m => m.JoinOrgComponent),
+        title: 'Join organization — TaskPilot'
+      },
+      {
+        path: 'admin',
+        loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent),
+        title: 'Admin — TaskPilot'
+      },
+      {
         path: 'whats-new',
         loadComponent: () => import('./features/whats-new/whats-new.component').then(m => m.WhatsNewComponent),
         title: "What's New — TaskPilot"

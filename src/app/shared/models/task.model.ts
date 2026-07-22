@@ -54,6 +54,12 @@ export interface Task {
   groupId?:        string | null;   // null/absent = personal task
   assigneeIds?:    string[];        // group member uids assigned to this task
 
+  // Organization / Space scoping (optional — parallel to groupId).
+  // A space task carries both so it can be queried by space and its
+  // parent org resolved without an extra read.
+  orgId?:          string | null;
+  spaceId?:        string | null;   // null/absent = not a space task
+
   // Core fields
   title:           string;
   description?:    string;

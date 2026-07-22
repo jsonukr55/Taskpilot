@@ -1,0 +1,104 @@
+<div class="orgs-page">
+
+  <header class="orgs-page__header">
+    <div>
+      <h1 class="orgs-page__title">Organizations</h1>
+      <p class="orgs-page__subtitle">Tenants that hold your teams and their spaces.</p>
+    </div>
+    @if (auth.isAdmin()) {
+      <button class="btn-primary" (click)="startCreate()">
+        <tp-icon name="plus" [size]="16" />
+        New organization
+      </button>
+    }
+  </header>
+
+  @if (orgs.isLoading()) {
+    <div class="orgs-grid">
+      @for (i of [1,2,3]; track i) {
+        <div class="skeleton" style="height: 128px; border-radius: 16px;"></div>
+      }
+    </div>
+  } @else if (orgs.organizations().length === 0) {
+    <div class="orgs-empty card">
+      <div class="orgs-empty__icon">🏢</div>
+      <h2>No organizations yet</h2>
+      @if (auth.isAdmin()) {
+        <p>Create an organization, then add users and spaces inside it.</p>
+        <button class="btn-primary" (click)="startCreate()">
+          <tp-icon name="plus" [size]="16" /> Create your first organization
+        </button>
+      } @else {
+        <p>You're not in any organization yet. Ask an admin to add you, or open an invite link.</p>
+      }
+    </div>
+  } @else {
+    <div class="orgs-grid">
+      @for (o of orgs.organizations(); track o.id) {
+        <a class="org-card card-hover" [routerLink]="['/organizations', o.id]">
+          <div class="org-card__top">
+            <span class="org-card__icon" [style.background]="o.color + '22'" [style.color]="o.color">{{ o.icon }}</span>
+            @if (orgs.isOrgOwner(o)) { <span class="badge org-card__role">Owner</span> }
+          </div>
+          <h3 class="org-card__name">{{ o.name }}</h3>
+          @if (o.description) { <p class="org-card__desc">{{ o.description }}</p> }
+          <div class="org-card__footer">
+            <tp-icon name="users" [size]="14" />
+            <span>{{ memberCount(o) }} {{ memberCount(o) === 1 ? 'member' : 'members' }}</span>
+          </div>
+        </a>
+      }
+    </div>
+  }
+</div>
+
+<!-- Create modal -->
+@if (showForm()) {
+  <div class="modal-backdrop" (click)="showForm.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>New organization</h2>
+        <button class="btn-icon" (click)="showForm.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" formControlName="name" placeholder="e.g. Acme Inc." autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description <span class="optional">(optional)</span></label>
+          <textarea class="form-textarea" formControlName="description" placeholder="What is this organization for?"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <div class="picker">
+            @for (ic of ICONS; track ic) {
+              <button type="button" class="picker__item" [class.active]="form.value.icon === ic"
+                      (click)="form.patchValue({ icon: ic })">{{ ic }}</button>
+            }
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="picker">
+            @for (c of COLORS; track c) {
+              <button type="button" class="picker__swatch" [class.active]="form.value.color === c"
+                      [style.background]="c" (click)="form.patchValue({ color: c })"></button>
+            }
+          </div>
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="btn-ghost" (click)="showForm.set(false)">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="form.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Creating…' : 'Create organization' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

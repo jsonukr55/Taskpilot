@@ -1,0 +1,81 @@
+<div class="admin-page">
+
+  <header class="admin-page__header">
+    <div>
+      <h1 class="admin-page__title"><tp-icon name="shield" [size]="22" /> Admin</h1>
+      <p class="admin-page__subtitle">Platform administration — organizations and admins.</p>
+    </div>
+  </header>
+
+  @if (!auth.isAdmin()) {
+    <!-- Non-admins: bootstrap claim / access denied -->
+    <div class="admin-card card">
+      <div class="admin-card__icon">🔐</div>
+      <h2>Admin access required</h2>
+      <p>This area is for platform administrators. If you're the account owner setting up
+         TaskPilot for the first time, you can claim admin access below.</p>
+      <button class="btn-primary" (click)="claimBootstrap()" [disabled]="claiming()">
+        {{ claiming() ? 'Checking…' : 'Claim admin access' }}
+      </button>
+    </div>
+  } @else {
+    <div class="admin-grid">
+
+      <!-- Organizations -->
+      <section class="admin-card card">
+        <div class="admin-card__head">
+          <h2><tp-icon name="briefcase" [size]="18" /> Organizations</h2>
+          <a class="btn-primary btn-sm" routerLink="/organizations" [queryParams]="{ new: true }">
+            <tp-icon name="plus" [size]="14" /> New organization
+          </a>
+        </div>
+        @if (orgs.organizations().length === 0) {
+          <p class="admin-muted">No organizations yet. Create one to get started.</p>
+        } @else {
+          <ul class="admin-list">
+            @for (o of orgs.organizations(); track o.id) {
+              <li class="admin-list__row">
+                <span class="admin-list__icon" [style.background]="o.color + '22'" [style.color]="o.color">{{ o.icon }}</span>
+                <a class="admin-list__name" [routerLink]="['/organizations', o.id]">{{ o.name }}</a>
+                <span class="admin-list__meta">{{ o.memberIds.length }} {{ o.memberIds.length === 1 ? 'member' : 'members' }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- Admins -->
+      <section class="admin-card card">
+        <div class="admin-card__head">
+          <h2><tp-icon name="shield" [size]="18" /> Admins</h2>
+        </div>
+        <p class="admin-muted">Promote another user to admin by email, or remove admin access.</p>
+
+        <div class="admin-field">
+          <label class="form-label">Promote to admin</label>
+          <div class="admin-row">
+            <input class="form-input" type="email" placeholder="user@example.com"
+                   [ngModel]="promoteEmail()" (ngModelChange)="promoteEmail.set($event)"
+                   (keydown.enter)="promote()">
+            <button class="btn-primary" (click)="promote()" [disabled]="working() || !promoteEmail().trim()">
+              <tp-icon name="user-plus" [size]="14" /> Promote
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-field">
+          <label class="form-label">Remove admin</label>
+          <div class="admin-row">
+            <input class="form-input" type="email" placeholder="user@example.com"
+                   [ngModel]="demoteEmail()" (ngModelChange)="demoteEmail.set($event)"
+                   (keydown.enter)="demote()">
+            <button class="btn-danger" (click)="demote()" [disabled]="working() || !demoteEmail().trim()">
+              <tp-icon name="x" [size]="14" /> Remove
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  }
+</div>

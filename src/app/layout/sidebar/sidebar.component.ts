@@ -39,6 +39,7 @@ export class SidebarComponent {
     { label: 'Tasks',        route: '/tasks',      icon: 'check-square', badge: () => this.tasks.overdueTasks().length },
     { label: 'Notes',        route: '/notes',      icon: 'file-text' },
     { label: 'Groups',       route: '/groups',     icon: 'users' },
+    { label: 'Organizations',route: '/organizations', icon: 'briefcase' },
     { label: 'Daily Report', route: '/daily',      icon: 'check-circle' },
     { label: 'Calendar',     route: '/calendar',   icon: 'calendar' },
     { label: 'Categories',   route: '/categories', icon: 'folder' },

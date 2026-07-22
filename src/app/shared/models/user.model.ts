@@ -44,6 +44,11 @@ export interface UserProfile {
   displayName: string;
   photoURL?:   string | null;
 
+  /** Platform-level role. Absent/undefined = regular user. Only 'admin'
+   *  grants access to the admin panel (create orgs, promote admins).
+   *  Written server-side (Cloud Function) — never from the client. */
+  globalRole?: 'admin';
+
   preferences: UserPreferences;
   stats:       UserStats;
 

@@ -22,6 +22,8 @@ export class AuthService {
   readonly isLoading       = signal(true);
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
   readonly userId          = computed(() => this.currentUser()?.uid ?? null);
+  /** Platform-level admin (from the user profile's globalRole). */
+  readonly isAdmin         = computed(() => this.userProfile()?.globalRole === 'admin');
   readonly displayName     = computed(() => this.currentUser()?.displayName ?? '');
   readonly photoURL        = computed(() => this.currentUser()?.photoURL ?? null);
 
@@ -129,6 +131,14 @@ export class AuthService {
       updatedAt: serverTimestamp()
     }, { merge: true });
     this.userProfile.update(p => p ? { ...p, preferences: { ...p.preferences, ...prefs } } : null);
+  }
+
+  /** Re-read the user's profile doc (e.g. after a server-side role change). */
+  async reloadProfile(): Promise<void> {
+    const uid = this.userId();
+    if (!uid) return;
+    const snap = await getDoc(doc(this.firestore, 'users', uid));
+    if (snap.exists()) this.userProfile.set(snap.data() as UserProfile);
   }
 
   /** Persist the user's note quick-access state (favorites/pins/recents). */

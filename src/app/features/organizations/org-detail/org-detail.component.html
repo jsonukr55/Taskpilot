@@ -1,0 +1,215 @@
+@if (org(); as o) {
+  <div class="od">
+
+    <!-- Header -->
+    <header class="od__header">
+      <a routerLink="/organizations" class="btn-icon od__back" data-tooltip="All organizations"><tp-icon name="arrow-left" [size]="18" /></a>
+      <span class="od__icon" [style.background]="o.color + '22'" [style.color]="o.color">{{ o.icon }}</span>
+      <div class="od__titles">
+        <h1>{{ o.name }}</h1>
+        @if (o.description) { <p>{{ o.description }}</p> }
+      </div>
+      <div class="od__actions">
+        @if (canManage()) {
+          <button class="btn-secondary" (click)="openInvite()"><tp-icon name="user-plus" [size]="16" /> Invite</button>
+        }
+        @if (canManage()) {
+          <button class="btn-icon" (click)="openSettings()" data-tooltip="Organization settings"><tp-icon name="settings" [size]="18" /></button>
+        }
+      </div>
+    </header>
+
+    <!-- Spaces -->
+    <section class="card od-section">
+      <div class="od-section__head">
+        <h2><tp-icon name="briefcase" [size]="16" /> Spaces ({{ orgSpaces().length }})</h2>
+        <button class="btn-sm btn-primary" (click)="openCreateSpace()"><tp-icon name="plus" [size]="14" /> New space</button>
+      </div>
+      @if (spaces.isLoading()) {
+        <div class="skeleton skeleton-text" style="height:44px;"></div>
+      } @else if (orgSpaces().length === 0) {
+        <p class="od-empty">No spaces yet. Create a space to hold tasks and subtasks.</p>
+      } @else {
+        <div class="space-grid">
+          @for (s of orgSpaces(); track s.id) {
+            <a class="space-card card-hover" [routerLink]="['/organizations', orgId(), 'spaces', s.id]">
+              <span class="space-card__icon" [style.background]="s.color + '22'" [style.color]="s.color">{{ s.icon }}</span>
+              <span class="space-card__name">{{ s.name }}</span>
+              <span class="space-card__meta">{{ s.memberIds.length }} {{ s.memberIds.length === 1 ? 'member' : 'members' }}</span>
+            </a>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Members -->
+    <section class="card od-section">
+      <div class="od-section__head">
+        <h2><tp-icon name="users" [size]="16" /> Members ({{ members().length }})</h2>
+      </div>
+
+      @if (canManage()) {
+        <div class="od-add">
+          <input class="form-input" type="email" placeholder="Add a member by email…"
+                 [ngModel]="addEmail()" (ngModelChange)="addEmail.set($event)" (keydown.enter)="addMember()">
+          <button class="btn-primary" (click)="addMember()" [disabled]="addingMember() || !addEmail().trim()">
+            <tp-icon name="user-plus" [size]="14" /> Add
+          </button>
+        </div>
+      }
+
+      <ul class="member-list">
+        @for (m of members(); track m.userId) {
+          <li class="member">
+            <span class="avatar">
+              @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+            </span>
+            <div class="member__info">
+              <span class="member__name">{{ m.displayName }} @if (m.userId === auth.userId()) { <span class="member__you">you</span> }</span>
+            </div>
+            <span class="badge member__badge">{{ m.role === 'owner' ? 'Owner' : 'Member' }}</span>
+            @if (canManage() && m.role !== 'owner') {
+              <button class="btn-icon" (click)="removeMember(m.userId)" data-tooltip="Remove"><tp-icon name="x" [size]="16" /></button>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+} @else if (notFound()) {
+  <div class="od-missing card">
+    <div class="od-missing__icon">🔍</div>
+    <h2>Organization not found</h2>
+    <p>You may not have access, or it may have been deleted.</p>
+    <a routerLink="/organizations" class="btn-secondary">Back to organizations</a>
+  </div>
+} @else {
+  <div class="od"><div class="skeleton" style="height:120px;border-radius:16px;"></div></div>
+}
+
+<!-- Create space modal -->
+@if (showSpace()) {
+  <div class="modal-backdrop" (click)="showSpace.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>New space</h2>
+        <button class="btn-icon" (click)="showSpace.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" [ngModel]="spaceName()" (ngModelChange)="spaceName.set($event)"
+                 placeholder="e.g. Engineering" (keydown.enter)="createSpace()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <div class="picker">
+            @for (ic of SPACE_ICONS; track ic) {
+              <button type="button" class="picker__item" [class.active]="spaceIcon() === ic" (click)="spaceIcon.set(ic)">{{ ic }}</button>
+            }
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="picker">
+            @for (c of SPACE_COLORS; track c) {
+              <button type="button" class="picker__swatch" [class.active]="spaceColor() === c" [style.background]="c" (click)="spaceColor.set(c)"></button>
+            }
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn-ghost" (click)="showSpace.set(false)">Cancel</button>
+          <button class="btn-primary" (click)="createSpace()" [disabled]="creatingSpace() || spaceName().trim().length < 2">
+            {{ creatingSpace() ? 'Creating…' : 'Create space' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Invite modal -->
+@if (showInvite()) {
+  <div class="modal-backdrop" (click)="showInvite.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>Invite to organization</h2>
+        <button class="btn-icon" (click)="showInvite.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal__body">
+        @if (inviteLink(); as link) {
+          <div class="form-group">
+            <label class="form-label">Shareable link (expires in 7 days)</label>
+            <div class="link-row">
+              <input class="form-input" [value]="link" readonly>
+              <button class="btn-primary" (click)="copyLink(link)">
+                <tp-icon [name]="copied() ? 'check' : 'copy'" [size]="16" /> {{ copied() ? 'Copied' : 'Copy' }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <button class="btn-primary" (click)="generateLink()"><tp-icon name="link" [size]="16" /> Generate invite link</button>
+        }
+
+        @if (activeInvites().length) {
+          <div class="divider"></div>
+          <p class="form-label">Active links</p>
+          <ul class="invite-list">
+            @for (inv of activeInvites(); track inv.id) {
+              <li class="invite-list__item">
+                <tp-icon name="link" [size]="14" />
+                <span class="badge">Member</span>
+                <button class="btn-icon" (click)="copyLink(inviteBase + inv.token)" data-tooltip="Copy"><tp-icon name="copy" [size]="14" /></button>
+                <button class="btn-icon" (click)="revoke(inv.token)" data-tooltip="Revoke"><tp-icon name="trash-2" [size]="14" /></button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Settings modal -->
+@if (showSettings()) {
+  <div class="modal-backdrop" (click)="showSettings.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>Organization settings</h2>
+        <button class="btn-icon" (click)="showSettings.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" [ngModel]="editName()" (ngModelChange)="editName.set($event)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" [ngModel]="editDesc()" (ngModelChange)="editDesc.set($event)"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <div class="picker">
+            @for (ic of ICONS; track ic) {
+              <button type="button" class="picker__item" [class.active]="editIcon() === ic" (click)="editIcon.set(ic)">{{ ic }}</button>
+            }
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="picker">
+            @for (c of COLORS; track c) {
+              <button type="button" class="picker__swatch" [class.active]="editColor() === c" [style.background]="c" (click)="editColor.set(c)"></button>
+            }
+          </div>
+        </div>
+        <div class="modal__footer">
+          @if (isOwner()) {
+            <button class="btn-danger" (click)="deleteOrg()"><tp-icon name="trash-2" [size]="16" /> Delete</button>
+          }
+          <button class="btn-primary" (click)="saveSettings()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

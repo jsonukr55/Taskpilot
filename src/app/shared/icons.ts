@@ -21,7 +21,7 @@ import {
   featherUpload, featherLink, featherCopy, featherMessageSquare, featherMessageCircle,
   featherBold, featherItalic, featherType, featherCheckCircle, featherCornerDownLeft,
   featherAtSign, featherUser, featherSquare, featherRotateCcw, featherRotateCw,
-  featherStar, featherBookmark,
+  featherStar, featherBookmark, featherBriefcase, featherShield, featherMail,
 } from '@ng-icons/feather-icons';
 import { lucideSparkles } from '@ng-icons/lucide';
 
@@ -88,4 +88,7 @@ export const APP_ICONS: Record<string, string> = {
   rotateCw:        featherRotateCw,
   star:            featherStar,
   bookmark:        featherBookmark,
+  briefcase:       featherBriefcase,
+  shield:          featherShield,
+  mail:            featherMail,
 };

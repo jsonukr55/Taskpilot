@@ -25,6 +25,39 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/dailyReports/$(reportId)).data;
     }
 
+    // ---- Org / Space / global-admin helpers -----------------------------
+    function userData(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+    // Platform admin: globalRole == 'admin' on the caller's own user doc.
+    function isGlobalAdmin() {
+      return signedIn()
+        && 'globalRole' in userData(request.auth.uid)
+        && userData(request.auth.uid).globalRole == 'admin';
+    }
+    function orgData(orgId) {
+      return get(/databases/$(database)/documents/organizations/$(orgId)).data;
+    }
+    function isOrgMember(orgId) {
+      return signedIn() && request.auth.uid in orgData(orgId).memberIds;
+    }
+    function isOrgOwner(orgId) {
+      return signedIn() && orgData(orgId).ownerId == request.auth.uid;
+    }
+    function canManageOrg(orgId) {
+      return isOrgOwner(orgId) || isGlobalAdmin();
+    }
+    function spaceData(spaceId) {
+      return get(/databases/$(database)/documents/spaces/$(spaceId)).data;
+    }
+    function isSpaceMember(spaceId) {
+      return signedIn() && request.auth.uid in spaceData(spaceId).memberIds;
+    }
+    function canEditSpace(spaceId) {
+      return isSpaceMember(spaceId)
+        && spaceData(spaceId).roles[request.auth.uid] in ['owner', 'editor'];
+    }
+
     // ---- Users: only own profile ----------------------------------------
     match /users/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
@@ -56,6 +89,8 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid ||
         (('groupId' in resource.data) && resource.data.groupId != null
           && isMember(resource.data.groupId)) ||
+        (('spaceId' in resource.data) && resource.data.spaceId != null
+          && isSpaceMember(resource.data.spaceId)) ||
         (('assigneeIds' in resource.data)
           && request.auth.uid in resource.data.assigneeIds)
       );
@@ -64,20 +99,28 @@ service cloud.firestore {
         && (
           !('groupId' in request.resource.data) || request.resource.data.groupId == null
           || canEditGroup(request.resource.data.groupId)
+        )
+        && (
+          !('spaceId' in request.resource.data) || request.resource.data.spaceId == null
+          || canEditSpace(request.resource.data.spaceId)
         );
-      // Owner and group editors may fully edit. An assignee may update the task
-      // (e.g. mark progress / complete) but not delete someone else's task.
+      // Owner, group editors, and space editors may fully edit. An assignee may
+      // update the task (e.g. mark progress / complete) but not delete it.
       allow update: if signedIn() && (
         resource.data.userId == request.auth.uid ||
         (('groupId' in resource.data) && resource.data.groupId != null
           && canEditGroup(resource.data.groupId)) ||
+        (('spaceId' in resource.data) && resource.data.spaceId != null
+          && canEditSpace(resource.data.spaceId)) ||
         (('assigneeIds' in resource.data)
           && request.auth.uid in resource.data.assigneeIds)
       );
       allow delete: if signedIn() && (
         resource.data.userId == request.auth.uid ||
         (('groupId' in resource.data) && resource.data.groupId != null
-          && canEditGroup(resource.data.groupId))
+          && canEditGroup(resource.data.groupId)) ||
+        (('spaceId' in resource.data) && resource.data.spaceId != null
+          && canEditSpace(resource.data.spaceId))
       );
     }
 
@@ -160,6 +203,40 @@ service cloud.firestore {
       allow list:   if signedIn() && canEditGroup(resource.data.groupId);
       allow create: if signedIn() && canEditGroup(request.resource.data.groupId);
       allow update, delete: if signedIn() && canEditGroup(resource.data.groupId);
+    }
+
+    // ---- Organizations: tenants that hold users + spaces ----------------
+    // Only a global admin can CREATE an org (as its owner + first member).
+    // Membership joins happen server-side (joinOrg / addOrgMember functions);
+    // globalRole is written only by the admin SDK (users rule stays self-only).
+    match /organizations/{orgId} {
+      allow read:   if signedIn()
+        && (request.auth.uid in resource.data.memberIds || isGlobalAdmin());
+      allow create: if isGlobalAdmin()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.auth.uid in request.resource.data.memberIds;
+      allow update, delete: if canManageOrg(orgId);
+    }
+
+    // ---- Spaces: projects inside an org that hold tasks -----------------
+    match /spaces/{spaceId} {
+      allow read:   if signedIn() && request.auth.uid in resource.data.memberIds;
+      allow create: if isOrgMember(request.resource.data.orgId)
+        && request.resource.data.ownerId == request.auth.uid
+        && request.auth.uid in request.resource.data.memberIds;
+      // Space editors/owner manage members + rename; owner or org owner deletes.
+      allow update: if signedIn()
+        && (canEditSpace(spaceId) || isOrgOwner(resource.data.orgId));
+      allow delete: if signedIn()
+        && (resource.data.ownerId == request.auth.uid || isOrgOwner(resource.data.orgId));
+    }
+
+    // ---- Org invites: doc id IS the secret token ------------------------
+    match /orgInvites/{token} {
+      allow get:    if signedIn();
+      allow list:   if signedIn() && canManageOrg(resource.data.orgId);
+      allow create: if signedIn() && canManageOrg(request.resource.data.orgId);
+      allow update, delete: if signedIn() && canManageOrg(resource.data.orgId);
     }
   }
 }

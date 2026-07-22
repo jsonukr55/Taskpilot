@@ -61,6 +61,17 @@
           }
         </li>
       }
+
+      <!-- Admin panel — platform admins only -->
+      @if (auth.isAdmin()) {
+        <li class="sidebar__nav-item">
+          <a routerLink="/admin" routerLinkActive="active" class="sidebar__nav-link"
+             data-tooltip [attr.data-tooltip]="collapsed() ? 'Admin' : null">
+            <tp-icon name="shield" [size]="18" />
+            @if (!collapsed()) { <span class="sidebar__nav-label">Admin</span> }
+          </a>
+        </li>
+      }
     </ul>
   </nav>
 

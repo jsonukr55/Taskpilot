@@ -200,6 +200,24 @@ export class TaskService {
     this.groupTasks.set([]);
   }
 
+  // ---- Space tasks (separate listener, scoped to one open space) ----
+  readonly spaceTasks = signal<Task[]>([]);
+  private spaceTasksUnsub?: () => void;
+
+  openSpaceTasks(spaceId: string): void {
+    this.closeSpaceTasks();
+    const q = query(collection(this.firestore, 'tasks'), where('spaceId', '==', spaceId));
+    this.spaceTasksUnsub = onSnapshot(q, snapshot => {
+      this.spaceTasks.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
+    });
+  }
+
+  closeSpaceTasks(): void {
+    this.spaceTasksUnsub?.();
+    this.spaceTasksUnsub = undefined;
+    this.spaceTasks.set([]);
+  }
+
   private unsubscribe?: () => void;
   private assignedUnsub?: () => void;
 
@@ -329,11 +347,40 @@ export class TaskService {
     });
   }
 
+  /** Create a task that belongs to a space (shared + assignable to members). */
+  async createSpaceTask(spaceId: string, orgId: string, data: { title: string; priority?: TaskPriority; dueDate?: Timestamp | null; assigneeIds?: string[] }): Promise<string> {
+    return this.createTask({
+      title:          data.title,
+      description:    '',
+      status:         'todo',
+      priority:       data.priority ?? 'medium',
+      startDate:      null,
+      dueDate:        data.dueDate ?? null,
+      dueTime:        null,
+      estimatedHours: null,
+      actualHours:    null,
+      parentId:       null,
+      categoryIds:    [],
+      tags:           [],
+      checklist:      [],
+      timeBlocks:     [],
+      recurrence:     null,
+      isScheduled:    false,
+      aiMetadata:     null,
+      imageUrl:       null,
+      reminders:      [],
+      orgId,
+      spaceId,
+      assigneeIds:    data.assigneeIds ?? []
+    });
+  }
+
   async setAssignees(taskId: string, assigneeIds: string[]): Promise<void> {
     await this.updateTask(taskId, { assigneeIds });
   }
 
-  /** Create a subtask under a parent (inherits some parent context). */
+  /** Create a subtask under a parent (inherits some parent context, including
+   *  its group/space scope so it stays visible in that context's listener). */
   async createSubtask(parentId: string, title: string): Promise<string> {
     const parent = this.getTaskById(parentId);
     return this.createTask({
@@ -356,7 +403,11 @@ export class TaskService {
       completedAt:    null,
       imageUrl:       null,
       reminders:      [],
-      aiMetadata:     null
+      aiMetadata:     null,
+      // Inherit collaboration scope so the subtask lives in the same context.
+      ...(parent?.groupId ? { groupId: parent.groupId } : {}),
+      ...(parent?.spaceId ? { spaceId: parent.spaceId } : {}),
+      ...(parent?.orgId   ? { orgId: parent.orgId }     : {}),
     });
   }
 
@@ -401,6 +452,8 @@ export class TaskService {
       reminders:      [],
       aiMetadata:     null,
       ...(src.groupId ? { groupId: src.groupId } : {}),
+      ...(src.spaceId ? { spaceId: src.spaceId } : {}),
+      ...(src.orgId   ? { orgId: src.orgId }     : {}),
       ...(src.assigneeIds ? { assigneeIds: [...src.assigneeIds] } : {}),
     });
   }

@@ -156,7 +156,7 @@ export class OrganizationService {
 
   /** Add an existing user to the org by email (resolves uid + profile server-side). */
   async addMemberByEmail(orgId: string, email: string): Promise<{ uid: string; displayName: string }> {
-    const idToken = await this.auth.currentUser()?.getIdToken();
+    const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
     return firstValueFrom(this.http.post<{ uid: string; displayName: string }>(
       `${environment.functionsBaseUrl}/addOrgMember`,
@@ -220,7 +220,7 @@ export class OrganizationService {
 
   /** Redeem an org invite via the joinOrg Cloud Function. */
   async joinByToken(token: string): Promise<OrgInvitePreview> {
-    const idToken = await this.auth.currentUser()?.getIdToken();
+    const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
     return firstValueFrom(this.http.post<OrgInvitePreview>(
       `${environment.functionsBaseUrl}/joinOrg`,

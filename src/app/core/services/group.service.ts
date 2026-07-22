@@ -222,7 +222,7 @@ export class GroupService {
 
   /** Redeem an invite via the joinGroup Cloud Function (server-side member add). */
   async joinByToken(token: string): Promise<InvitePreview & { alreadyMember: boolean }> {
-    const idToken = await this.auth.currentUser()?.getIdToken();
+    const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
 
     return firstValueFrom(this.http.post<InvitePreview & { alreadyMember: boolean }>(

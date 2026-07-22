@@ -19,7 +19,7 @@ export class AdminService {
 
   /** Promote (role='admin') or demote (role=null) a user by email. */
   async setGlobalRole(email: string, role: 'admin' | null): Promise<{ uid: string; email: string; role: 'admin' | null }> {
-    const idToken = await this.auth.currentUser()?.getIdToken();
+    const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
     return firstValueFrom(this.http.post<{ uid: string; email: string; role: 'admin' | null }>(
       `${environment.functionsBaseUrl}/setGlobalRole`,

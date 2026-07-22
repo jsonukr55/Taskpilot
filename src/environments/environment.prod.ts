@@ -24,7 +24,7 @@ export const environment = {
   },
   functionsBaseUrl: 'https://us-central1-taskpilot-ad725.cloudfunctions.net',
   supabase: {
-    url:     'https://YOUR_PROJECT_REF.supabase.co',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY'
+    url:     'https://uffyycxwhldjqikcmopu.supabase.co',
+    anonKey: 'sb_publishable_717vdxDYcgZThGHfISRoKA_IFHwWPEg'
   }
 };

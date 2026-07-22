@@ -29,7 +29,7 @@ export const environment = {
   // project → Settings → API. The anon key is safe to ship in the client
   // (RLS enforces access); the service_role key must NEVER go here.
   supabase: {
-    url:     'https://YOUR_PROJECT_REF.supabase.co',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY'
+    url:     'https://uffyycxwhldjqikcmopu.supabase.co',
+    anonKey: 'sb_publishable_717vdxDYcgZThGHfISRoKA_IFHwWPEg'
   }
 };

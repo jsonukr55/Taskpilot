@@ -22,7 +22,7 @@ export class AiService {
   private readonly base = environment.functionsBaseUrl;
 
   private async post<T>(fn: string, body: unknown): Promise<T> {
-    const token = await this.auth.currentUser()?.getIdToken();
+    const token = await this.auth.getAccessToken();
     return firstValueFrom(this.http.post<T>(`${this.base}/${fn}`, body, {
       headers: { Authorization: `Bearer ${token ?? ''}` }
     }));

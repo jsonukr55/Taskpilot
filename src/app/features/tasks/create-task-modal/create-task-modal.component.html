@@ -14,12 +14,21 @@
 
     <!-- Mode Tabs -->
     <div class="modal__tabs">
-      <button class="modal__tab" [class.active]="mode() === 'ai'" (click)="mode.set('ai')">
-        <tp-icon name="sparkles" [size]="14" /> AI Text
-      </button>
-      <button class="modal__tab" [class.active]="mode() === 'image'" (click)="mode.set('image')">
-        <tp-icon name="image" [size]="14" /> From Image
-      </button>
+      @if (aiEnabled) {
+        <button class="modal__tab" [class.active]="mode() === 'ai'" (click)="mode.set('ai')">
+          <tp-icon name="sparkles" [size]="14" /> AI Text
+        </button>
+        <button class="modal__tab" [class.active]="mode() === 'image'" (click)="mode.set('image')">
+          <tp-icon name="image" [size]="14" /> From Image
+        </button>
+      } @else {
+        <button class="modal__tab modal__tab--soon" type="button" disabled data-tooltip="Coming soon">
+          <tp-icon name="sparkles" [size]="14" /> AI Text · Soon
+        </button>
+        <button class="modal__tab modal__tab--soon" type="button" disabled data-tooltip="Coming soon">
+          <tp-icon name="image" [size]="14" /> Image · Soon
+        </button>
+      }
       <button class="modal__tab" [class.active]="mode() === 'file'" (click)="mode.set('file')">
         <tp-icon name="file-text" [size]="14" /> File
       </button>

@@ -78,11 +78,8 @@ export const routes: Routes = [
         loadComponent: () => import('./features/groups/join-group/join-group.component').then(m => m.JoinGroupComponent),
         title: 'Join group — TaskPilot'
       },
-      {
-        path: 'ai-chat',
-        loadComponent: () => import('./features/ai-chat/ai-chat.component').then(m => m.AiChatComponent),
-        title: 'AI Assistant — TaskPilot'
-      },
+      // AI Assistant — coming soon; route redirects until Edge Functions ship.
+      { path: 'ai-chat', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'analytics',
         loadComponent: () => import('./features/analytics/analytics.component').then(m => m.AnalyticsComponent),

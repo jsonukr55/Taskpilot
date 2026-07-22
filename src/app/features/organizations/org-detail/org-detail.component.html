@@ -67,9 +67,19 @@
             <div class="member__info">
               <span class="member__name">{{ m.displayName }} @if (m.userId === auth.userId()) { <span class="member__you">you</span> }</span>
             </div>
-            <span class="badge member__badge">{{ m.role === 'owner' ? 'Owner' : 'Member' }}</span>
-            @if (canManage() && m.role !== 'owner') {
+            @if (m.role === 'owner') {
+              <span class="badge member__badge">Owner</span>
+            } @else if (canManage()) {
+              <select class="role-select" [value]="m.role"
+                      (change)="changeRole(m.userId, $any($event.target).value)"
+                      data-tooltip="Change role">
+                @for (r of ASSIGNABLE_ORG_ROLES; track r) {
+                  <option [value]="r">{{ roleLabel(r) }}</option>
+                }
+              </select>
               <button class="btn-icon" (click)="removeMember(m.userId)" data-tooltip="Remove"><tp-icon name="x" [size]="16" /></button>
+            } @else {
+              <span class="badge member__badge">{{ roleLabel(m.role) }}</span>
             }
           </li>
         }

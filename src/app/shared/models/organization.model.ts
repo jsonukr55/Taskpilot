@@ -7,7 +7,10 @@ import { Timestamp } from '@angular/fire/firestore';
 // a global admin; users join by direct-add or invite link.
 // ============================================================
 
-export type OrgRole = 'owner' | 'member';
+export type OrgRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+/** Roles a manager can assign to a member (owner is the special creator role). */
+export const ASSIGNABLE_ORG_ROLES: Exclude<OrgRole, 'owner'>[] = ['admin', 'member', 'viewer'];
 
 /** Denormalized member display info, keyed by uid on the org doc. */
 export interface OrgMemberProfile {
@@ -22,6 +25,7 @@ export interface Organization {
   icon:           string;   // emoji
   color:          string;   // hex
 
+  clientId:       string | null;   // parent client/customer (null = legacy/unassigned)
   ownerId:        string;   // the org owner (an admin or a designated owner)
 
   // Membership — kept in sync together on every join / leave / role change.
@@ -73,7 +77,9 @@ export interface OrgInvitePreview {
 
 export const ORG_ROLE_LABELS: Record<OrgRole, string> = {
   owner:  'Owner',
+  admin:  'Admin',
   member: 'Member',
+  viewer: 'Viewer',
 };
 
 /** Derive the flat member list from an org's uid-keyed maps. */

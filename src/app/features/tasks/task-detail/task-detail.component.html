@@ -202,7 +202,7 @@
         @if (!task()!.isScheduled && task()!.estimatedHours) {
           <div class="aside-card aside-card--action">
             <h3 class="aside-card__title">Smart Scheduling</h3>
-            <p class="aside-card__text">This task isn't scheduled yet. Let AI find the best time slot.</p>
+            <p class="aside-card__text">This task isn't scheduled yet. Find the best free time slot automatically.</p>
             <button class="btn btn-primary btn-block" (click)="autoSchedule()" [disabled]="isSaving()">
               <tp-icon name="calendar" [size]="16" />
               Auto-Schedule

@@ -116,3 +116,19 @@
   h2 { font-size: $font-size-xl; font-weight: $font-weight-semibold; }
   p { color: var(--text-secondary); }
 }
+
+// Compact role dropdown in the member list (tokens only; per UI_GUIDELINES)
+.role-select {
+  padding: $space-1 $space-2;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: border-color $transition-fast;
+
+  &:hover  { border-color: var(--border-strong); }
+  &:focus  { outline: none; border-color: var(--input-focus); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
+}

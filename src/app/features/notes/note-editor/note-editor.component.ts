@@ -9,6 +9,7 @@ import { NoteService } from '@core/services/note.service';
 import { NoteAccessService } from '@core/services/note-access.service';
 import { AuthService } from '@core/services/auth.service';
 import { AiService } from '@core/services/ai.service';
+import { environment } from '@env/environment';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { EditableBlockDirective } from './editable-block.directive';
 import { CommentThreadComponent } from '../comment-thread/comment-thread.component';
@@ -97,6 +98,7 @@ export class NoteEditorComponent implements OnDestroy {
     { key: 'explain',      label: 'Explain',                icon: 'message-circle', mode: 'insert', insertAs: 'callout', instruction: 'Explain what this text means in simple, plain language.' },
   ];
   readonly aiBusy = signal<string | null>(null);
+  readonly aiEnabled = environment.features.ai;
   readonly copied = signal(false);
 
   // ---- Derived ----

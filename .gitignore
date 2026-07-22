@@ -20,6 +20,10 @@ ui-debug.log
 functions/.env
 functions/.env.*
 
+# ETL / migration secrets (service-account JSON, service_role key)
+.secrets/
+scripts/etl/.env
+
 # IDE
 .vscode/
 .idea/

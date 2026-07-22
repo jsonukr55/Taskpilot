@@ -1,31 +1,32 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import {
-  Firestore, collection, query, where, onSnapshot,
-  doc, addDoc, setDoc, updateDoc, getDoc, getDocs,
-  serverTimestamp, Timestamp, writeBatch, deleteField
-} from '@angular/fire/firestore';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { environment } from '@env/environment';
+import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import {
   Group, GroupRole, GroupInvite, InvitePreview, canEdit,
   AssignablePerson, buildAssignablePeople
 } from '@shared/models/group.model';
 import { inviteToken, slugId } from '@shared/utils/id.util';
+import { toTs } from './supabase-map.util';
 
 // ============================================================
-// GroupService — collaborative groups, members, invites
-// Mirrors TaskService's onSnapshot→signals lifecycle.
+// GroupService — collaborative groups, members, invites (Supabase).
+// The embedded Group model (memberIds/roles/memberProfiles) is
+// reconstructed from the group_members join table via PostgREST
+// resource embedding. Same public API as the Firestore version.
 // ============================================================
 
 const INVITE_TTL_DAYS = 7;
+const MEMBER_SELECT = '*, group_members(user_id, role, display_name, photo_url)';
 
 @Injectable({ providedIn: 'root' })
 export class GroupService {
-  private readonly firestore = inject(Firestore);
-  private readonly auth      = inject(AuthService);
-  private readonly http      = inject(HttpClient);
+  private readonly supa = inject(SupabaseService);
+  private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
   readonly groups    = signal<Group[]>([]);
   readonly isLoading = signal(true);
@@ -53,7 +54,7 @@ export class GroupService {
     });
   }
 
-  private unsubscribe?: () => void;
+  private channel?: RealtimeChannel;
 
   // ---- Lifecycle ----
 
@@ -62,22 +63,23 @@ export class GroupService {
     if (!uid) return;
     this.isLoading.set(true);
 
-    const q = query(
-      collection(this.firestore, 'groups'),
-      where('memberIds', 'array-contains', uid)
-    );
-
-    this.unsubscribe = onSnapshot(q, snapshot => {
-      this.groups.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Group)));
-      this.isLoading.set(false);
-    }, err => {
-      this.error.set(err.message);
-      this.isLoading.set(false);
-    });
+    void this.load();
+    this.channel = this.supa.client
+      .channel(`groups:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' },        () => void this.load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => void this.load())
+      .subscribe();
   }
 
   stopListening(): void {
-    this.unsubscribe?.();
+    if (this.channel) { void this.supa.client.removeChannel(this.channel); this.channel = undefined; }
+  }
+
+  private async load(): Promise<void> {
+    const { data, error } = await this.supa.db('groups').select(MEMBER_SELECT);
+    if (error) { this.error.set(error.message); this.isLoading.set(false); return; }
+    this.groups.set((data ?? []).map(rowToGroup));
+    this.isLoading.set(false);
   }
 
   // ---- Queries ----
@@ -109,118 +111,94 @@ export class GroupService {
     if (!uid) throw new Error('Not authenticated');
 
     const id = slugId(data.name);
-    await setDoc(doc(this.firestore, 'groups', id), {
+    const { error } = await this.supa.db('groups').insert({
+      id,
       name:        data.name.trim(),
       description: data.description?.trim() ?? '',
       icon:        data.icon,
       color:       data.color,
-      ownerId:     uid,
-      memberIds:   [uid],
-      roles:       { [uid]: 'owner' as GroupRole },
-      memberProfiles: {
-        [uid]: {
-          displayName: this.auth.displayName() || 'You',
-          photoURL:    this.auth.photoURL() ?? null
-        }
-      },
-      createdAt:   serverTimestamp(),
-      updatedAt:   serverTimestamp()
+      owner_id:    uid,
+    });
+    if (error) throw error;
+    await this.supa.db('group_members').insert({
+      group_id:     id,
+      user_id:      uid,
+      role:         'owner',
+      display_name: this.auth.displayName() || 'You',
+      photo_url:    this.auth.photoURL() ?? null,
     });
     return id;
   }
 
   async updateGroup(id: string, changes: Partial<Pick<Group, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {
-    await updateDoc(doc(this.firestore, 'groups', id), { ...changes, updatedAt: serverTimestamp() });
+    await this.supa.db('groups').update(changes).eq('id', id);
   }
 
-  /** Owner-only. Deletes the group + its notes (comments are orphaned but become inaccessible). */
+  /** Owner-only. Deleting the group cascades to members, notes and tasks (FK on delete cascade). */
   async deleteGroup(id: string): Promise<void> {
-    const notesSnap = await getDocs(collection(this.firestore, 'groups', id, 'notes'));
-    const batch = writeBatch(this.firestore);
-    notesSnap.docs.forEach(n => batch.delete(n.ref));
-    batch.delete(doc(this.firestore, 'groups', id));
-    await batch.commit();
+    await this.supa.db('groups').delete().eq('id', id);
   }
 
-  // ---- Member management (owner-only, enforced by rules) ----
+  // ---- Member management (owner-only, enforced by RLS) ----
 
   async changeRole(groupId: string, uid: string, role: GroupRole): Promise<void> {
     const group = this.getGroupById(groupId);
     if (group && group.ownerId === uid) throw new Error("The owner's role can't be changed.");
-    await updateDoc(doc(this.firestore, 'groups', groupId), {
-      [`roles.${uid}`]: role,
-      updatedAt: serverTimestamp()
-    });
+    await this.supa.db('group_members').update({ role }).eq('group_id', groupId).eq('user_id', uid);
   }
 
   async removeMember(groupId: string, uid: string): Promise<void> {
     const group = this.getGroupById(groupId);
     if (group && group.ownerId === uid) throw new Error("The owner can't be removed.");
-    await updateDoc(doc(this.firestore, 'groups', groupId), {
-      memberIds: (group?.memberIds ?? []).filter(m => m !== uid),
-      [`roles.${uid}`]:          deleteField(),
-      [`memberProfiles.${uid}`]: deleteField(),
-      updatedAt: serverTimestamp()
-    });
+    await this.supa.db('group_members').delete().eq('group_id', groupId).eq('user_id', uid);
   }
 
   // ---- Invites ----
 
-  /** Create an invite doc and return the shareable link. */
+  /** Create an invite row and return the shareable link. */
   async createInvite(group: Group, role: 'editor' | 'viewer'): Promise<{ token: string; url: string }> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
 
     const token = inviteToken();
-    const expiresAt = Timestamp.fromDate(new Date(Date.now() + INVITE_TTL_DAYS * 86_400_000));
-
-    await setDoc(doc(this.firestore, 'invites', token), {
+    const { error } = await this.supa.db('invites').insert({
       token,
-      groupId:   group.id,
-      groupName: group.name,
-      groupIcon: group.icon,
+      group_id:   group.id,
+      group_name: group.name,
+      group_icon: group.icon,
       role,
-      createdBy: uid,
-      createdAt: serverTimestamp(),
-      expiresAt,
-      revoked:   false,
-      maxUses:   null,
-      useCount:  0
+      created_by: uid,
+      expires_at: new Date(Date.now() + INVITE_TTL_DAYS * 86_400_000).toISOString(),
+      revoked:    false,
+      max_uses:   null,
+      use_count:  0,
     });
+    if (error) throw error;
 
     return { token, url: `${window.location.origin}/join/${token}` };
   }
 
   async listInvites(groupId: string): Promise<GroupInvite[]> {
-    const snap = await getDocs(query(
-      collection(this.firestore, 'invites'),
-      where('groupId', '==', groupId),
-      where('revoked', '==', false)
-    ));
-    return snap.docs
-      .map(d => ({ id: d.id, ...d.data() } as GroupInvite))
+    const { data } = await this.supa.db('invites')
+      .select('*').eq('group_id', groupId).eq('revoked', false);
+    return (data ?? [])
+      .map(rowToInvite)
       .filter(inv => !inv.expiresAt || inv.expiresAt.toMillis() > Date.now());
   }
 
   async revokeInvite(token: string): Promise<void> {
-    await updateDoc(doc(this.firestore, 'invites', token), { revoked: true });
+    await this.supa.db('invites').update({ revoked: true }).eq('token', token);
   }
 
-  /** Preview an invite before joining. Reads by doc id (a get(), allowed for any
-   *  signed-in user) rather than a query (list), which the rules restrict to editors. */
+  /** Preview an invite before joining (via SECURITY DEFINER RPC — non-members can't read the row). */
   async previewInvite(token: string): Promise<{ groupName: string; groupIcon: string; role: 'editor' | 'viewer' } | null> {
-    try {
-      const snap = await getDoc(doc(this.firestore, 'invites', token));
-      if (!snap.exists()) return null;
-      const inv = snap.data() as GroupInvite;
-      if (inv.revoked || (inv.expiresAt && inv.expiresAt.toMillis() < Date.now())) return null;
-      return { groupName: inv.groupName, groupIcon: inv.groupIcon, role: inv.role };
-    } catch {
-      return null;
-    }
+    const { data, error } = await this.supa.rpc('preview_invite', { p_token: token });
+    if (error || !data?.length) return null;
+    const inv = data[0];
+    return { groupName: inv.group_name, groupIcon: inv.group_icon, role: inv.role };
   }
 
-  /** Redeem an invite via the joinGroup Cloud Function (server-side member add). */
+  /** Redeem an invite via the joinGroup Edge Function (server-side member add). */
   async joinByToken(token: string): Promise<InvitePreview & { alreadyMember: boolean }> {
     const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
@@ -231,4 +209,47 @@ export class GroupService {
       { headers: { Authorization: `Bearer ${idToken}` } }
     ));
   }
+}
+
+// ---- Mapping ----
+
+function rowToGroup(r: any): Group {
+  const roles: Record<string, GroupRole> = {};
+  const memberProfiles: Group['memberProfiles'] = {};
+  const memberIds: string[] = [];
+  for (const m of (r.group_members ?? [])) {
+    memberIds.push(m.user_id);
+    roles[m.user_id] = m.role;
+    memberProfiles[m.user_id] = { displayName: m.display_name, photoURL: m.photo_url ?? null };
+  }
+  return {
+    id:          r.id,
+    name:        r.name,
+    description: r.description ?? undefined,
+    icon:        r.icon,
+    color:       r.color,
+    ownerId:     r.owner_id,
+    memberIds,
+    roles,
+    memberProfiles,
+    createdAt:   toTs(r.created_at) as any,
+    updatedAt:   toTs(r.updated_at) as any,
+  };
+}
+
+function rowToInvite(r: any): GroupInvite {
+  return {
+    id:        r.token,
+    token:     r.token,
+    groupId:   r.group_id,
+    groupName: r.group_name,
+    groupIcon: r.group_icon,
+    role:      r.role,
+    createdBy: r.created_by,
+    createdAt: toTs(r.created_at) as any,
+    expiresAt: toTs(r.expires_at) as any,
+    revoked:   r.revoked,
+    maxUses:   r.max_uses ?? null,
+    useCount:  r.use_count ?? 0,
+  };
 }

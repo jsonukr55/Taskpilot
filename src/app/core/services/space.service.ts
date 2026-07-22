@@ -1,32 +1,31 @@
 import { Injectable, inject, signal } from '@angular/core';
-import {
-  Firestore, collection, query, where, onSnapshot,
-  doc, setDoc, updateDoc, getDocs,
-  serverTimestamp, writeBatch, deleteField
-} from '@angular/fire/firestore';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import {
   Space, SpaceRole, SpaceMemberProfile, canEditSpace as canEditSpaceRole,
 } from '@shared/models/space.model';
 import { slugId } from '@shared/utils/id.util';
+import { toTs } from './supabase-map.util';
 
 // ============================================================
-// SpaceService — projects inside an organization that hold tasks.
-// Mirrors GroupService. A global member-scoped listener streams every
-// space I belong to (across all orgs); org-detail filters by orgId.
-// Space membership is a subset of the org's members, so adding a member
-// is a plain client write (the display snapshot comes from the org).
+// SpaceService — projects inside an organization that hold tasks
+// (Supabase). Embedded membership reconstructed from space_members.
+// A global member-scoped load streams every space I belong to (across
+// all orgs); org-detail filters by orgId. Same public API as before.
 // ============================================================
+
+const MEMBER_SELECT = '*, space_members(user_id, role, display_name, photo_url)';
 
 @Injectable({ providedIn: 'root' })
 export class SpaceService {
-  private readonly firestore = inject(Firestore);
-  private readonly auth      = inject(AuthService);
+  private readonly supa = inject(SupabaseService);
+  private readonly auth = inject(AuthService);
 
   readonly spaces    = signal<Space[]>([]);
   readonly isLoading = signal(true);
 
-  private unsubscribe?: () => void;
+  private channel?: RealtimeChannel;
 
   // ---- Lifecycle ----
 
@@ -35,20 +34,22 @@ export class SpaceService {
     if (!uid) return;
     this.isLoading.set(true);
 
-    const q = query(
-      collection(this.firestore, 'spaces'),
-      where('memberIds', 'array-contains', uid)
-    );
-
-    this.unsubscribe = onSnapshot(q, snapshot => {
-      this.spaces.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Space)));
-      this.isLoading.set(false);
-    }, () => this.isLoading.set(false));
+    void this.load();
+    this.channel = this.supa.client
+      .channel(`spaces:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'spaces' },        () => void this.load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'space_members' }, () => void this.load())
+      .subscribe();
   }
 
   stopListening(): void {
-    this.unsubscribe?.();
-    this.unsubscribe = undefined;
+    if (this.channel) { void this.supa.client.removeChannel(this.channel); this.channel = undefined; }
+  }
+
+  private async load(): Promise<void> {
+    const { data } = await this.supa.db('spaces').select(MEMBER_SELECT);
+    this.spaces.set((data ?? []).map(rowToSpace));
+    this.isLoading.set(false);
   }
 
   // ---- Queries ----
@@ -83,42 +84,34 @@ export class SpaceService {
     if (!uid) throw new Error('Not authenticated');
 
     const id = slugId(data.name);
-    await setDoc(doc(this.firestore, 'spaces', id), {
-      orgId,
+    const { error } = await this.supa.db('spaces').insert({
+      id,
+      org_id:      orgId,
       name:        data.name.trim(),
       description: data.description?.trim() ?? '',
       icon:        data.icon,
       color:       data.color,
-      ownerId:     uid,
-      memberIds:   [uid],
-      roles:       { [uid]: 'owner' as SpaceRole },
-      memberProfiles: {
-        [uid]: {
-          displayName: this.auth.displayName() || 'You',
-          photoURL:    this.auth.photoURL() ?? null,
-        }
-      },
-      createdBy:   uid,
-      createdAt:   serverTimestamp(),
-      updatedAt:   serverTimestamp(),
+      owner_id:    uid,
+      created_by:  uid,
+    });
+    if (error) throw error;
+    await this.supa.db('space_members').insert({
+      space_id:     id,
+      user_id:      uid,
+      role:         'owner',
+      display_name: this.auth.displayName() || 'You',
+      photo_url:    this.auth.photoURL() ?? null,
     });
     return id;
   }
 
   async updateSpace(id: string, changes: Partial<Pick<Space, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {
-    await updateDoc(doc(this.firestore, 'spaces', id), { ...changes, updatedAt: serverTimestamp() });
+    await this.supa.db('spaces').update(changes).eq('id', id);
   }
 
-  /** Owner-only. Deletes the space's tasks (chunked), then the space doc. */
+  /** Owner-only. Deleting the space cascades to its tasks (FK on delete cascade). */
   async deleteSpace(id: string): Promise<void> {
-    const tasksSnap = await getDocs(query(collection(this.firestore, 'tasks'), where('spaceId', '==', id)));
-    const refs = [...tasksSnap.docs.map(d => d.ref), doc(this.firestore, 'spaces', id)];
-    const LIMIT = 400;
-    for (let i = 0; i < refs.length; i += LIMIT) {
-      const batch = writeBatch(this.firestore);
-      refs.slice(i, i + LIMIT).forEach(ref => batch.delete(ref));
-      await batch.commit();
-    }
+    await this.supa.db('spaces').delete().eq('id', id);
   }
 
   // ---- Member management ----
@@ -128,31 +121,52 @@ export class SpaceService {
   async addMember(spaceId: string, member: { uid: string; profile: SpaceMemberProfile }, role: SpaceRole = 'editor'): Promise<void> {
     const space = this.getSpaceById(spaceId);
     if (space?.memberIds.includes(member.uid)) return;
-    await updateDoc(doc(this.firestore, 'spaces', spaceId), {
-      memberIds: [...(space?.memberIds ?? []), member.uid],
-      [`roles.${member.uid}`]:          role,
-      [`memberProfiles.${member.uid}`]: member.profile,
-      updatedAt: serverTimestamp(),
+    await this.supa.db('space_members').insert({
+      space_id:     spaceId,
+      user_id:      member.uid,
+      role,
+      display_name: member.profile.displayName,
+      photo_url:    member.profile.photoURL ?? null,
     });
   }
 
   async changeRole(spaceId: string, uid: string, role: SpaceRole): Promise<void> {
     const space = this.getSpaceById(spaceId);
     if (space && space.ownerId === uid) throw new Error("The owner's role can't be changed.");
-    await updateDoc(doc(this.firestore, 'spaces', spaceId), {
-      [`roles.${uid}`]: role,
-      updatedAt: serverTimestamp(),
-    });
+    await this.supa.db('space_members').update({ role }).eq('space_id', spaceId).eq('user_id', uid);
   }
 
   async removeMember(spaceId: string, uid: string): Promise<void> {
     const space = this.getSpaceById(spaceId);
     if (space && space.ownerId === uid) throw new Error("The owner can't be removed.");
-    await updateDoc(doc(this.firestore, 'spaces', spaceId), {
-      memberIds: (space?.memberIds ?? []).filter(m => m !== uid),
-      [`roles.${uid}`]:          deleteField(),
-      [`memberProfiles.${uid}`]: deleteField(),
-      updatedAt: serverTimestamp(),
-    });
+    await this.supa.db('space_members').delete().eq('space_id', spaceId).eq('user_id', uid);
   }
+}
+
+// ---- Mapping ----
+
+function rowToSpace(r: any): Space {
+  const roles: Record<string, SpaceRole> = {};
+  const memberProfiles: Space['memberProfiles'] = {};
+  const memberIds: string[] = [];
+  for (const m of (r.space_members ?? [])) {
+    memberIds.push(m.user_id);
+    roles[m.user_id] = m.role;
+    memberProfiles[m.user_id] = { displayName: m.display_name, photoURL: m.photo_url ?? null };
+  }
+  return {
+    id:          r.id,
+    orgId:       r.org_id,
+    name:        r.name,
+    description: r.description ?? undefined,
+    icon:        r.icon,
+    color:       r.color,
+    ownerId:     r.owner_id,
+    memberIds,
+    roles,
+    memberProfiles,
+    createdBy:   r.created_by,
+    createdAt:   toTs(r.created_at) as any,
+    updatedAt:   toTs(r.updated_at) as any,
+  };
 }

@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { OrganizationService } from '@core/services/organization.service';
+import { ClientService } from '@core/services/client.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
@@ -18,7 +19,8 @@ const ORG_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9',
   styleUrl:    './organizations.component.scss'
 })
 export class OrganizationsComponent implements OnInit {
-  readonly orgs = inject(OrganizationService);
+  readonly orgs    = inject(OrganizationService);
+  readonly clients = inject(ClientService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
@@ -33,17 +35,20 @@ export class OrganizationsComponent implements OnInit {
     name:        ['', [Validators.required, Validators.minLength(2)]],
     description: [''],
     icon:        ['🏢'],
-    color:       ['#6366f1']
+    color:       ['#6366f1'],
+    clientId:    ['' as string]
   });
 
   ngOnInit(): void {
-    if (this.route.snapshot.queryParamMap.get('new') && this.auth.isAdmin()) this.startCreate();
+    if (this.route.snapshot.queryParamMap.get('new') && this.auth.isAdmin()) {
+      this.startCreate(this.route.snapshot.queryParamMap.get('client'));
+    }
   }
 
   memberCount = (o: Organization): number => o.memberIds.length;
 
-  startCreate(): void {
-    this.form.reset({ name: '', description: '', icon: '🏢', color: '#6366f1' });
+  startCreate(clientId: string | null = null): void {
+    this.form.reset({ name: '', description: '', icon: '🏢', color: '#6366f1', clientId: clientId ?? '' });
     this.showForm.set(true);
   }
 
@@ -56,7 +61,8 @@ export class OrganizationsComponent implements OnInit {
         name:        v.name!,
         description: v.description ?? '',
         icon:        v.icon!,
-        color:       v.color!
+        color:       v.color!,
+        clientId:    v.clientId || null
       });
       this.showForm.set(false);
       this.toast.success('Organization created');

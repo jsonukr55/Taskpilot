@@ -1,16 +1,17 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import {
-  Firestore, collection, query, where,
-  onSnapshot, addDoc, updateDoc, deleteDoc, doc,
-  serverTimestamp, Timestamp, writeBatch, getDocs
-} from '@angular/fire/firestore';
+import { Timestamp } from '@angular/fire/firestore';   // date type only (no Firestore connection)
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import {
   Task, CreateTaskDto, TaskStatus, TaskPriority,
   ChecklistItem, AiExtractedTask
 } from '@shared/models/task.model';
+import { toTs, fromTs, nowIso } from './supabase-map.util';
+import { nanoid } from '@shared/utils/id.util';
 // ============================================================
-// TaskService — CRUD + real-time sync via Firestore
+// TaskService — CRUD + realtime sync via Supabase (Postgres).
+// Public API unchanged from the Firestore version; internals swapped.
 // ============================================================
 
 export interface TaskFilter {
@@ -37,12 +38,12 @@ export interface TaskSortOption {
 
 @Injectable({ providedIn: 'root' })
 export class TaskService {
-  private readonly firestore = inject(Firestore);
-  private readonly auth      = inject(AuthService);
+  private readonly supa = inject(SupabaseService);
+  private readonly auth = inject(AuthService);
 
   // ---- State Signals ----
-  // Tasks I own (userId == me) and tasks assigned to me (assigneeIds contains me)
-  // come from two separate Firestore queries and are merged (deduped) below.
+  // Tasks I own (user_id == me) and tasks assigned to me (assignee_ids
+  // contains me) come from two queries and are merged (deduped) below.
   private readonly ownTasks      = signal<Task[]>([]);
   private readonly assignedTasks = signal<Task[]>([]);
 
@@ -60,9 +61,8 @@ export class TaskService {
   readonly sort        = signal<TaskSortOption>({ field: 'dueDate', direction: 'asc' });
   readonly searchQuery = signal('');
 
-  // ---- Derived State ----
+  // ---- Derived State (pure — unchanged) ----
   readonly filteredTasks = computed(() => {
-    // Only show root-level tasks (not subtasks) in the main list
     let list = this.tasks().filter(t => !t.parentId);
     const f = this.filter();
     const q = this.searchQuery().toLowerCase();
@@ -108,7 +108,6 @@ export class TaskService {
       );
     }
 
-    // Sort
     const { field, direction } = this.sort();
     list = [...list].sort((a, b) => {
       let aVal: number | string, bVal: number | string;
@@ -170,8 +169,6 @@ export class TaskService {
     return Math.round((done / all) * 100);
   });
 
-  /** parentId → subtasks, built once per tasks() change. Lets getSubtasks be
-   *  O(1) instead of an O(N) scan per call (the task list calls it per row). */
   private readonly subtasksByParent = computed(() => {
     const map = new Map<string, Task[]>();
     for (const t of this.tasks()) {
@@ -182,84 +179,76 @@ export class TaskService {
     return map;
   });
 
-  // ---- Group tasks (separate listener, scoped to one open group) ----
+  // ---- Group tasks (scoped to one open group) ----
   readonly groupTasks = signal<Task[]>([]);
-  private groupTasksUnsub?: () => void;
+  private groupChannel?: RealtimeChannel;
 
   openGroupTasks(groupId: string): void {
     this.closeGroupTasks();
-    const q = query(collection(this.firestore, 'tasks'), where('groupId', '==', groupId));
-    this.groupTasksUnsub = onSnapshot(q, snapshot => {
-      this.groupTasks.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
-    });
+    void this.loadScoped('group_id', groupId, this.groupTasks);
+    this.groupChannel = this.supa.client
+      .channel(`tasks-group:${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `group_id=eq.${groupId}` },
+        () => void this.loadScoped('group_id', groupId, this.groupTasks))
+      .subscribe();
   }
-
   closeGroupTasks(): void {
-    this.groupTasksUnsub?.();
-    this.groupTasksUnsub = undefined;
+    if (this.groupChannel) { void this.supa.client.removeChannel(this.groupChannel); this.groupChannel = undefined; }
     this.groupTasks.set([]);
   }
 
-  // ---- Space tasks (separate listener, scoped to one open space) ----
+  // ---- Space tasks (scoped to one open space) ----
   readonly spaceTasks = signal<Task[]>([]);
-  private spaceTasksUnsub?: () => void;
+  private spaceChannel?: RealtimeChannel;
 
   openSpaceTasks(spaceId: string): void {
     this.closeSpaceTasks();
-    const q = query(collection(this.firestore, 'tasks'), where('spaceId', '==', spaceId));
-    this.spaceTasksUnsub = onSnapshot(q, snapshot => {
-      this.spaceTasks.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
-    });
+    void this.loadScoped('space_id', spaceId, this.spaceTasks);
+    this.spaceChannel = this.supa.client
+      .channel(`tasks-space:${spaceId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `space_id=eq.${spaceId}` },
+        () => void this.loadScoped('space_id', spaceId, this.spaceTasks))
+      .subscribe();
   }
-
   closeSpaceTasks(): void {
-    this.spaceTasksUnsub?.();
-    this.spaceTasksUnsub = undefined;
+    if (this.spaceChannel) { void this.supa.client.removeChannel(this.spaceChannel); this.spaceChannel = undefined; }
     this.spaceTasks.set([]);
   }
 
-  private unsubscribe?: () => void;
-  private assignedUnsub?: () => void;
+  private async loadScoped(col: 'group_id' | 'space_id', id: string, sig: { set: (t: Task[]) => void }): Promise<void> {
+    const { data } = await this.supa.db('tasks').select('*').eq(col, id);
+    sig.set((data ?? []).map(rowToTask));
+  }
 
   // ---- Lifecycle ----
+  private mainChannel?: RealtimeChannel;
 
   startListening(): void {
     const uid = this.auth.userId();
     if (!uid) return;
-
     this.isLoading.set(true);
-
-    const ownQuery = query(
-      collection(this.firestore, 'tasks'),
-      where('userId', '==', uid)
-    );
-
-    this.unsubscribe = onSnapshot(ownQuery, snapshot => {
-      this.ownTasks.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
-      this.isLoading.set(false);
-    }, err => {
-      this.error.set(err.message);
-      this.isLoading.set(false);
-    });
-
-    // Tasks other people assigned to me (shared via assigneeIds).
-    const assignedQuery = query(
-      collection(this.firestore, 'tasks'),
-      where('assigneeIds', 'array-contains', uid)
-    );
-
-    this.assignedUnsub = onSnapshot(assignedQuery, snapshot => {
-      this.assignedTasks.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
-    }, err => {
-      // A missing composite index or rules gap shouldn't break the own-tasks list.
-      console.error('[tasks] assigned-to-me listener failed', err);
-    });
+    void this.loadMain(uid);
+    // One channel; RLS limits delivered events to my visible tasks. Any change
+    // reloads own + assigned (mirrors the two Firestore listeners echoing).
+    this.mainChannel = this.supa.client
+      .channel(`tasks-main:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => void this.loadMain(uid))
+      .subscribe();
   }
 
   stopListening(): void {
-    this.unsubscribe?.();
-    this.assignedUnsub?.();
-    this.unsubscribe = this.assignedUnsub = undefined;
+    if (this.mainChannel) { void this.supa.client.removeChannel(this.mainChannel); this.mainChannel = undefined; }
+  }
+
+  private async loadMain(uid: string): Promise<void> {
+    const [own, assigned] = await Promise.all([
+      this.supa.db('tasks').select('*').eq('user_id', uid),
+      this.supa.db('tasks').select('*').contains('assignee_ids', [uid]),
+    ]);
+    if (own.error) this.error.set(own.error.message);
+    this.ownTasks.set((own.data ?? []).map(rowToTask));
+    this.assignedTasks.set((assigned.data ?? []).map(rowToTask));
+    this.isLoading.set(false);
   }
 
   // ---- CRUD ----
@@ -267,24 +256,9 @@ export class TaskService {
   async createTask(dto: Omit<CreateTaskDto, 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
-
-    const payload = {
-      ...dto,
-      userId:     uid,
-      status:     dto.status ?? 'todo',
-      priority:   dto.priority ?? 'medium',
-      categoryIds: dto.categoryIds ?? [],
-      tags:       dto.tags ?? [],
-      checklist:  dto.checklist ?? [],
-      timeBlocks: dto.timeBlocks ?? [],
-      reminders:  dto.reminders ?? [],
-      isScheduled: false,
-      createdAt:  serverTimestamp(),
-      updatedAt:  serverTimestamp()
-    };
-
-    const ref = await addDoc(collection(this.firestore, 'tasks'), payload);
-    return ref.id;
+    const { data, error } = await this.supa.db('tasks').insert(taskInsertRow(dto, uid)).select('id').single();
+    if (error) throw error;
+    return data.id;
   }
 
   async createTaskFromAi(extracted: AiExtractedTask, categoryId?: string): Promise<string> {
@@ -316,8 +290,8 @@ export class TaskService {
   }
 
   async updateTask(id: string, changes: Partial<Task>): Promise<void> {
-    const ref = doc(this.firestore, 'tasks', id);
-    await updateDoc(ref, { ...changes, updatedAt: serverTimestamp() });
+    const { error } = await this.supa.db('tasks').update(taskPatch(changes)).eq('id', id);
+    if (error) throw error;
   }
 
   /** Create a task that belongs to a group (shared + assignable to members). */
@@ -348,7 +322,7 @@ export class TaskService {
   }
 
   /** Create a task that belongs to a space (shared + assignable to members). */
-  async createSpaceTask(spaceId: string, orgId: string, data: { title: string; priority?: TaskPriority; dueDate?: Timestamp | null; assigneeIds?: string[] }): Promise<string> {
+  async createSpaceTask(spaceId: string, orgId: string, data: { title: string; priority?: TaskPriority; dueDate?: Timestamp | null; assigneeIds?: string[]; spaceGroupId?: string | null; position?: number }): Promise<string> {
     return this.createTask({
       title:          data.title,
       description:    '',
@@ -371,8 +345,15 @@ export class TaskService {
       reminders:      [],
       orgId,
       spaceId,
+      spaceGroupId:   data.spaceGroupId ?? null,
+      position:       data.position ?? 0,
       assigneeIds:    data.assigneeIds ?? []
     });
+  }
+
+  /** Move a task to a board section (and optional position). */
+  async moveToGroup(taskId: string, spaceGroupId: string | null, position = 0): Promise<void> {
+    await this.updateTask(taskId, { spaceGroupId, position });
   }
 
   async setAssignees(taskId: string, assigneeIds: string[]): Promise<void> {
@@ -404,7 +385,6 @@ export class TaskService {
       imageUrl:       null,
       reminders:      [],
       aiMetadata:     null,
-      // Inherit collaboration scope so the subtask lives in the same context.
       ...(parent?.groupId ? { groupId: parent.groupId } : {}),
       ...(parent?.spaceId ? { spaceId: parent.spaceId } : {}),
       ...(parent?.orgId   ? { orgId: parent.orgId }     : {}),
@@ -413,20 +393,16 @@ export class TaskService {
 
   async updateStatus(id: string, status: TaskStatus): Promise<void> {
     const changes: Partial<Task> = { status };
-    if (status === 'completed') {
-      (changes as Record<string, unknown>)['completedAt'] = serverTimestamp();
-    }
+    if (status === 'completed') changes.completedAt = Timestamp.now();
     await this.updateTask(id, changes);
   }
 
   async deleteTask(id: string): Promise<void> {
-    await deleteDoc(doc(this.firestore, 'tasks', id));
+    const { error } = await this.supa.db('tasks').delete().eq('id', id);
+    if (error) throw error;
   }
 
-  /**
-   * Duplicate a task (copies its editable fields into a new "… (copy)" task).
-   * The clone starts as 'todo' with no completion timestamp. Returns the new id.
-   */
+  /** Duplicate a task (copies editable fields into a "… (copy)" task). */
   async duplicateTask(id: string): Promise<string | null> {
     const src = this.getTaskById(id);
     if (!src) return null;
@@ -458,100 +434,50 @@ export class TaskService {
     });
   }
 
+  // ---- Bulk operations (single UPDATE/DELETE with .in()) ----
+
   async bulkDelete(ids: string[]): Promise<void> {
-    for (let i = 0; i < ids.length; i += TaskService.BATCH_LIMIT) {
-      const chunk = ids.slice(i, i + TaskService.BATCH_LIMIT);
-      const batch = writeBatch(this.firestore);
-      chunk.forEach(id => batch.delete(doc(this.firestore, 'tasks', id)));
-      await batch.commit();
-    }
+    await this.supa.db('tasks').delete().in('id', ids);
   }
 
   async bulkUpdateStatus(ids: string[], status: TaskStatus): Promise<void> {
-    await this.commitInChunks(ids, id => ({
-      status,
-      ...(status === 'completed' ? { completedAt: serverTimestamp() } : {})
-    }));
+    await this.supa.db('tasks').update({
+      status, ...(status === 'completed' ? { completed_at: nowIso() } : {})
+    }).in('id', ids);
   }
 
-  // ---- Bulk operations (multi-selection) ----
-  // All batched + chunked to respect Firestore's 500-write limit. Writes
-  // stay optimistic-free: the tasks listener echoes each change back into
-  // the signals (usually <500ms), so the UI updates from one source of truth.
+  bulkComplete(ids: string[]): Promise<void> { return this.bulkUpdateStatus(ids, 'completed'); }
 
-  /** Firestore batches cap at 500 writes; stay under with a safety margin. */
-  private static readonly BATCH_LIMIT = 400;
+  async bulkRestore(ids: string[]): Promise<void> {
+    await this.supa.db('tasks').update({ status: 'todo', completed_at: null }).in('id', ids);
+  }
 
-  /**
-   * Apply a per-id partial update to many tasks in chunked batches.
-   * `build` returns the fields to set for a given id (updatedAt is added).
-   */
-  private async commitInChunks(
-    ids: string[],
-    build: (id: string) => Record<string, unknown>
-  ): Promise<void> {
-    for (let i = 0; i < ids.length; i += TaskService.BATCH_LIMIT) {
-      const chunk = ids.slice(i, i + TaskService.BATCH_LIMIT);
-      const batch = writeBatch(this.firestore);
-      chunk.forEach(id =>
-        batch.update(doc(this.firestore, 'tasks', id), {
-          ...build(id),
-          updatedAt: serverTimestamp()
-        })
-      );
-      await batch.commit();
+  /** Archive maps to 'cancelled' (no separate archived field; reversible via restore). */
+  async bulkArchive(ids: string[]): Promise<void> {
+    await this.supa.db('tasks').update({ status: 'cancelled' }).in('id', ids);
+  }
+
+  async bulkSetPriority(ids: string[], priority: TaskPriority): Promise<void> {
+    await this.supa.db('tasks').update({ priority }).in('id', ids);
+  }
+
+  async bulkSetDueDate(ids: string[], dueDate: Timestamp | null): Promise<void> {
+    await this.supa.db('tasks').update({ due_date: fromTs(dueDate) }).in('id', ids);
+  }
+
+  async bulkSetCategories(ids: string[], categoryIds: string[], mode: 'set' | 'add' | 'remove' = 'set'): Promise<void> {
+    if (mode === 'set') {
+      await this.supa.db('tasks').update({ category_ids: categoryIds }).in('id', ids);
+      return;
     }
-  }
-
-  /** Mark many tasks complete (sets completedAt). */
-  bulkComplete(ids: string[]): Promise<void> {
-    return this.bulkUpdateStatus(ids, 'completed');
-  }
-
-  /** Reopen many tasks back to 'todo' (clears completedAt). */
-  bulkRestore(ids: string[]): Promise<void> {
-    return this.commitInChunks(ids, () => ({ status: 'todo', completedAt: null }));
-  }
-
-  /**
-   * Archive many tasks. The schema has no dedicated `archived` field, so
-   * archiving maps to the existing `cancelled` status (reversible via
-   * bulkRestore). This keeps the operation useful without a schema change.
-   */
-  bulkArchive(ids: string[]): Promise<void> {
-    return this.commitInChunks(ids, () => ({ status: 'cancelled' }));
-  }
-
-  /** Set the same priority on many tasks. */
-  bulkSetPriority(ids: string[], priority: TaskPriority): Promise<void> {
-    return this.commitInChunks(ids, () => ({ priority }));
-  }
-
-  /** Set the same due date (or clear it) on many tasks. */
-  bulkSetDueDate(ids: string[], dueDate: Timestamp | null): Promise<void> {
-    return this.commitInChunks(ids, () => ({ dueDate }));
-  }
-
-  /**
-   * Change categories on many tasks.
-   *  - 'set'    → replace with `categoryIds`
-   *  - 'add'    → union with existing
-   *  - 'remove' → subtract from existing
-   */
-  bulkSetCategories(
-    ids: string[],
-    categoryIds: string[],
-    mode: 'set' | 'add' | 'remove' = 'set'
-  ): Promise<void> {
     const byId = new Map(this.tasks().map(t => [t.id, t]));
-    return this.commitInChunks(ids, id => {
-      if (mode === 'set') return { categoryIds };
+    await Promise.all(ids.map(id => {
       const current = byId.get(id)?.categoryIds ?? [];
       const next = mode === 'add'
         ? [...new Set([...current, ...categoryIds])]
         : current.filter(c => !categoryIds.includes(c));
-      return { categoryIds: next };
-    });
+      return this.supa.db('tasks').update({ category_ids: next }).eq('id', id);
+    }));
   }
 
   async toggleChecklistItem(taskId: string, itemId: string): Promise<void> {
@@ -568,49 +494,147 @@ export class TaskService {
   addChecklistItem(taskId: string, text: string): Promise<void> {
     const task = this.tasks().find(t => t.id === taskId);
     if (!task) return Promise.resolve();
-    const newItem: ChecklistItem = {
-      id:          nanoid(),
-      text,
-      completed:   false,
-      completedAt: null
-    };
-    return this.updateTask(taskId, {
-      checklist: [...task.checklist, newItem]
-    } as Partial<Task>);
+    const newItem: ChecklistItem = { id: nanoid(), text, completed: false, completedAt: null };
+    return this.updateTask(taskId, { checklist: [...task.checklist, newItem] } as Partial<Task>);
   }
 
-  // ---- Query Helpers ----
+  // ---- Query Helpers (pure over signals — unchanged) ----
 
   getTaskById(id: string): Task | undefined {
     return this.tasks().find(t => t.id === id);
   }
-
   getSubtasks(parentId: string): Task[] {
     return this.subtasksByParent().get(parentId) ?? [];
   }
-
   getTasksByCategory(categoryId: string): Task[] {
     return this.tasks().filter(t => t.categoryIds.includes(categoryId));
   }
-
   getTasksDueInDays(days: number): Task[] {
     const now    = new Date();
     const cutoff = new Date(now.getTime() + days * 86_400_000);
     return this.tasks().filter(t =>
-      t.dueDate &&
-      t.dueDate.toDate() > now &&
-      t.dueDate.toDate() <= cutoff &&
-      t.status !== 'completed'
+      t.dueDate && t.dueDate.toDate() > now && t.dueDate.toDate() <= cutoff && t.status !== 'completed'
     );
   }
 }
 
-// nanoid shim — tiny unique ID generator
-function nanoid(size = 21): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let id = '';
-  for (let i = 0; i < size; i++) {
-    id += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return id;
+// ============================================================
+// Row <-> model mapping (snake_case columns, nested Timestamps in JSONB)
+// ============================================================
+
+function serChecklist(items: any[] | undefined) {
+  return (items ?? []).map(i => ({ ...i, completedAt: fromTs(i.completedAt) }));
+}
+function deserChecklist(items: any[] | undefined) {
+  return (items ?? []).map(i => ({ ...i, completedAt: toTs(i.completedAt) }));
+}
+function serTimeBlocks(tbs: any[] | undefined) {
+  return (tbs ?? []).map(tb => ({ ...tb, startTime: fromTs(tb.startTime), endTime: fromTs(tb.endTime) }));
+}
+function deserTimeBlocks(tbs: any[] | undefined) {
+  return (tbs ?? []).map(tb => ({ ...tb, startTime: toTs(tb.startTime), endTime: toTs(tb.endTime) }));
+}
+function serRecurrence(r: any) {
+  return r ? { ...r, endsAt: fromTs(r.endsAt) } : null;
+}
+function deserRecurrence(r: any) {
+  return r ? { ...r, endsAt: r.endsAt ? toTs(r.endsAt) : null } : null;
+}
+
+function rowToTask(r: any): Task {
+  return {
+    id:             r.id,
+    userId:         r.user_id,
+    groupId:        r.group_id ?? null,
+    assigneeIds:    r.assignee_ids ?? [],
+    orgId:          r.org_id ?? null,
+    spaceId:        r.space_id ?? null,
+    spaceGroupId:   r.space_group_id ?? null,
+    position:       r.position ?? 0,
+    title:          r.title,
+    description:    r.description ?? '',
+    status:         r.status,
+    priority:       r.priority,
+    startDate:      toTs(r.start_date),
+    dueDate:        toTs(r.due_date),
+    dueTime:        r.due_time ?? null,
+    completedAt:    toTs(r.completed_at),
+    estimatedHours: r.estimated_hours ?? null,
+    actualHours:    r.actual_hours ?? null,
+    parentId:       r.parent_id ?? null,
+    categoryIds:    r.category_ids ?? [],
+    tags:           r.tags ?? [],
+    checklist:      deserChecklist(r.checklist),
+    timeBlocks:     deserTimeBlocks(r.time_blocks),
+    recurrence:     deserRecurrence(r.recurrence),
+    isScheduled:    r.is_scheduled ?? false,
+    aiMetadata:     r.ai_metadata ?? null,
+    imageUrl:       r.image_url ?? null,
+    reminders:      r.reminders ?? [],
+    createdAt:      toTs(r.created_at) as any,
+    updatedAt:      toTs(r.updated_at) as any,
+  };
+}
+
+function taskInsertRow(dto: any, uid: string): Record<string, unknown> {
+  return {
+    user_id:        uid,
+    group_id:       dto.groupId ?? null,
+    org_id:         dto.orgId ?? null,
+    space_id:       dto.spaceId ?? null,
+    space_group_id: dto.spaceGroupId ?? null,
+    position:       dto.position ?? 0,
+    assignee_ids:   dto.assigneeIds ?? [],
+    title:          dto.title,
+    description:    dto.description ?? '',
+    status:         dto.status ?? 'todo',
+    priority:       dto.priority ?? 'medium',
+    start_date:     fromTs(dto.startDate),
+    due_date:       fromTs(dto.dueDate),
+    due_time:       dto.dueTime ?? null,
+    completed_at:   fromTs(dto.completedAt),
+    estimated_hours: dto.estimatedHours ?? null,
+    actual_hours:   dto.actualHours ?? null,
+    parent_id:      dto.parentId ?? null,
+    category_ids:   dto.categoryIds ?? [],
+    tags:           dto.tags ?? [],
+    checklist:      serChecklist(dto.checklist),
+    time_blocks:    serTimeBlocks(dto.timeBlocks),
+    recurrence:     serRecurrence(dto.recurrence),
+    is_scheduled:   dto.isScheduled ?? false,
+    ai_metadata:    dto.aiMetadata ?? null,
+    image_url:      dto.imageUrl ?? null,
+    reminders:      dto.reminders ?? [],
+  };
+}
+
+function taskPatch(c: Partial<Task>): Record<string, unknown> {
+  const p: Record<string, unknown> = {};
+  if (c.title          !== undefined) p['title'] = c.title;
+  if (c.description     !== undefined) p['description'] = c.description;
+  if (c.status          !== undefined) p['status'] = c.status;
+  if (c.priority        !== undefined) p['priority'] = c.priority;
+  if (c.startDate       !== undefined) p['start_date'] = fromTs(c.startDate);
+  if (c.dueDate         !== undefined) p['due_date'] = fromTs(c.dueDate);
+  if (c.dueTime         !== undefined) p['due_time'] = c.dueTime;
+  if (c.completedAt     !== undefined) p['completed_at'] = fromTs(c.completedAt);
+  if (c.estimatedHours  !== undefined) p['estimated_hours'] = c.estimatedHours;
+  if (c.actualHours     !== undefined) p['actual_hours'] = c.actualHours;
+  if (c.parentId        !== undefined) p['parent_id'] = c.parentId;
+  if (c.categoryIds     !== undefined) p['category_ids'] = c.categoryIds;
+  if (c.tags            !== undefined) p['tags'] = c.tags;
+  if (c.checklist       !== undefined) p['checklist'] = serChecklist(c.checklist as any);
+  if (c.timeBlocks      !== undefined) p['time_blocks'] = serTimeBlocks(c.timeBlocks as any);
+  if (c.recurrence      !== undefined) p['recurrence'] = serRecurrence(c.recurrence);
+  if (c.isScheduled     !== undefined) p['is_scheduled'] = c.isScheduled;
+  if (c.aiMetadata      !== undefined) p['ai_metadata'] = c.aiMetadata;
+  if (c.imageUrl        !== undefined) p['image_url'] = c.imageUrl;
+  if (c.reminders       !== undefined) p['reminders'] = c.reminders;
+  if (c.assigneeIds     !== undefined) p['assignee_ids'] = c.assigneeIds;
+  if (c.groupId         !== undefined) p['group_id'] = c.groupId;
+  if (c.spaceId         !== undefined) p['space_id'] = c.spaceId;
+  if (c.spaceGroupId    !== undefined) p['space_group_id'] = c.spaceGroupId;
+  if (c.position        !== undefined) p['position'] = c.position;
+  if (c.orgId           !== undefined) p['org_id'] = c.orgId;
+  return p;
 }

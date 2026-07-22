@@ -159,14 +159,16 @@
         <tp-icon name="message-square" [size]="15" /><span class="bubble__txt">Comment</span>
       </button>
 
-      <div class="bubble__div"></div>
-      <p class="bubble__label"><tp-icon name="sparkles" [size]="12" /> AI</p>
-      @for (a of AI_ACTIONS; track a.key) {
-        <button class="bubble__item" (click)="runAi(a)" [disabled]="!!aiBusy()">
-          <tp-icon [name]="a.icon" [size]="15" />
-          <span class="bubble__txt">{{ a.label }}</span>
-          @if (aiBusy() === a.key) { <span class="bubble__spin"></span> }
-        </button>
+      @if (aiEnabled) {
+        <div class="bubble__div"></div>
+        <p class="bubble__label"><tp-icon name="sparkles" [size]="12" /> AI</p>
+        @for (a of AI_ACTIONS; track a.key) {
+          <button class="bubble__item" (click)="runAi(a)" [disabled]="!!aiBusy()">
+            <tp-icon [name]="a.icon" [size]="15" />
+            <span class="bubble__txt">{{ a.label }}</span>
+            @if (aiBusy() === a.key) { <span class="bubble__spin"></span> }
+          </button>
+        }
       }
     </div>
   }

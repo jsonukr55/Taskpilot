@@ -1,5 +1,4 @@
 import { Injectable, inject } from '@angular/core';
-import { environment } from '@env/environment';
 import { AiService } from './ai.service';
 import { ReportView, ReportRow } from '@shared/models/daily-report.model';
 
@@ -31,7 +30,7 @@ const BLOCKER_WORDS = ['block', 'blocked', 'blocker', 'wait', 'waiting', 'delay'
 @Injectable({ providedIn: 'root' })
 export class ReportSummaryService {
   private readonly ai = inject(AiService);
-  private readonly aiEnabled = !!environment.functionsBaseUrl;
+  private readonly aiEnabled = this.ai.enabled;
 
   async summarize(kind: ReportSummaryKind, view: ReportView, meta: ReportSummaryMeta): Promise<ReportSummaryResult> {
     const local: ReportSummaryResult = { kind, source: 'local', text: this.localSummary(kind, view, meta) };

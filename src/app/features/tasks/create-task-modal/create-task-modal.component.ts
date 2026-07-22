@@ -9,6 +9,7 @@ import { IconComponent } from '@shared/components/icon/icon.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { AiExtractedTask, TaskPriority } from '@shared/models/task.model';
 import { Timestamp } from '@angular/fire/firestore';
+import { environment } from '@env/environment';
 
 type InputMode = 'text' | 'ai' | 'image' | 'file' | 'form';
 
@@ -28,7 +29,8 @@ export class CreateTaskModalComponent {
   private readonly auth         = inject(AuthService);
   private readonly fb           = inject(FormBuilder);
 
-  readonly mode          = signal<InputMode>('ai');
+  readonly aiEnabled     = environment.features.ai;
+  readonly mode          = signal<InputMode>(environment.features.ai ? 'ai' : 'form');
   readonly isProcessing  = signal(false);
   readonly aiText        = signal('');
   readonly extracted     = signal<AiExtractedTask[]>([]);

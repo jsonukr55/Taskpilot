@@ -166,7 +166,12 @@
         }
       </div>
 
-      @if (insights().length > 0) {
+      @if (!ai.enabled) {
+        <div class="empty-insights">
+          <span class="empty-insights__icon">✨</span>
+          <p>AI insights are coming soon.</p>
+        </div>
+      } @else if (insights().length > 0) {
         <div class="insights-list">
           @for (insight of insights(); track insight.id) {
             <div class="insight-card" [class]="'insight-card--' + insight.severity">
@@ -175,9 +180,7 @@
                 <strong class="insight-card__title">{{ insight.title }}</strong>
                 <p class="insight-card__text">{{ insight.body }}</p>
                 @if (insight.action) {
-                  <a routerLink="/ai-chat" class="insight-card__action">
-                    {{ insight.action.label }} →
-                  </a>
+                  <span class="insight-card__action insight-card__action--soon">{{ insight.action.label }} · soon</span>
                 }
               </div>
               <button class="btn-icon insight-card__dismiss" (click)="dismissInsight(insight)">

@@ -18,7 +18,6 @@ const NAV: { route: string; label: string; icon: string }[] = [
   { route: '/calendar',   label: 'Calendar',     icon: 'calendar' },
   { route: '/categories', label: 'Categories',   icon: 'folder' },
   { route: '/analytics',  label: 'Analytics',    icon: 'bar-chart-2' },
-  { route: '/ai-chat',    label: 'AI Assistant', icon: 'cpu' },
   { route: '/whats-new',  label: "What's New",   icon: 'sparkles' },
 ];
 
@@ -160,8 +159,6 @@ export class CommandPaletteService {
       // Actions
       { id: 'search',   group: 'Actions', icon: 'search', title: 'Search everything', keywords: 'find search', primary: true,
         run: (q) => this.handoffToSearch(q ?? '') },
-      { id: 'ask-ai',   group: 'Actions', icon: 'cpu', title: 'Ask AI', keywords: 'ai assistant chat', primary: true,
-        run: () => nav('/ai-chat') },
       { id: 'settings', group: 'Actions', icon: 'settings', title: 'Appearance settings', keywords: 'settings preferences appearance', primary: true,
         run: () => this.theme.appearanceOpen.set(true) },
       { id: 'shortcuts', group: 'Actions', icon: 'grid', title: 'Keyboard shortcuts', keywords: 'help keys shortcuts', primary: false,

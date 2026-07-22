@@ -12,10 +12,10 @@ import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskCardComponent } from '@shared/components/task-card/task-card.component';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { ActivityFeedComponent } from '@shared/components/activity-feed/activity-feed.component';
-import {
-  Firestore, collection, query, where, orderBy,
-  limit, onSnapshot, addDoc, Timestamp
-} from '@angular/fire/firestore';
+import { Timestamp } from '@angular/fire/firestore';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseService } from '@core/services/supabase.service';
+import { toTs, fromTs } from '@core/services/supabase-map.util';
 import { Insight, InsightType } from '@shared/models/schedule.model';
 import { Task } from '@shared/models/task.model';
 import { ActivityEvent } from '@shared/models/activity.model';
@@ -35,7 +35,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly dash       = inject(DashboardService);
   private readonly notes     = inject(NoteService);
   private readonly router    = inject(Router);
-  private readonly firestore = inject(Firestore);
+  private readonly supa      = inject(SupabaseService);
 
   // ---- Reusable dashboard signals (all derived in DashboardService) ----
   readonly stats             = this.dash.stats;
@@ -77,7 +77,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /** Circumference of the productivity ring (r=26) for the SVG dash math. */
   readonly ringCircumference = 2 * Math.PI * 26;
 
-  private insightUnsub?: () => void;
+  private insightChannel?: RealtimeChannel;
   private insightTimer?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
@@ -87,7 +87,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.insightUnsub?.();
+    if (this.insightChannel) void this.supa.client.removeChannel(this.insightChannel);
     if (this.insightTimer) clearTimeout(this.insightTimer);
   }
 
@@ -111,20 +111,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const uid = this.auth.userId();
     if (!uid) return;
 
-    const q = query(
-      collection(this.firestore, 'insights'),
-      where('userId', '==', uid),
-      where('dismissed', '==', false),
-      orderBy('createdAt', 'desc'),
-      limit(5)
-    );
+    void this.fetchInsights(uid);
+    this.insightChannel = this.supa.client
+      .channel(`insights:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'insights', filter: `user_id=eq.${uid}` },
+        () => void this.fetchInsights(uid))
+      .subscribe();
+  }
 
-    this.insightUnsub = onSnapshot(q, snap => {
-      this.insights.set(snap.docs.map(d => ({ id: d.id, ...d.data() } as Insight)));
-    });
+  private async fetchInsights(uid: string): Promise<void> {
+    const { data } = await this.supa.db('insights')
+      .select('*').eq('user_id', uid).eq('dismissed', false)
+      .order('created_at', { ascending: false }).limit(5);
+    this.insights.set((data ?? []).map(rowToInsight));
   }
 
   private async maybeGenerateInsights(): Promise<void> {
+    if (!this.ai.enabled) return;                 // AI off → no generation
     if (this.insights().length > 0) return;
     if (this.tasks.tasks().length < 3) return;
 
@@ -186,14 +189,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }));
       this.insights.set(insightObjects);
 
-      // Also persist to Firestore (best-effort)
-      Promise.all(insightObjects.map(ins =>
-        addDoc(collection(this.firestore, 'insights'), {
-          userId: ins.userId, type: ins.type, title: ins.title,
-          body: ins.body, icon: ins.icon, severity: ins.severity,
-          read: false, dismissed: false, createdAt: now, expiresAt: expires,
-        })
-      )).catch(err => console.warn('[Insights] Firestore write failed:', err));
+      // Also persist to Supabase (best-effort)
+      this.supa.db('insights').insert(insightObjects.map(ins => ({
+        user_id: ins.userId, type: ins.type, title: ins.title,
+        body: ins.body, icon: ins.icon, severity: ins.severity,
+        read: false, dismissed: false, expires_at: fromTs(expires),
+      }))).then(({ error }) => { if (error) console.warn('[Insights] write failed:', error.message); });
     } finally {
       this.generatingInsights.set(false);
     }
@@ -201,13 +202,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   dismissInsight(insight: Insight): void {
     this.insights.update(list => list.filter(i => i.id !== insight.id));
-    // Also update Firestore if it's a persisted insight (not a temp gen_ id)
+    // Also persist if it's a stored insight (not a temp gen_ id)
     if (!insight.id.startsWith('gen_')) {
-      import('@angular/fire/firestore').then(({ doc, updateDoc }) => {
-        updateDoc(doc(this.firestore, 'insights', insight.id), { dismissed: true });
-      });
+      void this.supa.db('insights').update({ dismissed: true }).eq('id', insight.id);
     }
   }
 
   trackByTask(_: number, t: Task): string { return t.id; }
+}
+
+// ---- Mapping ----
+
+function rowToInsight(r: any): Insight {
+  return {
+    id:        r.id,
+    userId:    r.user_id,
+    type:      r.type,
+    title:     r.title,
+    body:      r.body,
+    icon:      r.icon ?? '💡',
+    severity:  r.severity,
+    read:      r.read,
+    dismissed: r.dismissed,
+    createdAt: toTs(r.created_at) as any,
+    expiresAt: toTs(r.expires_at) as any,
+  } as Insight;
 }

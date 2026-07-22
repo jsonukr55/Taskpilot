@@ -92,3 +92,225 @@
   h2 { font-size: $font-size-xl; font-weight: $font-weight-semibold; }
   p { color: var(--text-secondary); }
 }
+
+
+// ============================================================
+// Board — Monday-style grouped table
+// ============================================================
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+
+  &__bar {
+    @include flex-between;
+    gap: $space-3;
+    padding-bottom: $space-2;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  &__views { display: flex; gap: $space-1; }
+
+  &__empty {
+    text-align: center;
+    padding: $space-12 $space-6;
+    display: flex; flex-direction: column; align-items: center; gap: $space-2;
+    &-icon { font-size: 2.5rem; margin-bottom: $space-1; }
+    h3 { font-size: $font-size-lg; font-weight: $font-weight-semibold; }
+    p  { color: var(--text-secondary); max-width: 420px; }
+    .btn-primary { margin-top: $space-3; }
+  }
+}
+
+.vtab {
+  @include flex-start;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  &--active { color: var(--text-brand); border-bottom-color: var(--accent-500); }
+}
+
+// ---- Group (section) ----
+.grp {
+  --gc: var(--accent-500);
+
+  &__head {
+    @include flex-start;
+    gap: $space-2;
+    padding: $space-1 0 $space-2;
+  }
+  &__toggle {
+    @include flex-center;
+    width: 22px; height: 22px;
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--gc);
+    border-radius: $radius-sm;
+    &:hover { background: var(--bg-tertiary); }
+  }
+  &__name, &__name-static {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: var(--gc);
+  }
+  &__name {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: $radius-sm;
+    padding: 2px $space-2;
+    font-family: $font-sans;
+    &:hover { border-color: var(--border-subtle); }
+    &:focus { outline: none; border-color: var(--input-focus); background: var(--input-bg); }
+  }
+  &__count {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    border-radius: $radius-full;
+    padding: 1px $space-2;
+  }
+  &__del { margin-left: $space-1; opacity: 0; transition: opacity $transition-fast; }
+  &:hover &__del { opacity: 1; }
+}
+
+// ---- Table ----
+.tblwrap {
+  overflow-x: auto;                 // never break the page layout on narrow screens
+  border-left: 3px solid var(--gc); // Monday's colored group bar
+  border-radius: 0 $radius-lg $radius-lg 0;
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+.tbl {
+  min-width: 720px;
+  display: flex;
+  flex-direction: column;
+
+  &__row {
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) 148px 128px 120px 96px 40px;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border-subtle);
+
+    &:last-child { border-bottom: 0; }
+    &:not(.tbl__row--head):not(.tbl__row--add):hover { background: var(--bg-tertiary); }
+
+    &--head {
+      background: var(--bg-secondary);
+      position: sticky; top: 0;
+      .c { font-size: $font-size-xs; font-weight: $font-weight-semibold; color: var(--text-tertiary); text-transform: none; }
+    }
+    &--add { .addrow { grid-column: 1 / -1; } }
+  }
+}
+
+.c {
+  display: flex;
+  align-items: center;
+  padding: 0 $space-3;
+  min-height: 42px;
+  border-right: 1px solid var(--border-subtle);
+  font-size: $font-size-sm;
+  color: var(--text-primary);
+  overflow: hidden;
+
+  &:last-child { border-right: 0; }
+  &--task { font-weight: $font-weight-medium; }
+  &--status, &--prio { padding: $space-1; }
+  &--date { color: var(--text-secondary); font-size: $font-size-xs; }
+  &--people { gap: -6px; }
+  &--empty { grid-column: 1 / -1; color: var(--text-tertiary); justify-content: center; }
+}
+
+.tname {
+  @include text-truncate;
+  max-width: 100%;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--text-primary);
+  font-size: $font-size-sm;
+  font-family: $font-sans;
+  text-align: left;
+  padding: $space-1 0;
+  &:hover { color: var(--text-brand); }
+}
+
+// ---- Status / priority pills (fill the cell, Monday-style) ----
+.pill {
+  width: 100%;
+  height: 34px;
+  border: 0;
+  border-radius: $radius-md;
+  color: #fff;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  font-family: $font-sans;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: filter $transition-fast;
+  &:hover { filter: brightness(1.05); }
+  &:focus { outline: 2px solid var(--accent-500); outline-offset: 1px; }
+  &--static { display: flex; align-items: center; justify-content: center; }
+
+  option { color: var(--text-primary); background: var(--bg-elevated); }
+
+  // Status colors
+  &[data-status='todo']        { background: #{$slate-400}; }
+  &[data-status='in_progress'] { background: #{$amber-500}; }
+  &[data-status='completed']   { background: #{$emerald-500}; }
+  &[data-status='cancelled']   { background: #{$slate-500}; }
+
+  // Priority colors
+  &[data-prio='low']    { background: #{$sky-500}; }
+  &[data-prio='medium'] { background: #{$amber-500}; }
+  &[data-prio='high']   { background: #{$rose-500}; }
+  &[data-prio='urgent'] { background: #{$rose-600}; }
+}
+
+// ---- Assignee avatars ----
+.ava2 {
+  @include flex-center;
+  width: 28px; height: 28px;
+  border-radius: $radius-full;
+  background: var(--surface-brand);
+  color: var(--text-brand);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  border: 2px solid var(--card-bg);
+  margin-left: -6px;
+  overflow: hidden;
+  &:first-child { margin-left: 0; }
+  img { width: 100%; height: 100%; object-fit: cover; }
+  &--empty { background: var(--bg-tertiary); color: var(--text-tertiary); border-style: dashed; }
+}
+
+// ---- Move dropdown + add-task row ----
+.movesel {
+  width: 28px; height: 28px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--text-tertiary);
+  border-radius: $radius-sm;
+  appearance: none; -webkit-appearance: none; text-align: center;
+  &:hover { background: var(--bg-elevated); color: var(--text-primary); }
+  option { color: var(--text-primary); }
+}
+
+.addrow {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 $space-3;
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  font-family: $font-sans;
+  font-size: $font-size-sm;
+  &::placeholder { color: var(--text-tertiary); }
+  &:focus { outline: none; background: var(--bg-tertiary); color: var(--text-primary); }
+}

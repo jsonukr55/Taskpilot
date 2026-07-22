@@ -11,6 +11,7 @@ import { SchedulingService } from '@core/services/scheduling.service';
 import { GroupService } from '@core/services/group.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { SpaceService } from '@core/services/space.service';
+import { ClientService } from '@core/services/client.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { CommandPaletteService } from '@core/services/command-palette.service';
 
@@ -47,6 +48,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   private readonly groups     = inject(GroupService);
   private readonly orgs       = inject(OrganizationService);
   private readonly spaces     = inject(SpaceService);
+  private readonly clients    = inject(ClientService);
   private readonly router     = inject(Router);
   readonly kb                 = inject(KeyboardShortcutService);
   readonly palette            = inject(CommandPaletteService);
@@ -62,6 +64,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.groups.startListening();
     this.orgs.startListening();
     this.spaces.startListening();
+    this.clients.startListening();
 
     // App-wide shortcuts.
     this.disposeShortcuts = this.kb.registerAll([
@@ -87,6 +90,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.groups.stopListening();
     this.orgs.stopListening();
     this.spaces.stopListening();
+    this.clients.stopListening();
     this.disposeShortcuts?.();
   }
 }

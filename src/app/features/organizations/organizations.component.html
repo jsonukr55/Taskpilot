@@ -63,6 +63,16 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="modal__body">
         <div class="form-group">
+          <label class="form-label">Client</label>
+          <select class="form-input" formControlName="clientId">
+            <option value="">— No client —</option>
+            @for (c of clients.clients(); track c.id) {
+              <option [value]="c.id">{{ c.icon }} {{ c.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
           <label class="form-label">Name</label>
           <input class="form-input" formControlName="name" placeholder="e.g. Acme Inc." autofocus>
         </div>

@@ -55,3 +55,32 @@
 
 .admin-field { margin-top: $space-4; }
 .admin-row { display: flex; gap: $space-2; .form-input { flex: 1; } }
+
+// ---- Inline create form (Clients) — mirrors the modal form spacing ----
+.admin-form {
+  margin: $space-4 0;
+  padding: $space-4;
+  border-radius: $radius-lg;
+  background: var(--bg-tertiary);
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__field { display: flex; flex-direction: column; gap: $space-2; }
+  &__actions { display: flex; justify-content: flex-end; gap: $space-2; margin-top: $space-1; }
+}
+
+.admin-optional { color: var(--text-tertiary); font-weight: 400; font-size: $font-size-xs; }
+
+// Parent-client chip on the Organizations list
+.admin-list__tag {
+  font-size: $font-size-xs;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  padding: 1px $space-2;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+}
+
+// Delete (trash) action turns red on hover
+.admin-danger:hover { color: #ef4444; }

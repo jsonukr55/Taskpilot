@@ -1,32 +1,31 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import {
-  Firestore, collection, query, where, onSnapshot,
-  doc, setDoc, updateDoc, getDoc, getDocs,
-  serverTimestamp, Timestamp, writeBatch, deleteField
-} from '@angular/fire/firestore';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { environment } from '@env/environment';
+import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import {
   Organization, OrgRole, OrgInvite, OrgInvitePreview,
 } from '@shared/models/organization.model';
 import { inviteToken, slugId } from '@shared/utils/id.util';
+import { toTs } from './supabase-map.util';
 
 // ============================================================
-// OrganizationService — top-level tenants that hold users + spaces.
-// Mirrors GroupService (onSnapshot → signal lifecycle, membership maps,
-// invites). Orgs can only be CREATED by a global admin (enforced by
-// rules); membership is managed by the org owner (or admin).
+// OrganizationService — top-level tenants that hold users + spaces
+// (Supabase). Embedded membership reconstructed from org_members.
+// Orgs can only be CREATED by a global admin (enforced by RLS).
+// Same public API as the Firestore version.
 // ============================================================
 
 const INVITE_TTL_DAYS = 7;
+const MEMBER_SELECT = '*, org_members(user_id, role, display_name, photo_url)';
 
 @Injectable({ providedIn: 'root' })
 export class OrganizationService {
-  private readonly firestore = inject(Firestore);
-  private readonly auth      = inject(AuthService);
-  private readonly http      = inject(HttpClient);
+  private readonly supa = inject(SupabaseService);
+  private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
   readonly organizations = signal<Organization[]>([]);
   readonly isLoading     = signal(true);
@@ -36,7 +35,12 @@ export class OrganizationService {
     this.organizations().filter(o => o.ownerId === this.auth.userId())
   );
 
-  private unsubscribe?: () => void;
+  /** Organizations belonging to a given client (reactive in a computed). */
+  orgsInClient(clientId: string): Organization[] {
+    return this.organizations().filter(o => o.clientId === clientId);
+  }
+
+  private channel?: RealtimeChannel;
 
   // ---- Lifecycle ----
 
@@ -45,23 +49,23 @@ export class OrganizationService {
     if (!uid) return;
     this.isLoading.set(true);
 
-    const q = query(
-      collection(this.firestore, 'organizations'),
-      where('memberIds', 'array-contains', uid)
-    );
-
-    this.unsubscribe = onSnapshot(q, snapshot => {
-      this.organizations.set(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Organization)));
-      this.isLoading.set(false);
-    }, err => {
-      this.error.set(err.message);
-      this.isLoading.set(false);
-    });
+    void this.load();
+    this.channel = this.supa.client
+      .channel(`organizations:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'organizations' }, () => void this.load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'org_members' },    () => void this.load())
+      .subscribe();
   }
 
   stopListening(): void {
-    this.unsubscribe?.();
-    this.unsubscribe = undefined;
+    if (this.channel) { void this.supa.client.removeChannel(this.channel); this.channel = undefined; }
+  }
+
+  private async load(): Promise<void> {
+    const { data, error } = await this.supa.db('organizations').select(MEMBER_SELECT);
+    if (error) { this.error.set(error.message); this.isLoading.set(false); return; }
+    this.organizations.set((data ?? []).map(rowToOrg));
+    this.isLoading.set(false);
   }
 
   // ---- Queries ----
@@ -80,78 +84,61 @@ export class OrganizationService {
     return !!org && org.ownerId === this.auth.userId();
   }
 
-  /** Owner OR platform admin can manage the org. */
+  /** Owner, org admin, OR platform admin can manage the org's members. */
   canManageOrg(org: Organization | undefined): boolean {
-    return this.isOrgOwner(org) || this.auth.isAdmin();
+    return this.isOrgOwner(org) || this.auth.isAdmin() || this.myOrgRole(org) === 'admin';
   }
 
-  // ---- Org CRUD (create requires admin, enforced by rules) ----
+  // ---- Org CRUD (create requires admin, enforced by RLS) ----
 
-  async createOrganization(data: { name: string; description?: string; icon: string; color: string }): Promise<string> {
+  async createOrganization(data: { name: string; description?: string; icon: string; color: string; clientId?: string | null }): Promise<string> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
 
     const id = slugId(data.name);
-    await setDoc(doc(this.firestore, 'organizations', id), {
+    const { error } = await this.supa.db('organizations').insert({
+      id,
       name:        data.name.trim(),
       description: data.description?.trim() ?? '',
       icon:        data.icon,
       color:       data.color,
-      ownerId:     uid,
-      memberIds:   [uid],
-      roles:       { [uid]: 'owner' as OrgRole },
-      memberProfiles: {
-        [uid]: {
-          displayName: this.auth.displayName() || 'You',
-          photoURL:    this.auth.photoURL() ?? null,
-        }
-      },
-      createdBy:   uid,
-      createdAt:   serverTimestamp(),
-      updatedAt:   serverTimestamp(),
+      client_id:   data.clientId ?? null,
+      owner_id:    uid,
+      created_by:  uid,
+    });
+    if (error) throw error;
+    await this.supa.db('org_members').insert({
+      org_id:       id,
+      user_id:      uid,
+      role:         'owner',
+      display_name: this.auth.displayName() || 'You',
+      photo_url:    this.auth.photoURL() ?? null,
     });
     return id;
   }
 
   async updateOrganization(id: string, changes: Partial<Pick<Organization, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {
-    await updateDoc(doc(this.firestore, 'organizations', id), { ...changes, updatedAt: serverTimestamp() });
+    await this.supa.db('organizations').update(changes).eq('id', id);
   }
 
-  /**
-   * Owner/admin only. Fan-out delete: every space in the org and all their
-   * tasks, then the org itself (top-level collections don't cascade). Chunked
-   * to respect Firestore's batch limit.
-   */
+  /** Owner/admin only. Deleting the org cascades to spaces and their tasks (FK on delete cascade). */
   async deleteOrganization(id: string): Promise<void> {
-    const spacesSnap = await getDocs(query(collection(this.firestore, 'spaces'), where('orgId', '==', id)));
-    for (const spaceDoc of spacesSnap.docs) {
-      const tasksSnap = await getDocs(query(collection(this.firestore, 'tasks'), where('spaceId', '==', spaceDoc.id)));
-      await this.deleteInChunks(tasksSnap.docs.map(d => d.ref));
-    }
-    await this.deleteInChunks(spacesSnap.docs.map(d => d.ref));
-    await this.deleteInChunks([doc(this.firestore, 'organizations', id)]);
+    await this.supa.db('organizations').delete().eq('id', id);
   }
 
-  private async deleteInChunks(refs: ReturnType<typeof doc>[]): Promise<void> {
-    const LIMIT = 400;
-    for (let i = 0; i < refs.length; i += LIMIT) {
-      const batch = writeBatch(this.firestore);
-      refs.slice(i, i + LIMIT).forEach(ref => batch.delete(ref));
-      await batch.commit();
-    }
-  }
-
-  // ---- Member management (owner/admin, enforced by rules) ----
+  // ---- Member management (owner/admin, enforced by RLS) ----
 
   async removeMember(orgId: string, uid: string): Promise<void> {
     const org = this.getOrgById(orgId);
     if (org && org.ownerId === uid) throw new Error("The owner can't be removed.");
-    await updateDoc(doc(this.firestore, 'organizations', orgId), {
-      memberIds: (org?.memberIds ?? []).filter(m => m !== uid),
-      [`roles.${uid}`]:          deleteField(),
-      [`memberProfiles.${uid}`]: deleteField(),
-      updatedAt: serverTimestamp(),
-    });
+    await this.supa.db('org_members').delete().eq('org_id', orgId).eq('user_id', uid);
+  }
+
+  /** Change a member's org role (Admin / Member / Viewer). The owner is fixed. */
+  async changeRole(orgId: string, uid: string, role: OrgRole): Promise<void> {
+    const org = this.getOrgById(orgId);
+    if (org && org.ownerId === uid) throw new Error("The owner's role can't be changed.");
+    await this.supa.db('org_members').update({ role }).eq('org_id', orgId).eq('user_id', uid);
   }
 
   /** Add an existing user to the org by email (resolves uid + profile server-side). */
@@ -165,60 +152,49 @@ export class OrganizationService {
     ));
   }
 
-  // ---- Invites (separate orgInvites collection) ----
+  // ---- Invites (org_invites table) ----
 
   async createInvite(org: Organization): Promise<{ token: string; url: string }> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
 
     const token = inviteToken();
-    const expiresAt = Timestamp.fromDate(new Date(Date.now() + INVITE_TTL_DAYS * 86_400_000));
-
-    await setDoc(doc(this.firestore, 'orgInvites', token), {
+    const { error } = await this.supa.db('org_invites').insert({
       token,
-      orgId:    org.id,
-      orgName:  org.name,
-      orgIcon:  org.icon,
-      role:     'member',
-      createdBy: uid,
-      createdAt: serverTimestamp(),
-      expiresAt,
-      revoked:  false,
-      maxUses:  null,
-      useCount: 0,
+      org_id:     org.id,
+      org_name:   org.name,
+      org_icon:   org.icon,
+      role:       'member',
+      created_by: uid,
+      expires_at: new Date(Date.now() + INVITE_TTL_DAYS * 86_400_000).toISOString(),
+      revoked:    false,
+      max_uses:   null,
+      use_count:  0,
     });
+    if (error) throw error;
 
     return { token, url: `${window.location.origin}/org-join/${token}` };
   }
 
   async listInvites(orgId: string): Promise<OrgInvite[]> {
-    const snap = await getDocs(query(
-      collection(this.firestore, 'orgInvites'),
-      where('orgId', '==', orgId),
-      where('revoked', '==', false)
-    ));
-    return snap.docs
-      .map(d => ({ id: d.id, ...d.data() } as OrgInvite))
+    const { data } = await this.supa.db('org_invites')
+      .select('*').eq('org_id', orgId).eq('revoked', false);
+    return (data ?? [])
+      .map(rowToOrgInvite)
       .filter(inv => !inv.expiresAt || inv.expiresAt.toMillis() > Date.now());
   }
 
   async revokeInvite(token: string): Promise<void> {
-    await updateDoc(doc(this.firestore, 'orgInvites', token), { revoked: true });
+    await this.supa.db('org_invites').update({ revoked: true }).eq('token', token);
   }
 
   async previewInvite(token: string): Promise<{ orgName: string; orgIcon: string } | null> {
-    try {
-      const snap = await getDoc(doc(this.firestore, 'orgInvites', token));
-      if (!snap.exists()) return null;
-      const inv = snap.data() as OrgInvite;
-      if (inv.revoked || (inv.expiresAt && inv.expiresAt.toMillis() < Date.now())) return null;
-      return { orgName: inv.orgName, orgIcon: inv.orgIcon };
-    } catch {
-      return null;
-    }
+    const { data, error } = await this.supa.rpc('preview_org_invite', { p_token: token });
+    if (error || !data?.length) return null;
+    return { orgName: data[0].org_name, orgIcon: data[0].org_icon };
   }
 
-  /** Redeem an org invite via the joinOrg Cloud Function. */
+  /** Redeem an org invite via the joinOrg Edge Function. */
   async joinByToken(token: string): Promise<OrgInvitePreview> {
     const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
@@ -228,4 +204,49 @@ export class OrganizationService {
       { headers: { Authorization: `Bearer ${idToken}` } }
     ));
   }
+}
+
+// ---- Mapping ----
+
+function rowToOrg(r: any): Organization {
+  const roles: Record<string, OrgRole> = {};
+  const memberProfiles: Organization['memberProfiles'] = {};
+  const memberIds: string[] = [];
+  for (const m of (r.org_members ?? [])) {
+    memberIds.push(m.user_id);
+    roles[m.user_id] = m.role;
+    memberProfiles[m.user_id] = { displayName: m.display_name, photoURL: m.photo_url ?? null };
+  }
+  return {
+    id:          r.id,
+    name:        r.name,
+    description: r.description ?? undefined,
+    icon:        r.icon,
+    color:       r.color,
+    clientId:    r.client_id ?? null,
+    ownerId:     r.owner_id,
+    memberIds,
+    roles,
+    memberProfiles,
+    createdBy:   r.created_by,
+    createdAt:   toTs(r.created_at) as any,
+    updatedAt:   toTs(r.updated_at) as any,
+  };
+}
+
+function rowToOrgInvite(r: any): OrgInvite {
+  return {
+    id:        r.token,
+    token:     r.token,
+    orgId:     r.org_id,
+    orgName:   r.org_name,
+    orgIcon:   r.org_icon,
+    role:      'member',
+    createdBy: r.created_by,
+    createdAt: toTs(r.created_at) as any,
+    expiresAt: toTs(r.expires_at) as any,
+    revoked:   r.revoked,
+    maxUses:   r.max_uses ?? null,
+    useCount:  r.use_count ?? 0,
+  };
 }

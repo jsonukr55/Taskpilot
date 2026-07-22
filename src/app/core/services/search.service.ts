@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Firestore, collection, query, where, orderBy, limit, getDocs } from '@angular/fire/firestore';
+import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { TaskService } from './task.service';
 import { GroupService } from './group.service';
@@ -37,7 +37,7 @@ const SECTION_META: { category: SearchCategory; label: string; icon: string }[] 
 // ============================================================
 @Injectable({ providedIn: 'root' })
 export class SearchService {
-  private readonly firestore  = inject(Firestore);
+  private readonly supa       = inject(SupabaseService);
   private readonly auth       = inject(AuthService);
   private readonly tasks      = inject(TaskService);
   private readonly groups     = inject(GroupService);
@@ -203,19 +203,16 @@ export class SearchService {
     const uid = this.auth.userId();
     try {
       if (uid) {
-        // Personal notes: equality filter + limit only (no orderBy — that would
-        // need a composite index the app deliberately avoids).
-        const personal = await getDocs(query(
-          collection(this.firestore, 'notes'), where('ownerId', '==', uid), limit(NOTE_SCAN_LIMIT)
-        ));
-        personal.docs.forEach(d => this.pushNote(results, q, { id: d.id, ...d.data() } as Note, 'My notes', ['/notes', d.id]));
+        // Personal notes (owner_id == uid), bounded.
+        const { data: personal } = await this.supa.db('notes')
+          .select('*').eq('owner_id', uid).limit(NOTE_SCAN_LIMIT);
+        (personal ?? []).forEach(d => this.pushNote(results, q, rowToNote(d), 'My notes', ['/notes', d.id]));
 
-        // Group notes: most-recent-first, bounded (single-field index only).
+        // Group notes: most-recent-first, bounded.
         for (const g of this.groups.groups()) {
-          const snap = await getDocs(query(
-            collection(this.firestore, 'groups', g.id, 'notes'), orderBy('updatedAt', 'desc'), limit(NOTE_SCAN_LIMIT)
-          ));
-          snap.docs.forEach(d => this.pushNote(results, q, { id: d.id, ...d.data() } as Note, g.name, ['/groups', g.id, 'notes', d.id]));
+          const { data: snap } = await this.supa.db('notes')
+            .select('*').eq('group_id', g.id).order('updated_at', { ascending: false }).limit(NOTE_SCAN_LIMIT);
+          (snap ?? []).forEach(d => this.pushNote(results, q, rowToNote(d), g.name, ['/groups', g.id, 'notes', d.id]));
         }
       }
     } catch (e) {
@@ -253,4 +250,20 @@ export class SearchService {
          : status === 'completed'   ? 'Done'
          : status === 'cancelled'   ? 'Cancelled' : 'Open';
   }
+}
+
+/** Minimal row → Note mapping for search (only fields the results list needs). */
+function rowToNote(r: any): Note {
+  return {
+    id:        r.id,
+    groupId:   r.group_id ?? null,
+    ownerId:   r.owner_id ?? undefined,
+    title:     r.title,
+    icon:      r.icon ?? undefined,
+    blocks:    r.blocks ?? [],
+    createdBy: r.created_by,
+    updatedBy: r.updated_by,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  } as Note;
 }

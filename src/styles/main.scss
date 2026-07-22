@@ -194,7 +194,7 @@ select:not(.filter-pill) {
     &:active:not(:disabled) { background: $rose-600; transform: translateY(1px); }
   }
 
-  &-sm { padding: $space-1 $space-3; font-size: $font-size-xs; border-radius: $radius-md; }
+  &-sm { padding: $space-2 $space-4; font-size: $font-size-xs; border-radius: $radius-md; }
   &-lg { padding: $space-3 $space-6; font-size: $font-size-base; border-radius: $radius-xl; }
   &-icon {
     @include btn-base;

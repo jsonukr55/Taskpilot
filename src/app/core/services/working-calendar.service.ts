@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseService } from './supabase.service';
 import { WorkingCalendar, Holiday } from '@shared/models/daily-report.model';
 
 // ============================================================
@@ -39,30 +40,34 @@ const DEFAULT_CALENDAR: WorkingCalendar = {
 
 @Injectable({ providedIn: 'root' })
 export class WorkingCalendarService {
-  private readonly firestore = inject(Firestore);
+  private readonly supa = inject(SupabaseService);
 
   /** Live calendar config. Starts from the built-in seed and is overwritten if a
-   *  `settings/workingCalendar` doc exists. */
+   *  `settings` row with key='workingCalendar' exists. */
   readonly calendar = signal<WorkingCalendar>(DEFAULT_CALENDAR);
 
-  private unsubscribe?: () => void;
+  private channel?: RealtimeChannel;
 
   constructor() {
-    // Read-only subscription; falls back to the seed when the doc is absent.
-    this.unsubscribe = onSnapshot(
-      doc(this.firestore, 'settings', 'workingCalendar'),
-      snap => {
-        if (snap.exists()) {
-          const data = snap.data() as Partial<WorkingCalendar>;
-          this.calendar.set({
-            weekends: data.weekends ?? DEFAULT_CALENDAR.weekends,
-            holidays: data.holidays ?? DEFAULT_CALENDAR.holidays,
-            timezone: data.timezone ?? DEFAULT_CALENDAR.timezone
-          });
-        }
-      },
-      () => { /* rules deny / offline → keep the seed */ }
-    );
+    // Read-only; falls back to the seed when the row is absent or unreadable.
+    void this.load();
+    this.channel = this.supa.client
+      .channel('settings:workingCalendar')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings', filter: 'key=eq.workingCalendar' },
+        () => void this.load())
+      .subscribe();
+  }
+
+  private async load(): Promise<void> {
+    const { data: row } = await this.supa.db('settings').select('data').eq('key', 'workingCalendar').maybeSingle();
+    const data = (row?.data ?? null) as Partial<WorkingCalendar> | null;
+    if (data) {
+      this.calendar.set({
+        weekends: data.weekends ?? DEFAULT_CALENDAR.weekends,
+        holidays: data.holidays ?? DEFAULT_CALENDAR.holidays,
+        timezone: data.timezone ?? DEFAULT_CALENDAR.timezone
+      });
+    }
   }
 
   // ---- Date primitives (IST-anchored, tz-safe) ----

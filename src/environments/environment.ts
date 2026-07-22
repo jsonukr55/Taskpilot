@@ -22,8 +22,15 @@ export const environment = {
     tenantId: 'common',
     scopes: ['Calendars.ReadWrite', 'User.Read']
   },
-  // AI runs entirely through the Cloud Functions proxy; no keys in the frontend.
-  functionsBaseUrl: 'https://us-central1-taskpilot-ad725.cloudfunctions.net',
+  // Server-side ops (membership: join/add/role) run through the Supabase
+  // Edge Function `api`. AI routes will be added here when features.ai flips on.
+  functionsBaseUrl: 'https://uffyycxwhldjqikcmopu.supabase.co/functions/v1/api',
+
+  // Feature flags. AI is off until the Supabase Edge Functions (Groq proxy)
+  // are deployed — every AI entry point shows "Coming soon" while false.
+  features: {
+    ai: false,
+  },
 
   // Supabase (Postgres + Realtime + Auth). Fill these from your Supabase
   // project → Settings → API. The anon key is safe to ship in the client

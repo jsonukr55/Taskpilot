@@ -1,60 +1,36 @@
 import { Injectable, inject, signal } from '@angular/core';
-import {
-  Firestore, collection, query, where, orderBy, onSnapshot,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp,
-  CollectionReference, DocumentReference
-} from '@angular/fire/firestore';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { NoteAccessService } from './note-access.service';
-import { Note, NoteComment, NoteBlock, starterBlocks } from '@shared/models/note.model';
+import { Note, NoteComment, starterBlocks } from '@shared/models/note.model';
+import { toTs } from './supabase-map.util';
 
 // ============================================================
-// NoteService — collaborative group notes AND personal notes.
-// A null groupId targets the top-level `notes` collection (personal).
+// NoteService — collaborative group notes AND personal notes (Supabase).
+// One flat `notes` table: group_id set → group note; owner_id set → personal.
+// Comments live in note_comments (note_id FK). Same public API as before.
 // ============================================================
 
 const SAVE_DEBOUNCE_MS = 350;
 
 @Injectable({ providedIn: 'root' })
 export class NoteService {
-  private readonly firestore  = inject(Firestore);
+  private readonly supa       = inject(SupabaseService);
   private readonly auth       = inject(AuthService);
   private readonly noteAccess = inject(NoteAccessService);
 
   // Notes list (either a group's notes or the user's personal notes)
   readonly notes        = signal<Note[]>([]);
   readonly notesLoading = signal(true);
-  private notesUnsub?: () => void;
+  private notesChannel?: RealtimeChannel;
 
   // Active note (editor) + its comments
   readonly activeNote = signal<Note | null>(null);
   /** True when the opened note no longer exists / can't be read (deleted elsewhere). */
   readonly activeNoteMissing = signal(false);
   readonly comments   = signal<NoteComment[]>([]);
-  private noteUnsub?: () => void;
-  private commentsUnsub?: () => void;
-
-  // ---- Path helpers (groupId null = personal top-level `notes`) ----
-  private notesCol(groupId: string | null): CollectionReference {
-    return groupId
-      ? collection(this.firestore, 'groups', groupId, 'notes')
-      : collection(this.firestore, 'notes');
-  }
-  private noteDoc(groupId: string | null, noteId: string): DocumentReference {
-    return groupId
-      ? doc(this.firestore, 'groups', groupId, 'notes', noteId)
-      : doc(this.firestore, 'notes', noteId);
-  }
-  private commentsColOf(groupId: string | null, noteId: string): CollectionReference {
-    return groupId
-      ? collection(this.firestore, 'groups', groupId, 'notes', noteId, 'comments')
-      : collection(this.firestore, 'notes', noteId, 'comments');
-  }
-  private commentDoc(groupId: string | null, noteId: string, commentId: string): DocumentReference {
-    return groupId
-      ? doc(this.firestore, 'groups', groupId, 'notes', noteId, 'comments', commentId)
-      : doc(this.firestore, 'notes', noteId, 'comments', commentId);
-  }
+  private noteChannel?: RealtimeChannel;
 
   // ---- Notes list ----
 
@@ -62,64 +38,76 @@ export class NoteService {
   openGroupNotes(groupId: string): void {
     this.closeGroupNotes();
     this.notesLoading.set(true);
-    const q = query(this.notesCol(groupId), orderBy('updatedAt', 'desc'));
-    this.notesUnsub = onSnapshot(q, snap => {
-      this.notes.set(snap.docs.map(d => ({ id: d.id, ...d.data() } as Note)));
-      this.notesLoading.set(false);
-    }, () => this.notesLoading.set(false));
+    void this.loadNotes({ column: 'group_id', value: groupId });
+    this.notesChannel = this.supa.client
+      .channel(`notes-list:${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', filter: `group_id=eq.${groupId}` },
+        () => void this.loadNotes({ column: 'group_id', value: groupId }))
+      .subscribe();
   }
 
-  /** Live list of the signed-in user's personal notes (sorted client-side to avoid a composite index). */
+  /** Live list of the signed-in user's personal notes. */
   openPersonalNotes(): void {
     this.closeGroupNotes();
     const uid = this.auth.userId();
     if (!uid) return;
     this.notesLoading.set(true);
-    const q = query(collection(this.firestore, 'notes'), where('ownerId', '==', uid));
-    this.notesUnsub = onSnapshot(q, snap => {
-      const rows = snap.docs.map(d => ({ id: d.id, ...d.data() } as Note));
-      rows.sort((a, b) => (b.updatedAt?.seconds ?? 0) - (a.updatedAt?.seconds ?? 0));
-      this.notes.set(rows);
-      this.notesLoading.set(false);
-    }, () => this.notesLoading.set(false));
+    void this.loadNotes({ column: 'owner_id', value: uid });
+    this.notesChannel = this.supa.client
+      .channel(`notes-list:personal:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', filter: `owner_id=eq.${uid}` },
+        () => void this.loadNotes({ column: 'owner_id', value: uid }))
+      .subscribe();
+  }
+
+  private async loadNotes(where: { column: string; value: string }): Promise<void> {
+    const { data } = await this.supa.db('notes')
+      .select('*').eq(where.column, where.value).order('updated_at', { ascending: false });
+    this.notes.set((data ?? []).map(rowToNote));
+    this.notesLoading.set(false);
   }
 
   closeGroupNotes(): void {
-    this.notesUnsub?.();
-    this.notesUnsub = undefined;
+    if (this.notesChannel) { void this.supa.client.removeChannel(this.notesChannel); this.notesChannel = undefined; }
     this.notes.set([]);
   }
 
   // ---- Single note (editor) ----
 
-  openNote(groupId: string | null, noteId: string): void {
+  openNote(_groupId: string | null, noteId: string): void {
     this.closeNote();
-    this.noteUnsub = onSnapshot(this.noteDoc(groupId, noteId), snap => {
-      const exists = snap.exists();
-      // Server says the note is gone (not just an offline cache miss) —
-      // self-heal: drop any stale favorite/pin/recent refs to it.
-      const gone = !exists && !snap.metadata.fromCache;
-      if (gone) this.noteAccess.forget(noteId);
-      this.activeNoteMissing.set(gone);
-      this.activeNote.set(exists ? ({ id: snap.id, ...snap.data() } as Note) : null);
-    }, () => {
-      // Permission error — e.g. a personal note deleted elsewhere (rules
-      // can't evaluate ownerId on a missing doc) or group access revoked.
-      // Either way the note is unreachable: treat as gone.
+    void this.loadNote(noteId);
+    this.noteChannel = this.supa.client
+      .channel(`note:${noteId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', filter: `id=eq.${noteId}` },
+        () => void this.loadNote(noteId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'note_comments', filter: `note_id=eq.${noteId}` },
+        () => void this.loadComments(noteId))
+      .subscribe();
+  }
+
+  private async loadNote(noteId: string): Promise<void> {
+    const { data, error } = await this.supa.db('notes').select('*').eq('id', noteId).maybeSingle();
+    if (error || !data) {
+      // Gone or unreadable (deleted elsewhere / access revoked) — self-heal.
       this.noteAccess.forget(noteId);
       this.activeNoteMissing.set(true);
       this.activeNote.set(null);
-    });
-    const cq = query(this.commentsColOf(groupId, noteId), orderBy('createdAt', 'asc'));
-    this.commentsUnsub = onSnapshot(cq, snap => {
-      this.comments.set(snap.docs.map(d => ({ id: d.id, ...d.data() } as NoteComment)));
-    }, () => { /* unreadable alongside a missing note — keep prior state */ });
+      return;
+    }
+    this.activeNoteMissing.set(false);
+    this.activeNote.set(rowToNote(data));
+    void this.loadComments(noteId);
+  }
+
+  private async loadComments(noteId: string): Promise<void> {
+    const { data } = await this.supa.db('note_comments')
+      .select('*').eq('note_id', noteId).order('created_at', { ascending: true });
+    this.comments.set((data ?? []).map(rowToComment));
   }
 
   closeNote(): void {
-    this.noteUnsub?.();
-    this.commentsUnsub?.();
-    this.noteUnsub = this.commentsUnsub = undefined;
+    if (this.noteChannel) { void this.supa.client.removeChannel(this.noteChannel); this.noteChannel = undefined; }
     this.activeNote.set(null);
     this.activeNoteMissing.set(false);
     this.comments.set([]);
@@ -130,35 +118,28 @@ export class NoteService {
   async createNote(groupId: string | null, title = 'Untitled'): Promise<string> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
-    const ref = await addDoc(this.notesCol(groupId), {
-      groupId:   groupId ?? null,
-      ...(groupId ? {} : { ownerId: uid }),
+    const { data, error } = await this.supa.db('notes').insert({
+      group_id:   groupId ?? null,
+      owner_id:   groupId ? null : uid,
       title,
-      icon:      '📄',
-      blocks:    starterBlocks(),
-      createdBy: uid,
-      updatedBy: uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    return ref.id;
+      icon:       '📄',
+      blocks:     starterBlocks(),
+      created_by: uid,
+      updated_by: uid,
+    }).select('id').single();
+    if (error) throw error;
+    return data.id;
   }
 
-  async deleteNote(groupId: string | null, noteId: string): Promise<void> {
-    await deleteDoc(this.noteDoc(groupId, noteId));
-    // Drop the note from the user's favorites/pins/recents (central hook —
-    // covers every delete call site).
+  async deleteNote(_groupId: string | null, noteId: string): Promise<void> {
+    await this.supa.db('notes').delete().eq('id', noteId);
+    // Drop the note from the user's favorites/pins/recents (central hook).
     this.noteAccess.forget(noteId);
   }
 
-  private async writeNote(groupId: string | null, noteId: string, changes: Partial<Note>): Promise<void> {
+  private async writeNote(_groupId: string | null, noteId: string, changes: Partial<Note>): Promise<void> {
     const uid = this.auth.userId();
-    // Firestore rejects `undefined`; non-todo blocks legitimately omit `checked`.
-    await updateDoc(this.noteDoc(groupId, noteId), {
-      ...stripUndefined(changes),
-      updatedBy: uid ?? 'unknown',
-      updatedAt: serverTimestamp()
-    });
+    await this.supa.db('notes').update({ ...notePatch(changes), updated_by: uid ?? 'unknown' }).eq('id', noteId);
   }
 
   /** Immediate write (title, block-type, assignment). */
@@ -197,41 +178,64 @@ export class NoteService {
 
   // ---- Comments (anchored to a block) ----
 
-  async addComment(groupId: string | null, noteId: string, blockId: string, body: string): Promise<void> {
+  async addComment(_groupId: string | null, noteId: string, blockId: string, body: string): Promise<void> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
-    await addDoc(this.commentsColOf(groupId, noteId), {
-      blockId,
-      authorId:    uid,
-      authorName:  this.auth.displayName() || 'You',
-      authorPhoto: this.auth.photoURL() ?? null,
-      body:        body.trim(),
-      resolved:    false,
-      createdAt:   serverTimestamp(),
-      updatedAt:   serverTimestamp()
+    await this.supa.db('note_comments').insert({
+      note_id:      noteId,
+      block_id:     blockId,
+      author_id:    uid,
+      author_name:  this.auth.displayName() || 'You',
+      author_photo: this.auth.photoURL() ?? null,
+      body:         body.trim(),
+      resolved:     false,
     });
   }
 
-  async resolveComment(groupId: string | null, noteId: string, commentId: string, resolved: boolean): Promise<void> {
-    await updateDoc(this.commentDoc(groupId, noteId, commentId), { resolved, updatedAt: serverTimestamp() });
+  async resolveComment(_groupId: string | null, _noteId: string, commentId: string, resolved: boolean): Promise<void> {
+    await this.supa.db('note_comments').update({ resolved }).eq('id', commentId);
   }
 
-  async deleteComment(groupId: string | null, noteId: string, commentId: string): Promise<void> {
-    await deleteDoc(this.commentDoc(groupId, noteId, commentId));
+  async deleteComment(_groupId: string | null, _noteId: string, commentId: string): Promise<void> {
+    await this.supa.db('note_comments').delete().eq('id', commentId);
   }
 }
 
-/** Recursively drop keys whose value is `undefined` (Firestore rejects them). */
-function stripUndefined<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map(v => stripUndefined(v)) as unknown as T;
-  }
-  if (value && typeof value === 'object' && !(value instanceof Date)) {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (v !== undefined) out[k] = stripUndefined(v);
-    }
-    return out as T;
-  }
-  return value;
+// ---- Mapping ----
+
+function rowToNote(r: any): Note {
+  return {
+    id:        r.id,
+    groupId:   r.group_id ?? null,
+    ownerId:   r.owner_id ?? undefined,
+    title:     r.title,
+    icon:      r.icon ?? undefined,
+    blocks:    r.blocks ?? [],
+    createdBy: r.created_by,
+    updatedBy: r.updated_by,
+    createdAt: toTs(r.created_at) as any,
+    updatedAt: toTs(r.updated_at) as any,
+  };
+}
+
+function rowToComment(r: any): NoteComment {
+  return {
+    id:          r.id,
+    blockId:     r.block_id,
+    authorId:    r.author_id,
+    authorName:  r.author_name,
+    authorPhoto: r.author_photo ?? null,
+    body:        r.body,
+    resolved:    r.resolved,
+    createdAt:   toTs(r.created_at) as any,
+    updatedAt:   toTs(r.updated_at) as any,
+  };
+}
+
+function notePatch(c: Partial<Note>): Record<string, unknown> {
+  const p: Record<string, unknown> = {};
+  if (c.title  !== undefined) p['title']  = c.title;
+  if (c.icon   !== undefined) p['icon']   = c.icon;
+  if (c.blocks !== undefined) p['blocks'] = c.blocks;
+  return p;
 }

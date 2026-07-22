@@ -314,10 +314,10 @@
             </div>
           }
 
-          <!-- AI summaries -->
+          <!-- Auto summaries (deterministic; AI variant coming soon) -->
           <div class="daily__summaries">
             <div class="daily__preview-head">
-              <h3 class="daily__section-title"><tp-icon name="sparkles" [size]="15" /> AI summary</h3>
+              <h3 class="daily__section-title"><tp-icon name="file-text" [size]="15" /> Summary</h3>
               <div class="daily__preview-actions">
                 <button class="btn btn-secondary btn-sm" (click)="generateSummary('professional')" [disabled]="summaryBusy()">Professional</button>
                 <button class="btn btn-secondary btn-sm" (click)="generateSummary('manager')" [disabled]="summaryBusy()">Manager</button>
@@ -333,7 +333,6 @@
                 <div class="daily__summary-bar">
                   <span class="daily__summary-kind">
                     {{ summaryKind() ? summaryLabels[summaryKind()!] : '' }} summary
-                    <span class="daily__summary-src" [attr.data-src]="summarySource()">{{ summarySource() === 'ai' ? 'AI' : 'Local' }}</span>
                   </span>
                   <div class="daily__summary-actions">
                     <button class="btn btn-ghost btn-sm" (click)="copySummary()">

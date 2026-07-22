@@ -6,7 +6,7 @@ import { SpaceService } from '@core/services/space.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
-import { orgMembers, OrgInvite } from '@shared/models/organization.model';
+import { orgMembers, OrgInvite, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
 
 const SPACE_ICONS  = ['📁','🚀','🎯','🧩','📊','🛠️','🎨','🔬','📌','🗂️','💡','📈'];
 const SPACE_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
@@ -61,6 +61,19 @@ export class OrgDetailComponent {
     if (!confirm('Remove this member from the organization?')) return;
     try { await this.orgs.removeMember(this.orgId(), uid); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not remove the member'); }
+  }
+
+  // ---- Role management ----
+  readonly ASSIGNABLE_ORG_ROLES = ASSIGNABLE_ORG_ROLES;
+  roleLabel = (r: OrgRole): string => ORG_ROLE_LABELS[r] ?? r;
+
+  async changeRole(uid: string, role: string): Promise<void> {
+    try {
+      await this.orgs.changeRole(this.orgId(), uid, role as OrgRole);
+      this.toast.success('Role updated');
+    } catch (e: any) {
+      this.toast.error(e?.error?.error ?? e?.message ?? 'Could not update the role');
+    }
   }
 
   memberName = (uid: string): string => this.org()?.memberProfiles[uid]?.displayName ?? 'Member';

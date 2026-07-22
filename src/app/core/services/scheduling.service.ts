@@ -1,49 +1,48 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import {
-  Firestore, collection, query, where, orderBy,
-  onSnapshot, addDoc, updateDoc, deleteDoc, doc,
-  serverTimestamp, Timestamp, writeBatch
-} from '@angular/fire/firestore';
-import { Auth } from '@angular/fire/auth';
-import { firstValueFrom } from 'rxjs';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { Timestamp } from '@angular/fire/firestore';
 import { ScheduledBlock, TimeSlot } from '@shared/models/schedule.model';
 import { Task } from '@shared/models/task.model';
+import { SupabaseService } from './supabase.service';
 import { AiService } from './ai.service';
 import { AuthService } from './auth.service';
+import { toTs, fromTs } from './supabase-map.util';
 
 // ============================================================
-// SchedulingService — Smart time-blocking and conflict detection
+// SchedulingService — smart time-blocking and conflict detection (Supabase).
 // ============================================================
 
 @Injectable({ providedIn: 'root' })
 export class SchedulingService {
-  private readonly firestore = inject(Firestore);
-  private readonly auth      = inject(AuthService);
-  private readonly ai        = inject(AiService);
+  private readonly supa = inject(SupabaseService);
+  private readonly auth = inject(AuthService);
+  private readonly ai   = inject(AiService);
 
   readonly schedules  = signal<ScheduledBlock[]>([]);
   readonly isLoading  = signal(false);
 
-  private unsubscribe?: () => void;
+  private channel?: RealtimeChannel;
 
   startListening(): void {
     const uid = this.auth.userId();
     if (!uid) return;
 
-    const q = query(
-      collection(this.firestore, 'schedules'),
-      where('userId', '==', uid),
-      orderBy('startTime', 'asc')
-    );
-
-    this.unsubscribe = onSnapshot(q, snap => {
-      this.schedules.set(snap.docs.map(d => ({ id: d.id, ...d.data() } as ScheduledBlock)));
-    });
+    void this.load(uid);
+    this.channel = this.supa.client
+      .channel(`schedules:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `user_id=eq.${uid}` },
+        () => void this.load(uid))
+      .subscribe();
   }
 
   stopListening(): void {
-    this.unsubscribe?.();
+    if (this.channel) { void this.supa.client.removeChannel(this.channel); this.channel = undefined; }
+  }
+
+  private async load(uid: string): Promise<void> {
+    const { data } = await this.supa.db('schedules')
+      .select('*').eq('user_id', uid).order('start_time', { ascending: true });
+    this.schedules.set((data ?? []).map(rowToBlock));
   }
 
   // ---- Free Slot Detection ----
@@ -149,25 +148,28 @@ export class SchedulingService {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
 
-    const ref = await addDoc(collection(this.firestore, 'schedules'), {
-      ...data,
-      userId:    uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+    const { data: row, error } = await this.supa.db('schedules').insert({
+      user_id:           uid,
+      task_id:           data.taskId ?? null,
+      start_time:        fromTs(data.startTime),
+      end_time:          fromTs(data.endTime),
+      auto_scheduled:    data.autoScheduled ?? false,
+      calendar_event_id: data.calendarEventId ?? null,
+      provider:          data.provider ?? null,
+      has_conflict:      data.hasConflict ?? false,
+      conflict_with:     data.conflictWith ?? [],
+    }).select('id').single();
+    if (error) throw error;
 
-    return { ...data, id: ref.id, userId: uid } as ScheduledBlock;
+    return { ...data, id: row.id, userId: uid } as ScheduledBlock;
   }
 
   async updateBlock(id: string, changes: Partial<ScheduledBlock>): Promise<void> {
-    await updateDoc(doc(this.firestore, 'schedules', id), {
-      ...changes,
-      updatedAt: serverTimestamp()
-    });
+    await this.supa.db('schedules').update(blockPatch(changes)).eq('id', id);
   }
 
   async deleteBlock(id: string): Promise<void> {
-    await deleteDoc(doc(this.firestore, 'schedules', id));
+    await this.supa.db('schedules').delete().eq('id', id);
   }
 
   // ---- Conflict Detection ----
@@ -207,4 +209,36 @@ export class SchedulingService {
       }
     }
   }
+}
+
+// ---- Mapping ----
+
+function rowToBlock(r: any): ScheduledBlock {
+  return {
+    id:              r.id,
+    userId:          r.user_id,
+    taskId:          r.task_id,
+    startTime:       toTs(r.start_time) as any,
+    endTime:         toTs(r.end_time) as any,
+    autoScheduled:   r.auto_scheduled,
+    calendarEventId: r.calendar_event_id ?? undefined,
+    provider:        r.provider ?? undefined,
+    hasConflict:     r.has_conflict,
+    conflictWith:    r.conflict_with ?? [],
+    createdAt:       toTs(r.created_at) as any,
+    updatedAt:       toTs(r.updated_at) as any,
+  };
+}
+
+function blockPatch(c: Partial<ScheduledBlock>): Record<string, unknown> {
+  const p: Record<string, unknown> = {};
+  if (c.taskId          !== undefined) p['task_id']           = c.taskId;
+  if (c.startTime       !== undefined) p['start_time']        = fromTs(c.startTime);
+  if (c.endTime         !== undefined) p['end_time']          = fromTs(c.endTime);
+  if (c.autoScheduled   !== undefined) p['auto_scheduled']    = c.autoScheduled;
+  if (c.calendarEventId !== undefined) p['calendar_event_id'] = c.calendarEventId;
+  if (c.provider        !== undefined) p['provider']          = c.provider;
+  if (c.hasConflict     !== undefined) p['has_conflict']      = c.hasConflict;
+  if (c.conflictWith    !== undefined) p['conflict_with']     = c.conflictWith;
+  return p;
 }

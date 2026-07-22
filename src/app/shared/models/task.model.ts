@@ -59,6 +59,8 @@ export interface Task {
   // parent org resolved without an extra read.
   orgId?:          string | null;
   spaceId?:        string | null;   // null/absent = not a space task
+  spaceGroupId?:   string | null;   // board section within the space (Monday "Group")
+  position?:       number;          // order within its board section
 
   // Core fields
   title:           string;

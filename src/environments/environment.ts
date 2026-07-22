@@ -23,5 +23,13 @@ export const environment = {
     scopes: ['Calendars.ReadWrite', 'User.Read']
   },
   // AI runs entirely through the Cloud Functions proxy; no keys in the frontend.
-  functionsBaseUrl: 'https://us-central1-taskpilot-ad725.cloudfunctions.net'
+  functionsBaseUrl: 'https://us-central1-taskpilot-ad725.cloudfunctions.net',
+
+  // Supabase (Postgres + Realtime + Auth). Fill these from your Supabase
+  // project → Settings → API. The anon key is safe to ship in the client
+  // (RLS enforces access); the service_role key must NEVER go here.
+  supabase: {
+    url:     'https://YOUR_PROJECT_REF.supabase.co',
+    anonKey: 'YOUR_SUPABASE_ANON_KEY'
+  }
 };

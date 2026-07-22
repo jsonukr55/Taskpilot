@@ -22,5 +22,9 @@ export const environment = {
     tenantId: 'common',
     scopes: ['Calendars.ReadWrite', 'User.Read']
   },
-  functionsBaseUrl: 'https://us-central1-taskpilot-ad725.cloudfunctions.net'
+  functionsBaseUrl: 'https://us-central1-taskpilot-ad725.cloudfunctions.net',
+  supabase: {
+    url:     'https://YOUR_PROJECT_REF.supabase.co',
+    anonKey: 'YOUR_SUPABASE_ANON_KEY'
+  }
 };

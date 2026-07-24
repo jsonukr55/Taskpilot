@@ -5,6 +5,7 @@ import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { SpaceService } from '@core/services/space.service';
 import { SpaceGroupService } from '@core/services/space-group.service';
+import { SpaceColumnService } from '@core/services/space-column.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { TaskService } from '@core/services/task.service';
 import { AuthService } from '@core/services/auth.service';
@@ -14,6 +15,7 @@ import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { spaceMembers } from '@shared/models/space.model';
 import { SpaceGroup } from '@shared/models/space-group.model';
+import { SpaceColumn, SpaceColumnType, SPACE_COLUMN_TYPES } from '@shared/models/space-column.model';
 import { Task, TaskPriority, TaskStage, TASK_STAGES, TASK_STAGE_LABELS } from '@shared/models/task.model';
 
 type BoardView = 'section' | 'status' | 'sprint';
@@ -41,9 +43,10 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   orgId   = input.required<string>();
   spaceId = input.required<string>();
 
-  readonly spaces      = inject(SpaceService);
-  readonly spaceGroups = inject(SpaceGroupService);
-  readonly orgs        = inject(OrganizationService);
+  readonly spaces       = inject(SpaceService);
+  readonly spaceGroups  = inject(SpaceGroupService);
+  readonly spaceColumns = inject(SpaceColumnService);
+  readonly orgs         = inject(OrganizationService);
   readonly tasks       = inject(TaskService);
   readonly auth        = inject(AuthService);
   private readonly toast = inject(ToastService);
@@ -128,6 +131,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.tasks.openSpaceTasks(this.spaceId());
     this.spaceGroups.open(this.spaceId());
+    this.spaceColumns.open(this.spaceId());
     try {
       const saved = localStorage.getItem('space-view:' + this.spaceId());
       if (saved === 'section' || saved === 'status' || saved === 'sprint') this.view.set(saved);
@@ -136,6 +140,53 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.tasks.closeSpaceTasks();
     this.spaceGroups.close();
+    this.spaceColumns.close();
+  }
+
+  // ---- Custom columns ----
+  readonly COLUMN_TYPES = SPACE_COLUMN_TYPES;
+
+  /** Dynamic grid: base columns + one 140px track per custom column + add-col cell. */
+  readonly gridTemplate = computed(() => {
+    const custom = this.spaceColumns.columns().map(() => '140px').join(' ');
+    return `260px 148px 120px 108px 88px 116px ${custom} 44px`;
+  });
+
+  fieldValue = (t: Task, colId: string): string | number | null => t.customFields?.[colId] ?? null;
+
+  async setCustomField(t: Task, colId: string, value: string): Promise<void> {
+    const cf = { ...(t.customFields ?? {}), [colId]: value === '' ? null : value };
+    try { await this.tasks.updateTask(t.id, { customFields: cf }); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not update the field'); }
+  }
+
+  async deleteColumn(c: SpaceColumn): Promise<void> {
+    if (!confirm(`Delete column "${c.name}"? Its values are removed from the board.`)) return;
+    try { await this.spaceColumns.remove(c.id); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the column'); }
+  }
+
+  // Add-column dialog
+  readonly showAddColumn = signal(false);
+  readonly newColName    = signal('');
+  readonly newColType    = signal<SpaceColumnType>('text');
+  readonly newColOptions = signal('');   // comma-separated for dropdown
+
+  openAddColumn(): void {
+    this.newColName.set(''); this.newColType.set('text'); this.newColOptions.set('');
+    this.showAddColumn.set(true);
+  }
+  async createColumn(): Promise<void> {
+    const name = this.newColName().trim();
+    if (!name) return;
+    const options = this.newColType() === 'dropdown'
+      ? this.newColOptions().split(',').map(s => s.trim()).filter(Boolean) : [];
+    try {
+      await this.spaceColumns.create(this.spaceId(), name, this.newColType(), options);
+      this.showAddColumn.set(false);
+    } catch (e: any) {
+      this.toast.error(e?.message ?? 'Could not add the column');
+    }
   }
 
   initial = (name: string): string => (name?.charAt(0) || '?').toUpperCase();

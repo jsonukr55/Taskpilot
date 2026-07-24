@@ -88,6 +88,7 @@ export interface Task {
   position?:       number;          // order within its board section
   stage?:          TaskStage;       // workflow stage (board Status column)
   sprint?:         string | null;   // sprint label (e.g. "Sprint 1")
+  customFields?:   Record<string, string | number | null>;  // space custom column values
 
   // Core fields
   title:           string;

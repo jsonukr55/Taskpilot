@@ -82,10 +82,19 @@
           @if (!isCollapsed(col.key)) {
             <div class="tblwrap">
               <div class="tbl">
-                <div class="tbl__row tbl__row--head">
+                <div class="tbl__row tbl__row--head" [style.grid-template-columns]="gridTemplate()">
                   <div class="c c--task">Task</div><div class="c c--status">Status</div>
                   <div class="c c--prio">Priority</div><div class="c c--people">Assignee</div>
                   <div class="c c--date">Due</div><div class="c c--sprint">Sprint</div>
+                  @for (cc of spaceColumns.columns(); track cc.id) {
+                    <div class="c c--custom c--custom-head">
+                      <span class="ch-name">{{ cc.name }}</span>
+                      @if (canEdit()) { <button class="ch-del" (click)="deleteColumn(cc)" data-tooltip="Delete column"><tp-icon name="x" [size]="11" /></button> }
+                    </div>
+                  }
+                  <div class="c c--addcol">
+                    @if (canEdit()) { <button class="addcol-btn" (click)="openAddColumn()" data-tooltip="Add column"><tp-icon name="plus" [size]="14" /></button> }
+                  </div>
                 </div>
 
                 <div cdkDropList [cdkDropListData]="col.tasks" (cdkDropListDropped)="drop($event, col)">
@@ -93,11 +102,11 @@
                     <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: t }"></ng-container>
                   }
                   @if (!col.tasks.length) {
-                    <div class="tbl__row"><div class="c c--empty">Drag tasks here, or add below</div></div>
+                    <div class="tbl__row" [style.grid-template-columns]="gridTemplate()"><div class="c c--empty">Drag tasks here, or add below</div></div>
                   }
                 </div>
                 @if (canEdit()) {
-                  <div class="tbl__row tbl__row--add">
+                  <div class="tbl__row tbl__row--add" [style.grid-template-columns]="gridTemplate()">
                     <input #ti class="addrow" placeholder="+ Add task" (keydown.enter)="addTask(col, ti)">
                   </div>
                 }
@@ -121,7 +130,7 @@
 
     <!-- Reusable task row -->
     <ng-template #rowTpl let-t>
-      <div class="tbl__row" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
+      <div class="tbl__row" [style.grid-template-columns]="gridTemplate()" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
         <div class="c c--task">
           @if (canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
           <button class="tname" (click)="selectedTask.set(t)">{{ t.title }}</button>
@@ -161,6 +170,32 @@
             <span class="tp-muted">{{ t.sprint || '—' }}</span>
           }
         </div>
+        @for (cc of spaceColumns.columns(); track cc.id) {
+          <div class="c c--custom">
+            @if (canEdit()) {
+              @switch (cc.type) {
+                @case ('dropdown') {
+                  <select class="cf-input" [value]="fieldValue(t, cc.id) ?? ''" (change)="setCustomField(t, cc.id, $any($event.target).value)">
+                    <option value="">—</option>
+                    @for (o of cc.options; track o) { <option [value]="o">{{ o }}</option> }
+                  </select>
+                }
+                @case ('date') {
+                  <input class="cf-input" type="date" [value]="fieldValue(t, cc.id) ?? ''" (change)="setCustomField(t, cc.id, $any($event.target).value)">
+                }
+                @case ('number') {
+                  <input class="cf-input" type="number" [value]="fieldValue(t, cc.id) ?? ''" (blur)="setCustomField(t, cc.id, $any($event.target).value)">
+                }
+                @default {
+                  <input class="cf-input" [value]="fieldValue(t, cc.id) ?? ''" placeholder="—" (blur)="setCustomField(t, cc.id, $any($event.target).value)">
+                }
+              }
+            } @else {
+              <span class="tp-muted">{{ fieldValue(t, cc.id) ?? '—' }}</span>
+            }
+          </div>
+        }
+        <div class="c c--addcol"></div>
         <div class="drag-preview" *cdkDragPreview>
           <tp-icon name="drag" [size]="14" /> {{ t.title }}
         </div>
@@ -180,4 +215,39 @@
 
 @if (selectedTask()) {
   <tp-task-drawer [task]="selectedTask()!" (closed)="selectedTask.set(null)" />
+}
+
+@if (showAddColumn()) {
+  <div class="modal-overlay" (click)="showAddColumn.set(false)">
+    <div class="modal scale-in" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>New column</h2>
+        <button class="btn-icon" (click)="showAddColumn.set(false)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" [ngModel]="newColName()" (ngModelChange)="newColName.set($event)"
+                 placeholder="e.g. Estimate" (keydown.enter)="createColumn()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-input" [ngModel]="newColType()" (ngModelChange)="newColType.set($event)">
+            @for (ct of COLUMN_TYPES; track ct.value) { <option [value]="ct.value">{{ ct.label }}</option> }
+          </select>
+        </div>
+        @if (newColType() === 'dropdown') {
+          <div class="form-group">
+            <label class="form-label">Options <span class="optional">(comma-separated)</span></label>
+            <input class="form-input" [ngModel]="newColOptions()" (ngModelChange)="newColOptions.set($event)"
+                   placeholder="Low, Medium, High">
+          </div>
+        }
+        <div class="modal__footer">
+          <button class="btn-ghost" (click)="showAddColumn.set(false)">Cancel</button>
+          <button class="btn-primary" (click)="createColumn()" [disabled]="!newColName().trim()">Add column</button>
+        </div>
+      </div>
+    </div>
+  </div>
 }

@@ -187,7 +187,7 @@
 }
 
 .tbl {
-  min-width: 720px;
+  min-width: max-content;   // grows with custom columns; tblwrap scrolls
   display: flex;
   flex-direction: column;
 
@@ -347,4 +347,43 @@
   &::placeholder { color: var(--text-tertiary); }
   &:hover  { border-color: var(--border-subtle); }
   &:focus  { outline: none; border-color: var(--input-focus); background: var(--input-bg); }
+}
+
+// ---- Custom columns ----
+.c--custom { padding: $space-1 $space-2; }
+.c--custom-head { justify-content: space-between; gap: $space-1; }
+.ch-name { @include text-truncate; }
+.ch-del {
+  @include flex-center;
+  width: 18px; height: 18px;
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer; border-radius: $radius-sm;
+  opacity: 0; flex-shrink: 0;
+  &:hover { background: var(--surface-danger); color: $rose-500; }
+}
+.c--custom-head:hover .ch-del { opacity: 1; }
+
+.cf-input {
+  width: 100%;
+  padding: 3px $space-2;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  &::placeholder { color: var(--text-tertiary); }
+  &:hover  { border-color: var(--border-subtle); }
+  &:focus  { outline: none; border-color: var(--input-focus); background: var(--input-bg); }
+}
+
+.c--addcol { justify-content: center; padding: 0; }
+.addcol-btn {
+  @include flex-center;
+  width: 26px; height: 26px;
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer; border-radius: $radius-md;
+  &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 }

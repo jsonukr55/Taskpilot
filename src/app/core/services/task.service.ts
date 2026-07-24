@@ -571,6 +571,7 @@ function rowToTask(r: any): Task {
     position:       r.position ?? 0,
     stage:          r.stage ?? 'created',
     sprint:         r.sprint ?? null,
+    customFields:   r.custom_fields ?? {},
     title:          r.title,
     description:    r.description ?? '',
     status:         r.status,
@@ -659,6 +660,7 @@ function taskPatch(c: Partial<Task>): Record<string, unknown> {
   if (c.position        !== undefined) p['position'] = c.position;
   if (c.stage           !== undefined) p['stage'] = c.stage;
   if (c.sprint          !== undefined) p['sprint'] = c.sprint;
+  if (c.customFields    !== undefined) p['custom_fields'] = c.customFields;
   if (c.orgId           !== undefined) p['org_id'] = c.orgId;
   return p;
 }

@@ -4,7 +4,7 @@
     <!-- Header -->
     <header class="od__header">
       <a routerLink="/organizations" class="btn-icon od__back" data-tooltip="All organizations"><tp-icon name="arrow-left" [size]="18" /></a>
-      <span class="od__icon" [style.background]="o.color + '22'" [style.color]="o.color">{{ o.icon }}</span>
+      <span class="od__icon" [style.color]="o.color"><tp-icon name="grid" [size]="20" /></span>
       <div class="od__titles">
         <h1>{{ o.name }}</h1>
         @if (o.description) { <p>{{ o.description }}</p> }
@@ -30,13 +30,16 @@
       } @else if (orgSpaces().length === 0) {
         <p class="od-empty">No spaces yet. Create a space to hold tasks and subtasks.</p>
       } @else {
-        <div class="space-grid">
+        <div class="tp-list spaces-list">
           @for (s of orgSpaces(); track s.id) {
-            <a class="space-card card-hover" [routerLink]="['/organizations', orgId(), 'spaces', s.id]">
-              <span class="space-card__icon" [style.background]="s.color + '22'" [style.color]="s.color">{{ s.icon }}</span>
-              <span class="space-card__name">{{ s.name }}</span>
-              <span class="space-card__meta">{{ s.memberIds.length }} {{ s.memberIds.length === 1 ? 'member' : 'members' }}</span>
-            </a>
+            <div class="tp-list__row" (click)="openSpace(s.id)">
+              <span class="tp-list__name">
+                <span class="tp-list__icon" [style.color]="s.color"><tp-icon name="folder" [size]="16" /></span>
+                <span>{{ s.name }}</span>
+              </span>
+              <span class="tp-list__meta">{{ s.memberIds.length }} {{ s.memberIds.length === 1 ? 'member' : 'members' }}</span>
+              <tp-menu [items]="spaceMenu(s)" />
+            </div>
           }
         </div>
       }
@@ -88,7 +91,7 @@
   </div>
 } @else if (notFound()) {
   <div class="od-missing card">
-    <div class="od-missing__icon">🔍</div>
+    <div class="od-missing__icon"><tp-icon name="search" [size]="36" /></div>
     <h2>Organization not found</h2>
     <p>You may not have access, or it may have been deleted.</p>
     <a routerLink="/organizations" class="btn-secondary">Back to organizations</a>
@@ -110,14 +113,6 @@
           <label class="form-label">Name</label>
           <input class="form-input" [ngModel]="spaceName()" (ngModelChange)="spaceName.set($event)"
                  placeholder="e.g. Engineering" (keydown.enter)="createSpace()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Icon</label>
-          <div class="picker">
-            @for (ic of SPACE_ICONS; track ic) {
-              <button type="button" class="picker__item" [class.active]="spaceIcon() === ic" (click)="spaceIcon.set(ic)">{{ ic }}</button>
-            }
-          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Color</label>
@@ -196,14 +191,6 @@
         <div class="form-group">
           <label class="form-label">Description</label>
           <textarea class="form-textarea" [ngModel]="editDesc()" (ngModelChange)="editDesc.set($event)"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Icon</label>
-          <div class="picker">
-            @for (ic of ICONS; track ic) {
-              <button type="button" class="picker__item" [class.active]="editIcon() === ic" (click)="editIcon.set(ic)">{{ ic }}</button>
-            }
-          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Color</label>

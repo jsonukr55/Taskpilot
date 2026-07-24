@@ -5,6 +5,7 @@ import { CategoryService } from '@core/services/category.service';
 import { TaskService } from '@core/services/task.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
+import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { Category } from '@shared/models/category.model';
 
@@ -14,7 +15,7 @@ const CATEGORY_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea
 @Component({
   selector:   'tp-categories',
   standalone: true,
-  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DecimalPipe, TooltipDirective, SelectComponent],
+  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DecimalPipe, TooltipDirective, MenuComponent, SelectComponent],
   templateUrl: './categories.component.html',
   styleUrl:    './categories.component.scss'
 })
@@ -61,6 +62,16 @@ export class CategoriesComponent {
       children:  this.categories.categories().filter(c => c.parentId === cat.id)
     }))
   );
+
+  pct = (item: { taskCount: number; doneCount: number }): number =>
+    item.taskCount > 0 ? Math.round((item.doneCount / item.taskCount) * 100) : 0;
+
+  catMenu(cat: Category): MenuItem[] {
+    return [
+      { label: 'Edit',   icon: 'edit-2',  action: () => this.startEdit(cat) },
+      { label: 'Delete', icon: 'trash-2', danger: true, action: () => this.deleteCategory(cat.id, cat.name) },
+    ];
+  }
 
   startCreate(): void {
     this.editingId.set(null);

@@ -1,11 +1,12 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { OrganizationService } from '@core/services/organization.service';
 import { ClientService } from '@core/services/client.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { Organization } from '@shared/models/organization.model';
 
 const ORG_ICONS  = ['🏢','🚀','🌐','💼','🏗️','🧩','📊','🛠️','🔬','🎯','🏦','⚙️'];
@@ -14,7 +15,7 @@ const ORG_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9',
 @Component({
   selector:   'tp-organizations',
   standalone: true,
-  imports:    [RouterLink, ReactiveFormsModule, IconComponent],
+  imports:    [RouterLink, ReactiveFormsModule, IconComponent, MenuComponent],
   templateUrl: './organizations.component.html',
   styleUrl:    './organizations.component.scss'
 })
@@ -25,6 +26,25 @@ export class OrganizationsComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  open(id: string): void { void this.router.navigate(['/organizations', id]); }
+
+  menuFor(o: Organization): MenuItem[] {
+    const items: MenuItem[] = [
+      { label: 'Open', icon: 'arrow-right', action: () => this.open(o.id) },
+    ];
+    if (this.orgs.canManageOrg(o)) {
+      items.push({ label: 'Delete', icon: 'trash-2', danger: true, action: () => this.deleteOrg(o) });
+    }
+    return items;
+  }
+
+  async deleteOrg(o: Organization): Promise<void> {
+    if (!confirm(`Delete "${o.name}"? This removes its spaces and their tasks for everyone.`)) return;
+    try { await this.orgs.deleteOrganization(o.id); this.toast.success('Organization deleted'); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the organization'); }
+  }
 
   readonly showForm     = signal(false);
   readonly isSubmitting = signal(false);

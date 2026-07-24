@@ -39,17 +39,18 @@
   -webkit-backdrop-filter: blur($blur);
 }
 
-// Card
+// Card — enterprise-crisp: tighter radius, subtle border-led elevation.
 @mixin card($hover: true) {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: $radius-xl;
+  border-radius: $radius-lg;
   box-shadow: var(--card-shadow);
-  transition: transform $transition-normal, box-shadow $transition-normal;
+  transition: transform $transition-normal, box-shadow $transition-normal, border-color $transition-normal;
 
   @if $hover {
     &:hover {
       box-shadow: var(--card-shadow-hover);
+      border-color: var(--border-default);
       transform: translateY(-1px);
     }
   }
@@ -70,10 +71,10 @@
   justify-content: center;
   gap: $space-2;
   padding: $space-2 $space-4;
-  border-radius: $radius-lg;
+  border-radius: $radius-md;
   font-family: $font-sans;
   font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
   line-height: 1;
   cursor: pointer;
   transition: all $transition-fast;
@@ -97,7 +98,7 @@
   padding: $space-3 $space-4;
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
-  border-radius: $radius-lg;
+  border-radius: $radius-md;
   font-family: $font-sans;
   font-size: $font-size-sm;
   color: var(--text-primary);

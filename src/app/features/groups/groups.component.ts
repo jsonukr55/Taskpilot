@@ -1,8 +1,10 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { GroupService } from '@core/services/group.service';
+import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { Group, ROLE_LABELS, GroupRole } from '@shared/models/group.model';
 
 const GROUP_ICONS  = ['👥','🚀','📁','🎯','💼','🧩','🏗️','🌐','🔬','🎨','📊','🛠️'];
@@ -11,7 +13,7 @@ const GROUP_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9
 @Component({
   selector:   'tp-groups',
   standalone: true,
-  imports:    [RouterLink, ReactiveFormsModule, IconComponent],
+  imports:    [RouterLink, ReactiveFormsModule, IconComponent, MenuComponent],
   templateUrl: './groups.component.html',
   styleUrl:    './groups.component.scss'
 })
@@ -19,6 +21,24 @@ export class GroupsComponent implements OnInit {
   readonly groups = inject(GroupService);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+
+  open(id: string): void { void this.router.navigate(['/groups', id]); }
+
+  groupMenu(g: Group): MenuItem[] {
+    const items: MenuItem[] = [{ label: 'Open', icon: 'arrow-right', action: () => this.open(g.id) }];
+    if (this.groups.isOwner(g)) {
+      items.push({ label: 'Delete', icon: 'trash-2', danger: true, action: () => this.deleteGroup(g) });
+    }
+    return items;
+  }
+
+  async deleteGroup(g: Group): Promise<void> {
+    if (!confirm(`Delete group "${g.name}"? This removes its shared notes and tasks.`)) return;
+    try { await this.groups.deleteGroup(g.id); this.toast.success('Group deleted'); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the group'); }
+  }
 
   ngOnInit(): void {
     // Deep-link: /groups?new=true opens the create modal (used by the dashboard quick action).

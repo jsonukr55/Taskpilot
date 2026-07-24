@@ -1,0 +1,63 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.menu {
+  position: relative;
+  display: inline-flex;
+
+  &__trigger {
+    @include flex-center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    background: transparent;
+    color: var(--text-tertiary);
+    border-radius: $radius-md;
+    cursor: pointer;
+    transition: background $transition-fast, color $transition-fast;
+
+    &:hover, &.is-open { background: var(--bg-tertiary); color: var(--text-primary); }
+  }
+
+  &__backdrop { position: fixed; inset: 0; z-index: $z-dropdown; }
+
+  &__list {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: $z-dropdown + 1;
+    min-width: 170px;
+    padding: $space-1;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: $radius-lg;
+    box-shadow: var(--shadow-lg);
+    animation: menu-in 120ms $transition-fast;
+
+    &--left { right: auto; left: 0; }
+  }
+
+  &__item {
+    @include flex-start;
+    gap: $space-2;
+    width: 100%;
+    padding: $space-2 $space-3;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: $font-sans;
+    font-size: $font-size-sm;
+    text-align: left;
+    border-radius: $radius-md;
+    cursor: pointer;
+
+    tp-icon { color: var(--text-tertiary); }
+    &:hover { background: var(--bg-tertiary); }
+    &--danger { color: $rose-500; tp-icon { color: $rose-500; } &:hover { background: var(--surface-danger); } }
+  }
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

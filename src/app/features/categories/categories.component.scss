@@ -218,3 +218,15 @@
 }
 
 .btn-block { width: 100%; }
+
+// Monday list columns for categories
+.cats-list {
+  .tp-list__head, .tp-list__row { grid-template-columns: minmax(200px, 1fr) 110px 160px 44px; }
+  &__progress { display: flex; align-items: center; gap: $space-2; }
+  &__bar { flex: 1; height: 6px; border-radius: $radius-full; background: var(--bg-tertiary); overflow: hidden; }
+  &__fill { display: block; height: 100%; border-radius: $radius-full; }
+  @media (max-width: 640px) {
+    .tp-list__head, .tp-list__row { grid-template-columns: 1fr 90px 44px; }
+    .tp-list__head span:nth-child(3), .tp-list__row > .cats-list__progress { display: none; }
+  }
+}

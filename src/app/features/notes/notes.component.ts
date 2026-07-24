@@ -3,12 +3,13 @@ import { Router } from '@angular/router';
 import { NoteService } from '@core/services/note.service';
 import { NoteAccessService } from '@core/services/note-access.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { Note, NoteQuickRef } from '@shared/models/note.model';
 
 @Component({
   selector:   'tp-notes',
   standalone: true,
-  imports:    [IconComponent],
+  imports:    [IconComponent, MenuComponent],
   templateUrl: './notes.component.html',
   styleUrl:    './notes.component.scss'
 })
@@ -80,6 +81,19 @@ export class NotesComponent implements OnInit, OnDestroy {
   }
   async remove(ev: Event, id: string): Promise<void> {
     ev.stopPropagation();
+    if (!confirm('Delete this note?')) return;
+    await this.notes.deleteNote(null, id);
+  }
+
+  noteMenu(n: Note): MenuItem[] {
+    return [
+      { label: 'Open', icon: 'arrow-right', action: () => this.open(n.id) },
+      { label: this.access.isPinned(n.id) ? 'Unpin' : 'Pin', icon: 'bookmark', action: () => this.access.togglePin(n) },
+      { label: this.access.isFavorite(n.id) ? 'Unfavorite' : 'Favorite', icon: 'star', action: () => this.access.toggleFavorite(n) },
+      { label: 'Delete', icon: 'trash-2', danger: true, action: () => this.removeNote(n.id) },
+    ];
+  }
+  async removeNote(id: string): Promise<void> {
     if (!confirm('Delete this note?')) return;
     await this.notes.deleteNote(null, id);
   }

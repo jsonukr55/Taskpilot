@@ -131,3 +131,13 @@
   p { color: var(--text-secondary); max-width: 380px; }
   .btn-primary { margin-top: $space-2; }
 }
+
+// Monday list columns for notes
+.notes-list {
+  .tp-list__head, .tp-list__row { grid-template-columns: minmax(200px, 1.3fr) minmax(0, 1.6fr) 130px 44px; }
+  &__pin { color: var(--accent-500); flex-shrink: 0; }
+  @media (max-width: 720px) {
+    .tp-list__head, .tp-list__row { grid-template-columns: 1fr 120px 44px; }
+    .tp-list__head span:nth-child(2), .tp-list__row > span:nth-child(2) { display: none; }
+  }
+}

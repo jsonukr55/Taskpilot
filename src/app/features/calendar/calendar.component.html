@@ -47,7 +47,7 @@
           @for (dayData of calendarDays(); track dayData.date.toISOString()) {
             <div class="week-view__holiday-cell">
               @if (dayData.holiday) {
-                <span class="cal-holiday" [attr.data-tooltip]="dayData.holiday">🎉 {{ dayData.holiday }}</span>
+                <span class="cal-holiday" [attr.data-tooltip]="dayData.holiday"><tp-icon name="flag" [size]="11" /> {{ dayData.holiday }}</span>
               }
             </div>
           }
@@ -58,12 +58,12 @@
       @if (hasAnyBirthday()) {
         <div class="week-view__grid week-view__birthday-row">
           <div class="week-view__time-col week-view__birthday-label" data-tooltip="Birthdays">
-            <span>🎂</span>
+            <span><tp-icon name="star" [size]="12" /></span>
           </div>
           @for (dayData of calendarDays(); track dayData.date.toISOString()) {
             <div class="week-view__birthday-cell">
               @for (name of dayData.birthdays; track name) {
-                <span class="cal-birthday" [attr.data-tooltip]="name + ' — Happy Birthday!'">🎂 {{ name }}</span>
+                <span class="cal-birthday" [attr.data-tooltip]="name + ' — Happy Birthday!'"><tp-icon name="star" [size]="11" /> {{ name }}</span>
               }
             </div>
           }

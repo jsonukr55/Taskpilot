@@ -71,7 +71,7 @@
                   } @else if (b.type === 'numbered') {
                     <span class="block__marker">{{ numberFor(i) }}.</span>
                   } @else if (b.type === 'callout') {
-                    <span class="block__callout-emoji">💡</span>
+                    <span class="block__callout-emoji"><tp-icon name="sparkles" [size]="16" /></span>
                   }
 
                   <div class="block__content" [class]="'ct-' + b.type" [class.checked]="b.type === 'todo' && b.checked"

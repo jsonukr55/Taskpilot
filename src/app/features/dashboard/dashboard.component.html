@@ -118,7 +118,7 @@
         </div>
       } @else {
         <div class="focus-card__empty">
-          <span class="focus-card__empty-icon">🎉</span>
+          <span class="focus-card__empty-icon"><tp-icon name="check-circle" [size]="36" /></span>
           <p>No open tasks — you're clear. Add one to get started.</p>
           <a routerLink="/tasks" [queryParams]="{new: true}" class="btn btn-primary btn-sm">
             <tp-icon name="plus" [size]="14" /> New Task
@@ -168,14 +168,14 @@
 
       @if (!ai.enabled) {
         <div class="empty-insights">
-          <span class="empty-insights__icon">✨</span>
+          <span class="empty-insights__icon"><tp-icon name="sparkles" [size]="32" /></span>
           <p>AI insights are coming soon.</p>
         </div>
       } @else if (insights().length > 0) {
         <div class="insights-list">
           @for (insight of insights(); track insight.id) {
             <div class="insight-card" [class]="'insight-card--' + insight.severity">
-              <span class="insight-card__icon">{{ insight.icon }}</span>
+              <span class="insight-card__icon"><tp-icon name="sparkles" [size]="18" /></span>
               <div class="insight-card__body">
                 <strong class="insight-card__title">{{ insight.title }}</strong>
                 <p class="insight-card__text">{{ insight.body }}</p>
@@ -191,7 +191,7 @@
         </div>
       } @else if (!generatingInsights()) {
         <div class="empty-insights">
-          <span class="empty-insights__icon">💡</span>
+          <span class="empty-insights__icon"><tp-icon name="sparkles" [size]="32" /></span>
           <p>Complete a few tasks to unlock AI insights about your productivity patterns.</p>
         </div>
       }
@@ -209,7 +209,7 @@
       <div class="rec-list">
         @for (rec of recommendations(); track rec.id) {
           <div class="rec-card" [class]="'rec-card--' + rec.tone">
-            <span class="rec-card__icon">{{ rec.icon }}</span>
+            <span class="rec-card__icon"><tp-icon name="zap" [size]="16" /></span>
             <div class="rec-card__body">
               <strong class="rec-card__title">{{ rec.title }}</strong>
               <p class="rec-card__text">{{ rec.body }}</p>
@@ -240,7 +240,7 @@
         </div>
       } @else {
         <div class="empty-state">
-          <span class="empty-state__icon">🎯</span>
+          <span class="empty-state__icon"><tp-icon name="check-square" [size]="32" /></span>
           <p class="empty-state__text">No tasks due today — enjoy!</p>
         </div>
       }
@@ -293,7 +293,7 @@
           @for (item of categoryProgress(); track item.category.id) {
             <div class="category-row">
               <div class="category-row__info">
-                <span class="category-row__icon">{{ item.category.icon }}</span>
+                <span class="category-row__icon" [style.color]="item.category.color"><tp-icon name="tag" [size]="14" /></span>
                 <span class="category-row__name">{{ item.category.name }}</span>
                 <span class="category-row__count">{{ item.done }}/{{ item.count }}</span>
               </div>
@@ -333,7 +333,7 @@
         </div>
       } @else {
         <div class="empty-state">
-          <span class="empty-state__icon">📅</span>
+          <span class="empty-state__icon"><tp-icon name="calendar" [size]="32" /></span>
           <p class="empty-state__text">Nothing scheduled for the next 7 days.</p>
         </div>
       }
@@ -368,7 +368,7 @@
         </div>
       } @else {
         <div class="empty-state">
-          <span class="empty-state__icon">✅</span>
+          <span class="empty-state__icon"><tp-icon name="check-circle" [size]="32" /></span>
           <p class="empty-state__text">Complete a task to see it here.</p>
         </div>
       }

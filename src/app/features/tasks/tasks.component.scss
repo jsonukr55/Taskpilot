@@ -159,7 +159,7 @@
 // Column header — must match task-card grid: 28px 1fr 44px 106px 90px 110px
 .task-list-header {
   display: grid;
-  grid-template-columns: 28px 1fr 44px 106px 90px 110px;
+  grid-template-columns: 28px 1fr 96px 116px 92px 110px;
   gap: $space-2;
   padding: $space-1 $space-4;
   border-bottom: 1px solid var(--border-subtle);
@@ -174,7 +174,7 @@
   }
 
   @include mobile-only {
-    grid-template-columns: 28px 1fr 44px 90px;
+    grid-template-columns: 28px 1fr 80px 96px;
     // Hide status & category columns on mobile
     span:nth-child(4) { display: none; } // status
     span:nth-child(6) { display: none; } // category
@@ -321,7 +321,7 @@
 
 // ---- Multi-select header + bulk bar ----
 .task-list-header--select {
-  grid-template-columns: 22px 28px 1fr 44px 106px 90px 110px;
+  grid-template-columns: 22px 28px 1fr 96px 116px 92px 110px;
   @include mobile-only { display: none; }
 }
 

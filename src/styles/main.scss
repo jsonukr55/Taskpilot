@@ -551,3 +551,81 @@ select:not(.filter-pill) {
 // ============================================================
 .cdk-overlay-container { z-index: $z-modal; }
 .cdk-overlay-backdrop { background: var(--bg-overlay); }
+
+// ============================================================
+// Monday-style data list (shared) — replaces card grids.
+// A screen sets grid-template-columns on .tp-list__head / __row.
+// ============================================================
+.tp-list {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: $radius-lg;
+  box-shadow: var(--card-shadow);
+  overflow: visible;   // let row context menus escape the container
+
+  &__head { border-radius: $radius-lg $radius-lg 0 0; }
+  &__row:last-child { border-radius: 0 0 $radius-lg $radius-lg; }
+
+  &__head, &__row {
+    display: grid;
+    align-items: center;
+    gap: $space-3;
+    padding: 0 $space-4;
+  }
+  &__head {
+    min-height: 40px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: var(--text-tertiary);
+    text-transform: none;
+  }
+  &__row {
+    min-height: 50px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background $transition-fast;
+    &:last-child { border-bottom: 0; }
+    &:hover { background: var(--bg-tertiary); }
+  }
+  &__name {
+    display: flex; align-items: center; gap: $space-3;
+    font-weight: $font-weight-medium; color: var(--text-primary);
+    min-width: 0;
+    span:last-child { @include text-truncate; }
+  }
+  &__icon {
+    @include flex-center;
+    width: 30px; height: 30px; border-radius: $radius-md;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  &__meta { font-size: $font-size-sm; color: var(--text-secondary); @include text-truncate; }
+  &__sub  { font-size: $font-size-xs; color: var(--text-tertiary); }
+  &__empty { padding: $space-10 $space-6; text-align: center; color: var(--text-secondary); }
+}
+
+// Small neutral tag / muted text (shared)
+.tag {
+  display: inline-flex; align-items: center; gap: $space-1;
+  padding: 2px $space-2;
+  font-size: $font-size-xs; font-weight: $font-weight-medium;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: $radius-full;
+}
+.tp-muted { color: var(--text-tertiary); font-size: $font-size-sm; }
+
+// Standard page header (title + subtitle + actions)
+.tp-page-header {
+  @include flex-between;
+  gap: $space-3;
+  flex-wrap: wrap;
+  margin-bottom: $space-5;
+
+  &__title { font-size: $font-size-2xl; font-weight: $font-weight-bold; letter-spacing: -0.01em; }
+  &__subtitle { color: var(--text-secondary); font-size: $font-size-sm; margin-top: 2px; }
+  &__actions { display: flex; align-items: center; gap: $space-2; }
+}

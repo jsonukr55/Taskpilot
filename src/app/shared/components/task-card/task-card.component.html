@@ -69,16 +69,15 @@
   </div>
 
   <div class="task-row__priority">
-    <span class="task-row__flag task-row__flag--{{ task().priority }}">
-      <tp-icon name="flag" [size]="12" />
-    </span>
+    <span class="cell-pill cell-pill--prio-{{ task().priority }}">{{ task().priority }}</span>
   </div>
 
   <div class="task-row__status-col">
-    <span class="task-row__status task-row__status--{{ task().status }}">
+    <span class="cell-pill cell-pill--status-{{ task().status }}">
       @if (task().status === 'in_progress') { In Progress }
       @else if (task().status === 'completed') { Done }
-      @else { Open }
+      @else if (task().status === 'cancelled') { Cancelled }
+      @else { To Do }
     </span>
   </div>
 

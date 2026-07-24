@@ -132,3 +132,9 @@
   &:hover  { border-color: var(--border-strong); }
   &:focus  { outline: none; border-color: var(--input-focus); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
 }
+
+// Spaces list (inside a section card → flush, no double border)
+.spaces-list.tp-list { border: 0; box-shadow: none; border-radius: 0; background: transparent; }
+.spaces-list {
+  .tp-list__row { grid-template-columns: minmax(160px, 1fr) 130px 44px; padding-left: 0; padding-right: 0; }
+}

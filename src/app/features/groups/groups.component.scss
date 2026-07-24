@@ -87,3 +87,12 @@
 
   .btn-primary { margin-top: $space-2; }
 }
+
+// Monday list columns for groups
+.groups-list {
+  .tp-list__head, .tp-list__row { grid-template-columns: minmax(200px, 1fr) 120px 90px 44px; }
+  @media (max-width: 640px) {
+    .tp-list__head, .tp-list__row { grid-template-columns: 1fr 90px 44px; }
+    .tp-list__head span:nth-child(3), .tp-list__row > span:nth-child(3) { display: none; }
+  }
+}

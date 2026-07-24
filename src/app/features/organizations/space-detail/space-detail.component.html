@@ -4,7 +4,7 @@
     <!-- Header -->
     <header class="sd__header">
       <a [routerLink]="['/organizations', orgId()]" class="btn-icon sd__back" data-tooltip="Back to organization"><tp-icon name="arrow-left" [size]="18" /></a>
-      <span class="sd__icon" [style.background]="s.color + '22'" [style.color]="s.color">{{ s.icon }}</span>
+      <span class="sd__icon" [style.color]="s.color"><tp-icon name="folder" [size]="20" /></span>
       <div class="sd__titles">
         <h1>{{ s.name }}</h1>
         <p>Space · {{ members().length }} {{ members().length === 1 ? 'member' : 'members' }}</p>
@@ -125,7 +125,7 @@
 
       @if (!board().sections.length && !board().ungrouped.length) {
         <div class="board__empty card">
-          <div class="board__empty-icon">🗂️</div>
+          <div class="board__empty-icon"><tp-icon name="grid" [size]="36" /></div>
           <h3>Build your board</h3>
           <p>Sections group your tasks — like "To do", "In progress", "Done".</p>
           @if (canEdit()) {
@@ -179,7 +179,7 @@
   </div>
 } @else if (notFound()) {
   <div class="od-missing card">
-    <div class="od-missing__icon">🔍</div>
+    <div class="od-missing__icon"><tp-icon name="search" [size]="36" /></div>
     <h2>Space not found</h2>
     <p>You may not have access, or it may have been deleted.</p>
     <a routerLink="/organizations" class="btn-secondary">Back to organizations</a>

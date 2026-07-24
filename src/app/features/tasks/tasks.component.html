@@ -97,11 +97,11 @@
 
     @if (taskService.overdueTasks().length > 0) {
       <button class="filter-pill filter-pill--overdue" [class.active]="taskService.filter().isOverdue" (click)="toggleOverdue()">
-        ⚠ {{ taskService.overdueTasks().length }} overdue
+        <tp-icon name="alert-circle" [size]="12" /> {{ taskService.overdueTasks().length }} overdue
       </button>
     }
     @if (taskService.searchQuery() || taskService.filter().categoryIds?.length || taskService.filter().priority?.length || taskService.filter().assigneeId) {
-      <button class="filter-pill filter-pill--clear" (click)="clearFilter()">✕ Clear</button>
+      <button class="filter-pill filter-pill--clear" (click)="clearFilter()"><tp-icon name="x" [size]="12" /> Clear</button>
     }
   </div>
 
@@ -113,7 +113,7 @@
   } @else if (viewMode() === 'list') {
     @if (taskService.filteredTasks().length === 0) {
       <div class="tasks-empty">
-        <div class="tasks-empty__icon">📋</div>
+        <div class="tasks-empty__icon"><tp-icon name="check-square" [size]="40" /></div>
         <h3 class="tasks-empty__title">No tasks found</h3>
         <p class="tasks-empty__desc">
           @if (taskService.searchQuery()) { No tasks match "{{ taskService.searchQuery() }}" }
@@ -131,9 +131,9 @@
             <div class="status-group">
               <div class="status-group__header" (click)="toggleGroup(group.status)">
                 <span class="status-badge status-badge--{{ group.status }}">
-                  @if (group.status === 'completed') { ✓ }
-                  @else if (group.status === 'in_progress') { ◉ }
-                  @else { ○ }
+                  @if (group.status === 'completed') { <tp-icon name="check-circle" [size]="13" /> }
+                  @else if (group.status === 'in_progress') { <tp-icon name="play-circle" [size]="13" /> }
+                  @else { <tp-icon name="circle" [size]="13" /> }
                   {{ group.label }}
                 </span>
                 <span class="status-group__count">{{ group.tasks.length }}</span>

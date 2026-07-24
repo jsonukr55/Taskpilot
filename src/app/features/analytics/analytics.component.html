@@ -8,12 +8,12 @@
   <!-- Top Metrics -->
   <div class="metrics-row">
     <div class="metric-card">
-      <span class="metric-card__icon">✅</span>
+      <span class="metric-card__icon"><tp-icon name="check-circle" [size]="20" /></span>
       <span class="metric-card__value">{{ completionRate() }}%</span>
       <span class="metric-card__label">Completion Rate</span>
     </div>
     <div class="metric-card">
-      <span class="metric-card__icon">📋</span>
+      <span class="metric-card__icon"><tp-icon name="check-square" [size]="20" /></span>
       <span class="metric-card__value">{{ tasks.tasks().length }}</span>
       <span class="metric-card__label">Total Tasks</span>
     </div>
@@ -23,17 +23,17 @@
       <span class="metric-card__label">Hours Estimated</span>
     </div>
     <div class="metric-card">
-      <span class="metric-card__icon">🤖</span>
+      <span class="metric-card__icon"><tp-icon name="sparkles" [size]="20" /></span>
       <span class="metric-card__value">{{ aiCreatedTasks() }}</span>
       <span class="metric-card__label">AI-Created Tasks</span>
     </div>
     <div class="metric-card" [class.metric-card--danger]="tasks.overdueTasks().length > 0">
-      <span class="metric-card__icon">⚠️</span>
+      <span class="metric-card__icon"><tp-icon name="alert-circle" [size]="20" /></span>
       <span class="metric-card__value">{{ tasks.overdueTasks().length }}</span>
       <span class="metric-card__label">Overdue</span>
     </div>
     <div class="metric-card metric-card--streak">
-      <span class="metric-card__icon">🔥</span>
+      <span class="metric-card__icon"><tp-icon name="zap" [size]="20" /></span>
       <span class="metric-card__value">{{ auth.userProfile()?.stats?.currentStreak ?? 0 }}</span>
       <span class="metric-card__label">Day Streak</span>
     </div>

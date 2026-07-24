@@ -10,7 +10,7 @@
   @if (!auth.isAdmin()) {
     <!-- Non-admins: bootstrap claim / access denied -->
     <div class="admin-card card">
-      <div class="admin-card__icon">🔐</div>
+      <div class="admin-card__icon"><tp-icon name="shield" [size]="40" /></div>
       <h2>Admin access required</h2>
       <p>This area is for platform administrators. If you're the account owner setting up
          TaskPilot for the first time, you can claim admin access below.</p>
@@ -45,15 +45,6 @@
                      [ngModel]="newClientDesc()" (ngModelChange)="newClientDesc.set($event)">
             </div>
             <div class="admin-form__field">
-              <label class="form-label">Icon</label>
-              <div class="picker">
-                @for (ic of CLIENT_ICONS; track ic) {
-                  <button type="button" class="picker__item" [class.active]="newClientIcon() === ic"
-                          (click)="newClientIcon.set(ic)">{{ ic }}</button>
-                }
-              </div>
-            </div>
-            <div class="admin-form__field">
               <label class="form-label">Color</label>
               <div class="picker">
                 @for (col of CLIENT_COLORS; track col) {
@@ -78,7 +69,7 @@
           <ul class="admin-list">
             @for (c of clients.clients(); track c.id) {
               <li class="admin-list__row">
-                <span class="admin-list__icon" [style.background]="c.color + '22'" [style.color]="c.color">{{ c.icon }}</span>
+                <span class="admin-list__icon" [style.color]="c.color"><tp-icon name="briefcase" [size]="16" /></span>
                 <span class="admin-list__name">{{ c.name }}</span>
                 <span class="admin-list__meta">{{ orgCount(c.id) }} {{ orgCount(c.id) === 1 ? 'org' : 'orgs' }}</span>
                 <a class="btn-ghost btn-sm" routerLink="/organizations" [queryParams]="{ new: true, client: c.id }"
@@ -108,10 +99,10 @@
           <ul class="admin-list">
             @for (o of orgs.organizations(); track o.id) {
               <li class="admin-list__row">
-                <span class="admin-list__icon" [style.background]="o.color + '22'" [style.color]="o.color">{{ o.icon }}</span>
+                <span class="admin-list__icon" [style.color]="o.color"><tp-icon name="grid" [size]="16" /></span>
                 <a class="admin-list__name" [routerLink]="['/organizations', o.id]">{{ o.name }}</a>
                 @if (o.clientId && clients.getClientById(o.clientId); as parent) {
-                  <span class="admin-list__tag">{{ parent.icon }} {{ parent.name }}</span>
+                  <span class="admin-list__tag">{{ parent.name }}</span>
                 }
                 <span class="admin-list__meta">{{ o.memberIds.length }} {{ o.memberIds.length === 1 ? 'member' : 'members' }}</span>
               </li>

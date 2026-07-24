@@ -1,14 +1,15 @@
 <div class="notes-page">
 
-  <header class="notes-page__header">
+  <header class="tp-page-header">
     <div>
-      <h1 class="notes-page__title">Notes</h1>
-      <p class="notes-page__subtitle">Your personal notes. For shared notes, open a group.</p>
+      <h1 class="tp-page-header__title">Notes</h1>
+      <p class="tp-page-header__subtitle">Your personal notes. For shared notes, open a group.</p>
     </div>
-    <button class="btn-primary" (click)="newNote()">
-      <tp-icon name="plus" [size]="16" />
-      New note
-    </button>
+    <div class="tp-page-header__actions">
+      <button class="btn-primary btn-sm" (click)="newNote()">
+        <tp-icon name="plus" [size]="14" /> New note
+      </button>
+    </div>
   </header>
 
   <!-- Quick access: pinned / favorites / recently opened -->
@@ -20,7 +21,7 @@
           <div class="qa__row">
             @for (r of access.pinned(); track r.id) {
               <button class="qa__chip" (click)="openRef(r)">
-                <span class="qa__icon">{{ r.icon || '📄' }}</span>
+                <span class="qa__icon"><tp-icon name="file-text" [size]="14" /></span>
                 <span class="qa__title">{{ r.title }}</span>
                 @if (r.groupId) { <span class="qa__badge">group</span> }
               </button>
@@ -35,7 +36,7 @@
           <div class="qa__row">
             @for (r of access.favorites(); track r.id) {
               <button class="qa__chip" (click)="openRef(r)">
-                <span class="qa__icon">{{ r.icon || '📄' }}</span>
+                <span class="qa__icon"><tp-icon name="file-text" [size]="14" /></span>
                 <span class="qa__title">{{ r.title }}</span>
                 @if (r.groupId) { <span class="qa__badge">group</span> }
               </button>
@@ -50,7 +51,7 @@
           <div class="qa__row">
             @for (r of recentToShow(); track r.id) {
               <button class="qa__chip qa__chip--recent" (click)="openRef(r)">
-                <span class="qa__icon">{{ r.icon || '📄' }}</span>
+                <span class="qa__icon"><tp-icon name="file-text" [size]="14" /></span>
                 <span class="qa__title">{{ r.title }}</span>
                 @if (r.groupId) { <span class="qa__badge">group</span> }
               </button>
@@ -62,39 +63,27 @@
   }
 
   @if (notes.notesLoading()) {
-    <div class="notes-grid">
-      @for (i of [1,2,3]; track i) { <div class="skeleton" style="height:120px;border-radius:16px;"></div> }
-    </div>
+    <div class="skeleton" style="height:200px;border-radius:12px;"></div>
   } @else if (notes.notes().length === 0) {
-    <div class="notes-empty card">
-      <div class="notes-empty__icon">📝</div>
-      <h2>No notes yet</h2>
-      <p>Create a note to jot down ideas, docs, and checklists — just for you.</p>
-      <button class="btn-primary" (click)="newNote()"><tp-icon name="plus" [size]="16" /> Create your first note</button>
+    <div class="tp-list">
+      <div class="tp-list__empty">
+        <p>No notes yet. Create a note to jot down ideas, docs, and checklists — just for you.</p>
+        <button class="btn-primary btn-sm" (click)="newNote()" style="margin-top:12px"><tp-icon name="plus" [size]="14" /> Create your first note</button>
+      </div>
     </div>
   } @else {
-    <div class="notes-grid">
+    <div class="tp-list notes-list">
+      <div class="tp-list__head"><span>Note</span><span>Preview</span><span>Edited</span><span></span></div>
       @for (n of sortedNotes(); track n.id) {
-        <div class="note-card card-hover" [class.note-card--pinned]="access.isPinned(n.id)" (click)="open(n.id)">
-          <div class="note-card__top">
-            <span class="note-card__icon">{{ n.icon || '📄' }}</span>
-            <span class="note-card__actions">
-              <button class="btn-icon note-card__act note-card__act--pin" [class.on]="access.isPinned(n.id)"
-                      (click)="togglePin($event, n)" [attr.data-tooltip]="access.isPinned(n.id) ? 'Unpin' : 'Pin'">
-                <tp-icon name="bookmark" [size]="14" />
-              </button>
-              <button class="btn-icon note-card__act note-card__act--fav" [class.on]="access.isFavorite(n.id)"
-                      (click)="toggleFav($event, n)" [attr.data-tooltip]="access.isFavorite(n.id) ? 'Unfavorite' : 'Favorite'">
-                <tp-icon name="star" [size]="14" />
-              </button>
-              <button class="btn-icon note-card__del" (click)="remove($event, n.id)" data-tooltip="Delete">
-                <tp-icon name="trash-2" [size]="15" />
-              </button>
-            </span>
-          </div>
-          <h3 class="note-card__title">{{ n.title || 'Untitled' }}</h3>
-          <p class="note-card__preview">{{ preview(n) }}</p>
-          <span class="note-card__meta">{{ edited(n) }}</span>
+        <div class="tp-list__row" (click)="open(n.id)">
+          <span class="tp-list__name">
+            <span class="tp-list__icon"><tp-icon name="file-text" [size]="16" /></span>
+            <span>{{ n.title || 'Untitled' }}</span>
+            @if (access.isPinned(n.id)) { <tp-icon name="bookmark" [size]="12" class="notes-list__pin" /> }
+          </span>
+          <span class="tp-list__meta">{{ preview(n) }}</span>
+          <span class="tp-list__sub">{{ edited(n) }}</span>
+          <tp-menu [items]="noteMenu(n)" />
         </div>
       }
     </div>

@@ -1,86 +1,44 @@
 <div class="categories-page fade-in">
 
-  <div class="categories-page__header">
+  <div class="tp-page-header">
     <div>
-      <h1 class="categories-page__title">Categories</h1>
-      <p class="categories-page__subtitle">Organize tasks and configure AI behavior per category</p>
+      <h1 class="tp-page-header__title">Categories</h1>
+      <p class="tp-page-header__subtitle">Organize tasks and configure behavior per category</p>
     </div>
-    <button class="btn btn-primary" (click)="startCreate()">
-      <tp-icon name="plus" [size]="16" /> New Category
-    </button>
+    <div class="tp-page-header__actions">
+      <button class="btn-primary btn-sm" (click)="startCreate()">
+        <tp-icon name="plus" [size]="14" /> New category
+      </button>
+    </div>
   </div>
 
   @if (categories.isLoading()) {
-    <div class="categories-grid">
-      @for (n of [1,2,3,4,5]; track n) {
-        <div class="skeleton" style="height: 140px; border-radius: 16px;"></div>
-      }
+    <div class="skeleton" style="height: 200px; border-radius: 12px;"></div>
+  } @else if (categoryWithStats().length === 0) {
+    <div class="tp-list">
+      <div class="tp-list__empty">
+        <p>No categories yet. Create one to organize your tasks.</p>
+        <button class="btn-primary btn-sm" (click)="startCreate()" style="margin-top:12px"><tp-icon name="plus" [size]="14" /> Create your first category</button>
+      </div>
     </div>
   } @else {
-    <div class="categories-grid">
+    <div class="tp-list cats-list">
+      <div class="tp-list__head"><span>Category</span><span>Tasks</span><span>Progress</span><span></span></div>
       @for (item of categoryWithStats(); track item.cat.id) {
-        <div class="category-card">
-          <div class="category-card__header">
-            <div class="category-card__icon" [style.background]="item.cat.color + '20'" [style.color]="item.cat.color">
-              {{ item.cat.icon }}
-            </div>
-            <div class="category-card__actions">
-              <button class="btn-icon" (click)="startEdit(item.cat)" data-tooltip="Edit">
-                <tp-icon name="edit-2" [size]="14" />
-              </button>
-              <button class="btn-icon" (click)="deleteCategory(item.cat.id, item.cat.name)" data-tooltip="Delete">
-                <tp-icon name="trash-2" [size]="14" />
-              </button>
-            </div>
-          </div>
-
-          <h3 class="category-card__name">{{ item.cat.name }}</h3>
-          @if (item.cat.description) {
-            <p class="category-card__desc">{{ item.cat.description }}</p>
-          }
-
-          <!-- Stats -->
-          <div class="category-card__stats">
-            <span>{{ item.taskCount }} tasks</span>
-            <span class="category-card__rate">{{ item.taskCount > 0 ? ((item.doneCount / item.taskCount) * 100 | number:'1.0-0') : 0 }}% done</span>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="category-card__bar">
-            <div class="category-card__bar-fill"
-              [style.width.%]="item.taskCount > 0 ? (item.doneCount / item.taskCount) * 100 : 0"
-              [style.background]="item.cat.color">
-            </div>
-          </div>
-
-          <!-- Rules badges -->
-          <div class="category-card__rules">
-            @if (item.cat.rules.preferredHours) {
-              <span class="tag">🕐 {{ item.cat.rules.preferredHours.start }}–{{ item.cat.rules.preferredHours.end }}</span>
-            }
-            @if (item.cat.rules.priorityBias) {
-              <span class="tag">⚡ {{ item.cat.rules.priorityBias }}</span>
-            }
-          </div>
-
-          <!-- Children -->
-          @if (item.children.length > 0) {
-            <div class="category-card__children">
-              @for (child of item.children; track child.id) {
-                <span class="category-child" [style.color]="child.color">
-                  {{ child.icon }} {{ child.name }}
-                </span>
-              }
-            </div>
-          }
+        <div class="tp-list__row" (click)="startEdit(item.cat)">
+          <span class="tp-list__name">
+            <span class="tp-list__icon" [style.color]="item.cat.color"><tp-icon name="tag" [size]="16" /></span>
+            <span>{{ item.cat.name }}</span>
+            @if (item.children.length) { <span class="tag">{{ item.children.length }} sub</span> }
+          </span>
+          <span class="tp-list__meta">{{ item.taskCount }} {{ item.taskCount === 1 ? 'task' : 'tasks' }}</span>
+          <span class="cats-list__progress">
+            <span class="cats-list__bar"><span class="cats-list__fill" [style.width.%]="pct(item)" [style.background]="item.cat.color"></span></span>
+            <span class="tp-list__sub">{{ pct(item) }}%</span>
+          </span>
+          <tp-menu [items]="catMenu(item.cat)" />
         </div>
       }
-
-      <!-- Add card -->
-      <button class="category-add-card" (click)="startCreate()">
-        <tp-icon name="plus" [size]="24" />
-        <span>Add Category</span>
-      </button>
     </div>
   }
 </div>
@@ -96,26 +54,15 @@
       <div class="modal__body">
         <form [formGroup]="form" (ngSubmit)="submit()" class="cat-form">
 
-          <!-- Icon + Color -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Icon</label>
-              <div class="icon-picker">
-                @for (icon of ICONS; track icon) {
-                  <button type="button" class="icon-option" [class.selected]="form.value.icon === icon"
-                    (click)="form.patchValue({icon})">{{ icon }}</button>
-                }
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Color</label>
-              <div class="color-picker">
-                @for (color of COLORS; track color) {
-                  <button type="button" class="color-swatch" [style.background]="color"
-                    [class.selected]="form.value.color === color"
-                    (click)="form.patchValue({color})"></button>
-                }
-              </div>
+          <!-- Color -->
+          <div class="form-group">
+            <label class="form-label">Color</label>
+            <div class="color-picker">
+              @for (color of COLORS; track color) {
+                <button type="button" class="color-swatch" [style.background]="color"
+                  [class.selected]="form.value.color === color"
+                  (click)="form.patchValue({color})"></button>
+              }
             </div>
           </div>
 

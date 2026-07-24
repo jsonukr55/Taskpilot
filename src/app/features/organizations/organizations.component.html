@@ -14,39 +14,38 @@
   </header>
 
   @if (orgs.isLoading()) {
-    <div class="orgs-grid">
-      @for (i of [1,2,3]; track i) {
-        <div class="skeleton" style="height: 128px; border-radius: 16px;"></div>
-      }
-    </div>
+    <div class="skeleton" style="height: 220px; border-radius: 12px;"></div>
   } @else if (orgs.organizations().length === 0) {
-    <div class="orgs-empty card">
-      <div class="orgs-empty__icon">🏢</div>
-      <h2>No organizations yet</h2>
-      @if (auth.isAdmin()) {
-        <p>Create an organization, then add users and spaces inside it.</p>
-        <button class="btn-primary" (click)="startCreate()">
-          <tp-icon name="plus" [size]="16" /> Create your first organization
-        </button>
-      } @else {
-        <p>You're not in any organization yet. Ask an admin to add you, or open an invite link.</p>
-      }
+    <div class="tp-list">
+      <div class="tp-list__empty">
+        @if (auth.isAdmin()) {
+          <p>No organizations yet. Create one, then add users and spaces inside it.</p>
+          <button class="btn-primary btn-sm" (click)="startCreate()" style="margin-top:12px">
+            <tp-icon name="plus" [size]="14" /> Create your first organization
+          </button>
+        } @else {
+          <p>You're not in any organization yet. Ask an admin to add you, or open an invite link.</p>
+        }
+      </div>
     </div>
   } @else {
-    <div class="orgs-grid">
+    <div class="tp-list orgs-list">
+      <div class="tp-list__head">
+        <span>Name</span><span>Client</span><span>Members</span><span>Role</span><span></span>
+      </div>
       @for (o of orgs.organizations(); track o.id) {
-        <a class="org-card card-hover" [routerLink]="['/organizations', o.id]">
-          <div class="org-card__top">
-            <span class="org-card__icon" [style.background]="o.color + '22'" [style.color]="o.color">{{ o.icon }}</span>
-            @if (orgs.isOrgOwner(o)) { <span class="badge org-card__role">Owner</span> }
-          </div>
-          <h3 class="org-card__name">{{ o.name }}</h3>
-          @if (o.description) { <p class="org-card__desc">{{ o.description }}</p> }
-          <div class="org-card__footer">
-            <tp-icon name="users" [size]="14" />
-            <span>{{ memberCount(o) }} {{ memberCount(o) === 1 ? 'member' : 'members' }}</span>
-          </div>
-        </a>
+        <div class="tp-list__row" (click)="open(o.id)">
+          <span class="tp-list__name">
+            <span class="tp-list__icon" [style.color]="o.color"><tp-icon name="grid" [size]="16" /></span>
+            <span>{{ o.name }}</span>
+          </span>
+          <span class="tp-list__meta">
+            @if (o.clientId && clients.getClientById(o.clientId); as c) { {{ c.name }} } @else { — }
+          </span>
+          <span class="tp-list__meta">{{ memberCount(o) }} {{ memberCount(o) === 1 ? 'member' : 'members' }}</span>
+          <span>@if (orgs.isOrgOwner(o)) { <span class="tag">Owner</span> } @else { <span class="tp-muted">Member</span> }</span>
+          <tp-menu [items]="menuFor(o)" />
+        </div>
       }
     </div>
   }
@@ -67,7 +66,7 @@
           <select class="form-input" formControlName="clientId">
             <option value="">— No client —</option>
             @for (c of clients.clients(); track c.id) {
-              <option [value]="c.id">{{ c.icon }} {{ c.name }}</option>
+              <option [value]="c.id">{{ c.name }}</option>
             }
           </select>
         </div>
@@ -80,16 +79,6 @@
         <div class="form-group">
           <label class="form-label">Description <span class="optional">(optional)</span></label>
           <textarea class="form-textarea" formControlName="description" placeholder="What is this organization for?"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Icon</label>
-          <div class="picker">
-            @for (ic of ICONS; track ic) {
-              <button type="button" class="picker__item" [class.active]="form.value.icon === ic"
-                      (click)="form.patchValue({ icon: ic })">{{ ic }}</button>
-            }
-          </div>
         </div>
 
         <div class="form-group">

@@ -2,7 +2,7 @@
 @use 'mixins' as *;
 
 // Grid columns: [checkbox] [name] [priority] [status] [due] [category]
-$task-cols: 28px 1fr 44px 106px 90px 110px;
+$task-cols: 28px 1fr 96px 116px 92px 110px;
 
 .task-row {
   position: relative;
@@ -18,7 +18,7 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
   min-height: 38px;
 
   @include mobile-only {
-    grid-template-columns: 28px 1fr 44px 90px;
+    grid-template-columns: 28px 1fr 80px 96px;
     padding: 0 $space-3;
   }
 
@@ -36,7 +36,7 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
     grid-template-columns: 22px $task-cols;
 
     @include mobile-only {
-      grid-template-columns: 22px 28px 1fr 44px 90px;
+      grid-template-columns: 22px 28px 1fr 80px 96px;
     }
   }
 
@@ -265,4 +265,35 @@ $task-cols: 28px 1fr 44px 106px 90px 110px;
   height: 6px;
   border-radius: 50%;
   background: var(--accent-500);
+}
+
+// ============================================================
+// Monday-style filled pills for status + priority (replaces the
+// faint text label + flag icon). Bold, color-filled, unmistakable.
+// ============================================================
+.cell-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;             // fill the grid column → clean aligned filled cell
+  padding: 5px $space-2;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: #fff;
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+
+  &--prio-low    { background: #{$sky-500}; }
+  &--prio-medium { background: #{$amber-500}; }
+  &--prio-high   { background: #{$rose-500}; }
+  &--prio-urgent { background: #{$rose-600}; }
+
+  &--status-todo        { background: #{$slate-400}; }
+  &--status-in_progress { background: #{$amber-500}; }
+  &--status-completed   { background: #{$emerald-500}; }
+  &--status-cancelled   { background: #{$slate-500}; }
 }

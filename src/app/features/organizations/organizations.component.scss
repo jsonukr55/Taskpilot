@@ -67,3 +67,15 @@
   p  { color: var(--text-secondary); max-width: 420px; }
   .btn-primary { margin-top: $space-2; }
 }
+
+// Monday list columns for the organizations list
+.orgs-list {
+  .tp-list__head, .tp-list__row {
+    grid-template-columns: minmax(200px, 1fr) 160px 120px 80px 44px;
+  }
+  @media (max-width: 720px) {
+    .tp-list__head, .tp-list__row { grid-template-columns: 1fr 90px 44px; }
+    .tp-list__head span:nth-child(2), .tp-list__row > span:nth-child(2),
+    .tp-list__head span:nth-child(4), .tp-list__row > span:nth-child(4) { display: none; }
+  }
+}

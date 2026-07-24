@@ -6,7 +6,9 @@ import { SpaceService } from '@core/services/space.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { orgMembers, OrgInvite, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
+import { Space } from '@shared/models/space.model';
 
 const SPACE_ICONS  = ['📁','🚀','🎯','🧩','📊','🛠️','🎨','🔬','📌','🗂️','💡','📈'];
 const SPACE_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
@@ -14,7 +16,7 @@ const SPACE_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9
 @Component({
   selector:   'tp-org-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, IconComponent],
+  imports:    [RouterLink, FormsModule, IconComponent, MenuComponent],
   templateUrl: './org-detail.component.html',
   styleUrl:    './org-detail.component.scss'
 })
@@ -139,6 +141,22 @@ export class OrgDetailComponent {
     } finally {
       this.creatingSpace.set(false);
     }
+  }
+
+  openSpace(id: string): void { void this.router.navigate(['/organizations', this.orgId(), 'spaces', id]); }
+
+  spaceMenu(s: Space): MenuItem[] {
+    const items: MenuItem[] = [{ label: 'Open', icon: 'arrow-right', action: () => this.openSpace(s.id) }];
+    if (this.canManage() || this.spaces.isSpaceOwner(s)) {
+      items.push({ label: 'Delete', icon: 'trash-2', danger: true, action: () => this.deleteSpace(s) });
+    }
+    return items;
+  }
+
+  async deleteSpace(s: Space): Promise<void> {
+    if (!confirm(`Delete space "${s.name}"? This removes its tasks.`)) return;
+    try { await this.spaces.deleteSpace(s.id); this.toast.success('Space deleted'); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the space'); }
   }
 
   // ---- Settings ----

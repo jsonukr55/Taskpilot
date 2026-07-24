@@ -44,77 +44,61 @@
     }
 
     <!-- Board -->
-    <div class="board">
-      <!-- Toolbar -->
+    <div class="board" cdkDropListGroup>
+      <!-- Toolbar: view tabs -->
       <div class="board__bar">
         <div class="board__views">
-          <button class="vtab vtab--active"><tp-icon name="grid" [size]="14" /> Main Table</button>
+          @for (v of VIEWS; track v.value) {
+            <button class="vtab" [class.vtab--active]="view() === v.value" (click)="setView(v.value)">
+              <tp-icon [name]="v.icon" [size]="14" /> {{ v.label }}
+            </button>
+          }
         </div>
-        @if (canEdit()) {
+        @if (canEdit() && view() === 'section') {
           <button class="btn-secondary btn-sm" (click)="addGroup()"><tp-icon name="plus" [size]="14" /> New section</button>
         }
       </div>
 
-      <!-- Ungrouped bucket (tasks with no section) -->
-      @if (board().ungrouped.length) {
-        <section class="grp" style="--gc: var(--text-tertiary)">
+      <!-- Columns for the current view -->
+      @for (col of columns(); track col.key) {
+        <section class="grp" [style.--gc]="col.color">
           <div class="grp__head">
-            <span class="grp__name-static" style="color: var(--text-secondary)">Ungrouped</span>
-            <span class="grp__count">{{ board().ungrouped.length }}</span>
-          </div>
-          <div class="tblwrap">
-            <div class="tbl">
-              <div class="tbl__row tbl__row--head">
-                <div class="c c--task">Task</div><div class="c c--status">Status</div>
-                <div class="c c--prio">Priority</div><div class="c c--people">Assignee</div>
-                <div class="c c--date">Due</div><div class="c c--move"></div>
-              </div>
-              @for (t of board().ungrouped; track t.id) {
-                <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: t, gid: null }"></ng-container>
-              }
-            </div>
-          </div>
-        </section>
-      }
-
-      <!-- Sections -->
-      @for (s of board().sections; track s.group.id) {
-        <section class="grp" [style.--gc]="s.group.color">
-          <div class="grp__head">
-            <button class="grp__toggle" (click)="toggle(s.group.id)">
-              <tp-icon [name]="isCollapsed(s.group.id) ? 'chevron-right' : 'chevron-down'" [size]="16" />
+            <button class="grp__toggle" (click)="toggle(col.key)">
+              <tp-icon [name]="isCollapsed(col.key) ? 'chevron-right' : 'chevron-down'" [size]="16" />
             </button>
-            @if (canEdit()) {
-              <input class="grp__name" [value]="s.group.name" [style.color]="s.group.color"
-                     (blur)="renameGroup(s.group, $any($event.target).value)"
+            @if (col.canManage && col.group) {
+              <input class="grp__name" [value]="col.name" [style.color]="col.color"
+                     (blur)="renameGroup(col.group, $any($event.target).value)"
                      (keydown.enter)="$any($event.target).blur()">
             } @else {
-              <span class="grp__name-static" [style.color]="s.group.color">{{ s.group.name }}</span>
+              <span class="grp__name-static" [style.color]="col.color">{{ col.name }}</span>
             }
-            <span class="grp__count">{{ s.tasks.length }}</span>
-            @if (canEdit()) {
-              <button class="btn-icon grp__del" (click)="deleteGroup(s.group)" data-tooltip="Delete section"><tp-icon name="trash-2" [size]="14" /></button>
+            <span class="grp__count">{{ col.tasks.length }}</span>
+            @if (col.canManage && col.group) {
+              <button class="btn-icon grp__del" (click)="deleteGroup(col.group)" data-tooltip="Delete section"><tp-icon name="trash-2" [size]="14" /></button>
             }
           </div>
 
-          @if (!isCollapsed(s.group.id)) {
+          @if (!isCollapsed(col.key)) {
             <div class="tblwrap">
               <div class="tbl">
                 <div class="tbl__row tbl__row--head">
                   <div class="c c--task">Task</div><div class="c c--status">Status</div>
                   <div class="c c--prio">Priority</div><div class="c c--people">Assignee</div>
-                  <div class="c c--date">Due</div><div class="c c--move"></div>
+                  <div class="c c--date">Due</div><div class="c c--sprint">Sprint</div>
                 </div>
 
-                @for (t of s.tasks; track t.id) {
-                  <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: t, gid: s.group.id }"></ng-container>
-                }
-                @if (!s.tasks.length) {
-                  <div class="tbl__row"><div class="c c--empty">No tasks yet</div></div>
-                }
+                <div cdkDropList [cdkDropListData]="col.tasks" (cdkDropListDropped)="drop($event, col)">
+                  @for (t of col.tasks; track t.id) {
+                    <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: t }"></ng-container>
+                  }
+                  @if (!col.tasks.length) {
+                    <div class="tbl__row"><div class="c c--empty">Drag tasks here, or add below</div></div>
+                  }
+                </div>
                 @if (canEdit()) {
                   <div class="tbl__row tbl__row--add">
-                    <input #ti class="addrow" placeholder="+ Add task" (keydown.enter)="addTaskToGroup(s.group.id, ti)">
+                    <input #ti class="addrow" placeholder="+ Add task" (keydown.enter)="addTask(col, ti)">
                   </div>
                 }
               </div>
@@ -123,7 +107,7 @@
         </section>
       }
 
-      @if (!board().sections.length && !board().ungrouped.length) {
+      @if (!columns().length || (view() === 'section' && !columns().length)) {
         <div class="board__empty card">
           <div class="board__empty-icon"><tp-icon name="grid" [size]="36" /></div>
           <h3>Build your board</h3>
@@ -136,16 +120,19 @@
     </div>
 
     <!-- Reusable task row -->
-    <ng-template #rowTpl let-t let-gid="gid">
-      <div class="tbl__row">
-        <div class="c c--task"><button class="tname" (click)="selectedTask.set(t)">{{ t.title }}</button></div>
+    <ng-template #rowTpl let-t>
+      <div class="tbl__row" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
+        <div class="c c--task">
+          @if (canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
+          <button class="tname" (click)="selectedTask.set(t)">{{ t.title }}</button>
+        </div>
         <div class="c c--status">
           @if (canEdit()) {
-            <select class="pill" [attr.data-status]="t.status" [value]="t.status" (change)="setStatus(t.id, $any($event.target).value)">
-              @for (o of STATUSES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+            <select class="pill" [attr.data-stage]="t.stage" [value]="t.stage" (change)="setStage(t.id, $any($event.target).value)">
+              @for (o of STAGES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
             </select>
           } @else {
-            <span class="pill pill--static" [attr.data-status]="t.status">{{ statusLabel(t.status) }}</span>
+            <span class="pill pill--static" [attr.data-stage]="t.stage">{{ stageLabel(t.stage) }}</span>
           }
         </div>
         <div class="c c--prio">
@@ -165,14 +152,17 @@
           } @empty { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
         </div>
         <div class="c c--date">{{ t.dueDate ? (t.dueDate.toDate() | date:'MMM d') : '—' }}</div>
-        <div class="c c--move">
-          @if (canEdit() && sectionOptions().length && (gid === null || sectionOptions().length > 1)) {
-            <select class="movesel" data-tooltip="Move to section"
-                    (change)="moveTask(t.id, $any($event.target).value); $any($event.target).value=''">
-              <option value="">⋯</option>
-              @for (o of sectionOptions(); track o.id) { @if (o.id !== gid) { <option [value]="o.id">{{ o.name }}</option> } }
-            </select>
+        <div class="c c--sprint">
+          @if (canEdit()) {
+            <input class="sprint-input" [value]="t.sprint || ''" placeholder="—"
+                   (blur)="setSprint(t.id, $any($event.target).value)"
+                   (keydown.enter)="$any($event.target).blur()">
+          } @else {
+            <span class="tp-muted">{{ t.sprint || '—' }}</span>
           }
+        </div>
+        <div class="drag-preview" *cdkDragPreview>
+          <tp-icon name="drag" [size]="14" /> {{ t.title }}
         </div>
       </div>
     </ng-template>

@@ -22,7 +22,7 @@ import {
   matFormatBold, matFormatItalic, matTextFields, matCheckCircle,
   matSubdirectoryArrowLeft, matAlternateEmail, matPerson, matCropSquare,
   matUndo, matRedo, matStar, matBookmark, matWork, matShield, matMail,
-  matAutoAwesome,
+  matAutoAwesome, matDragIndicator,
 } from '@ng-icons/material-icons/baseline';
 
 /** camelCase key (== toPropertyName of the template name) → Material SVG. */
@@ -91,4 +91,5 @@ export const APP_ICONS: Record<string, string> = {
   briefcase:       matWork,
   shield:          matShield,
   mail:            matMail,
+  drag:            matDragIndicator,
 };

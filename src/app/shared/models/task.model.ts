@@ -6,6 +6,31 @@ import { Timestamp } from '@angular/fire/firestore';
 
 export type TaskStatus    = 'todo' | 'in_progress' | 'completed' | 'cancelled';
 export type TaskPriority  = 'low' | 'medium' | 'high' | 'urgent';
+
+// Monday-style workflow stage (the board's "Status" column). The coarse
+// `status` above is DERIVED from this so completion logic stays intact.
+export type TaskStage = 'created' | 'in_discussion' | 'development' | 'done' | 'released' | 'production';
+
+export const TASK_STAGES: { value: TaskStage; label: string }[] = [
+  { value: 'created',       label: 'Created' },
+  { value: 'in_discussion', label: 'In Discussion' },
+  { value: 'development',   label: 'Development' },
+  { value: 'done',          label: 'Done' },
+  { value: 'released',      label: 'Released' },
+  { value: 'production',    label: 'Production' },
+];
+
+export const TASK_STAGE_LABELS: Record<TaskStage, string> =
+  Object.fromEntries(TASK_STAGES.map(s => [s.value, s.label])) as Record<TaskStage, string>;
+
+/** Coarse completion status derived from the workflow stage. */
+export function statusForStage(stage: TaskStage): TaskStatus {
+  switch (stage) {
+    case 'development':                          return 'in_progress';
+    case 'done': case 'released': case 'production': return 'completed';
+    default:                                     return 'todo';   // created, in_discussion
+  }
+}
 export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
 export interface AiMetadata {
@@ -61,6 +86,8 @@ export interface Task {
   spaceId?:        string | null;   // null/absent = not a space task
   spaceGroupId?:   string | null;   // board section within the space (Monday "Group")
   position?:       number;          // order within its board section
+  stage?:          TaskStage;       // workflow stage (board Status column)
+  sprint?:         string | null;   // sprint label (e.g. "Sprint 1")
 
   // Core fields
   title:           string;

@@ -193,7 +193,7 @@
 
   &__row {
     display: grid;
-    grid-template-columns: minmax(220px, 2fr) 148px 128px 120px 96px 40px;
+    grid-template-columns: minmax(220px, 2fr) 148px 120px 108px 88px 116px;
     align-items: stretch;
     border-bottom: 1px solid var(--border-subtle);
 
@@ -262,10 +262,13 @@
   option { color: var(--text-primary); background: var(--bg-elevated); }
 
   // Status colors
-  &[data-status='todo']        { background: #{$slate-400}; }
-  &[data-status='in_progress'] { background: #{$amber-500}; }
-  &[data-status='completed']   { background: #{$emerald-500}; }
-  &[data-status='cancelled']   { background: #{$slate-500}; }
+  // Workflow stage colors (the board Status column)
+  &[data-stage='created']       { background: #{$slate-400}; }
+  &[data-stage='in_discussion'] { background: #{$sky-500}; }
+  &[data-stage='development']   { background: #{$amber-500}; }
+  &[data-stage='done']          { background: #{$emerald-500}; }
+  &[data-stage='released']      { background: #{$violet-500}; }
+  &[data-stage='production']    { background: #{$emerald-600}; }
 
   // Priority colors
   &[data-prio='low']    { background: #{$sky-500}; }
@@ -313,4 +316,35 @@
   font-size: $font-size-sm;
   &::placeholder { color: var(--text-tertiary); }
   &:focus { outline: none; background: var(--bg-tertiary); color: var(--text-primary); }
+}
+
+// Drag-and-drop on the board
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  cursor: grab;
+  opacity: 0;
+  margin-right: $space-1;
+  transition: opacity $transition-fast;
+  &:active { cursor: grabbing; }
+}
+.tbl__row:hover .drag-handle { opacity: 0.6; }
+.drag-handle:hover { opacity: 1; }
+.tbl__row.cdk-drag-dragging { opacity: 0.4; }
+
+// Sprint cell (inline editable)
+.c--sprint { padding: $space-1 $space-2; }
+.sprint-input {
+  width: 100%;
+  padding: 3px $space-2;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  &::placeholder { color: var(--text-tertiary); }
+  &:hover  { border-color: var(--border-subtle); }
+  &:focus  { outline: none; border-color: var(--input-focus); background: var(--input-bg); }
 }

@@ -4,7 +4,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import {
-  Task, CreateTaskDto, TaskStatus, TaskPriority,
+  Task, CreateTaskDto, TaskStatus, TaskPriority, TaskStage, statusForStage,
   ChecklistItem, AiExtractedTask
 } from '@shared/models/task.model';
 import { toTs, fromTs, nowIso } from './supabase-map.util';
@@ -322,11 +322,14 @@ export class TaskService {
   }
 
   /** Create a task that belongs to a space (shared + assignable to members). */
-  async createSpaceTask(spaceId: string, orgId: string, data: { title: string; priority?: TaskPriority; dueDate?: Timestamp | null; assigneeIds?: string[]; spaceGroupId?: string | null; position?: number }): Promise<string> {
+  async createSpaceTask(spaceId: string, orgId: string, data: { title: string; priority?: TaskPriority; dueDate?: Timestamp | null; assigneeIds?: string[]; spaceGroupId?: string | null; position?: number; stage?: TaskStage; sprint?: string | null }): Promise<string> {
+    const stage = data.stage ?? 'created';
     return this.createTask({
       title:          data.title,
       description:    '',
-      status:         'todo',
+      status:         statusForStage(stage),
+      stage,
+      sprint:         data.sprint ?? null,
       priority:       data.priority ?? 'medium',
       startDate:      null,
       dueDate:        data.dueDate ?? null,
@@ -354,6 +357,21 @@ export class TaskService {
   /** Move a task to a board section (and optional position). */
   async moveToGroup(taskId: string, spaceGroupId: string | null, position = 0): Promise<void> {
     await this.updateTask(taskId, { spaceGroupId, position });
+  }
+
+  /** Set the workflow stage (board Status). Derives the coarse status +
+   *  completedAt so streaks/dashboards stay consistent. */
+  async setStage(taskId: string, stage: TaskStage): Promise<void> {
+    const status = statusForStage(stage);
+    await this.updateTask(taskId, {
+      stage, status,
+      completedAt: status === 'completed' ? Timestamp.now() : null,
+    });
+  }
+
+  /** Assign a task to a sprint (or clear it). */
+  async setSprint(taskId: string, sprint: string | null): Promise<void> {
+    await this.updateTask(taskId, { sprint });
   }
 
   async setAssignees(taskId: string, assigneeIds: string[]): Promise<void> {
@@ -551,6 +569,8 @@ function rowToTask(r: any): Task {
     spaceId:        r.space_id ?? null,
     spaceGroupId:   r.space_group_id ?? null,
     position:       r.position ?? 0,
+    stage:          r.stage ?? 'created',
+    sprint:         r.sprint ?? null,
     title:          r.title,
     description:    r.description ?? '',
     status:         r.status,
@@ -584,6 +604,8 @@ function taskInsertRow(dto: any, uid: string): Record<string, unknown> {
     space_id:       dto.spaceId ?? null,
     space_group_id: dto.spaceGroupId ?? null,
     position:       dto.position ?? 0,
+    stage:          dto.stage ?? 'created',
+    sprint:         dto.sprint ?? null,
     assignee_ids:   dto.assigneeIds ?? [],
     title:          dto.title,
     description:    dto.description ?? '',
@@ -635,6 +657,8 @@ function taskPatch(c: Partial<Task>): Record<string, unknown> {
   if (c.spaceId         !== undefined) p['space_id'] = c.spaceId;
   if (c.spaceGroupId    !== undefined) p['space_group_id'] = c.spaceGroupId;
   if (c.position        !== undefined) p['position'] = c.position;
+  if (c.stage           !== undefined) p['stage'] = c.stage;
+  if (c.sprint          !== undefined) p['sprint'] = c.sprint;
   if (c.orgId           !== undefined) p['org_id'] = c.orgId;
   return p;
 }

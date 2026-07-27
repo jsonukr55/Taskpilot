@@ -69,7 +69,7 @@ rename of existing entities.
 | 5 | Threaded Comments | P1 | Done (text); images w/ Epic 6 |
 | 6 | File & Media uploads (storage, types, size, preview) | P1 | Todo |
 | 7 | Activity log & debounced Mailer (Redis) | P1 | Todo |
-| 8 | Notifications | P2 | Todo |
+| 8 | Notifications (in-app) | P2 | Done (in-app); email later |
 | 9 | Roles & Permissions (admin / member / viewer) | P0 | Done |
 | 10 | Admin panel (users, tasks, files, retention) | P1 | Todo |
 | 11 | Multi-tenancy (`client_id` on tenant tree) | P0 | Done |
@@ -292,15 +292,21 @@ using **Redis keyed by task id**.
 **Goal:** Notify a user when a task is **assigned** to them.
 
 **Tasks**
-- [ ] Trigger a notification to the assignee on task assignment.
-- [ ] Delivery channel(s) — see Open questions.
+- [x] Trigger a notification to the assignee on task assignment — **server-side**
+  DB trigger on `tasks.assignee_ids` (`notify_task_assignment`), so every path
+  (board, drawer, ETL, future API) notifies newly-added assignees; the actor is
+  never self-notified. *(migration 0014)*
+- [x] In-app delivery: `notifications` table + `NotificationService` (realtime feed,
+  unread count) + a bell in the topbar (badge, dropdown, mark-read / mark-all-read,
+  dismiss, click → open). RLS: each user sees/updates only their own rows.
+- [ ] **Email** delivery — deferred; will ride on Epic 7's mailer (needs email provider).
 
 **Acceptance criteria**
-- Assigning a task to a user produces a notification to that assignee.
+- ✅ Assigning a task to a user produces an in-app notification to that assignee.
 
 **Open questions**
-- Channel: in-app, email, or both? Notes only say "Notifications to assignment of
-  task to assignee." (Assignment email may overlap with Epic 7's mailer.)
+- ~~Channel: in-app, email, or both?~~ ✅ **RESOLVED for now** — in-app shipped; email
+  layers on with Epic 7 (shared mailer) once a provider is chosen.
 
 ---
 

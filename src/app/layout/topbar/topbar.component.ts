@@ -5,13 +5,14 @@ import { TaskService } from '@core/services/task.service';
 import { SearchService } from '@core/services/search.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { NotificationBellComponent } from '@shared/components/notification-bell/notification-bell.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { SearchResult } from '@shared/models/search.model';
 
 @Component({
   selector:   'tp-topbar',
   standalone: true,
-  imports:    [RouterLink, IconComponent, TooltipDirective],
+  imports:    [RouterLink, IconComponent, NotificationBellComponent, TooltipDirective],
   templateUrl: './topbar.component.html',
   styleUrl:    './topbar.component.scss'
 })

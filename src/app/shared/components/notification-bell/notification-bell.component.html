@@ -1,0 +1,35 @@
+<div class="nb">
+  <button class="btn-icon nb__btn" (click)="toggle()" data-tooltip="Notifications" aria-label="Notifications">
+    <tp-icon name="bell" [size]="18" />
+    @if (notifs.unreadCount() > 0) {
+      <span class="nb__badge">{{ notifs.unreadCount() > 9 ? '9+' : notifs.unreadCount() }}</span>
+    }
+  </button>
+
+  @if (open()) {
+    <div class="nb__menu">
+      <div class="nb__head">
+        <span class="nb__title">Notifications</span>
+        @if (notifs.unreadCount() > 0) {
+          <button class="nb__mark" (click)="markAll()">Mark all read</button>
+        }
+      </div>
+
+      <div class="nb__list">
+        @for (n of notifs.notifications(); track n.id) {
+          <button class="nb-item" [class.nb-item--unread]="!n.read" (click)="onClick(n)">
+            <span class="nb-item__dot" [class.on]="!n.read"></span>
+            <span class="nb-item__body">
+              <span class="nb-item__text">{{ n.body }}</span>
+              <span class="nb-item__time">{{ timeAgo(n) }}</span>
+            </span>
+            <span class="nb-item__del" (click)="remove($event, n)" data-tooltip="Dismiss"><tp-icon name="x" [size]="13" /></span>
+          </button>
+        } @empty {
+          <p class="nb__empty">You're all caught up.</p>
+        }
+      </div>
+    </div>
+    <div class="nb__backdrop" (click)="close()"></div>
+  }
+</div>

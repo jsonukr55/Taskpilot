@@ -15,6 +15,20 @@
   <!-- Scrollable body -->
   <div class="drawer__body">
 
+    <!-- Breadcrumb (shown when drilled into a subtask) -->
+    @if (trail().length > 1) {
+      <nav class="drawer__crumbs">
+        @for (c of trail(); track c.id; let last = $last) {
+          @if (!last) {
+            <button class="drawer__crumb" (click)="focusTask(c.id)">{{ c.title }}</button>
+            <tp-icon name="chevron-right" [size]="13" />
+          } @else {
+            <span class="drawer__crumb drawer__crumb--current">{{ c.title }}</span>
+          }
+        }
+      </nav>
+    }
+
     <!-- Title -->
     <input
       class="drawer__title"
@@ -246,7 +260,10 @@
             <button class="cl-check" [class.checked]="sub.status === 'completed'" (click)="toggleSubtaskStatus(sub)">
               @if (sub.status === 'completed') { <tp-icon name="check" [size]="9" /> }
             </button>
-            <span class="subtask-item__title">{{ sub.title }}</span>
+            <button class="subtask-item__title subtask-item__open" (click)="openSubtask(sub)" data-tooltip="Open subtask">
+              {{ sub.title }}
+              @if (childCount(sub.id); as n) { <span class="subtask-item__kids"><tp-icon name="list" [size]="10" /> {{ n }}</span> }
+            </button>
             <span class="subtask-item__priority" [attr.data-p]="sub.priority">
               <tp-icon name="flag" [size]="10" />
             </span>
@@ -270,7 +287,7 @@
 
     <!-- Comments -->
     <div class="drawer__comments">
-      <tp-task-comments [taskId]="task().id" />
+      <tp-task-comments [taskId]="activeId()" />
     </div>
 
     <!-- AI suggestion -->

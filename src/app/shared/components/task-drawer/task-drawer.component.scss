@@ -336,6 +336,54 @@
   }
 
   &:hover .subtask-item__delete { opacity: 1; }
+
+  &__open {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-family: $font-sans;
+    text-align: left;
+    padding: 0;
+    &:hover { color: var(--text-brand); }
+  }
+  &__kids {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    border-radius: $radius-full;
+    padding: 0 $space-2;
+  }
+}
+
+// ---- Drill-in breadcrumb ----
+.drawer__crumbs {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  flex-wrap: wrap;
+  margin-bottom: $space-3;
+  color: var(--text-tertiary);
+}
+.drawer__crumb {
+  background: transparent;
+  border: 0;
+  padding: 2px $space-1;
+  max-width: 160px;
+  font-family: $font-sans;
+  font-size: $font-size-xs;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: $radius-sm;
+  @include text-truncate;
+  &:hover { color: var(--text-brand); background: var(--bg-tertiary); }
+  &--current { color: var(--text-primary); font-weight: $font-weight-semibold; cursor: default; background: transparent; }
 }
 
 // Category grid in prop row

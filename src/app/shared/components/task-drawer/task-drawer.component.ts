@@ -48,7 +48,7 @@ export class TaskDrawerComponent implements OnDestroy {
   async toggleAssignee(uid: string): Promise<void> {
     const current = new Set(this.live().assigneeIds ?? []);
     current.has(uid) ? current.delete(uid) : current.add(uid);
-    await this.taskService.setAssignees(this.task().id, [...current]);
+    await this.taskService.setAssignees(this.activeId(), [...current]);
   }
 
   editTitle       = signal('');
@@ -75,11 +75,33 @@ export class TaskDrawerComponent implements OnDestroy {
 
   readonly allCategories = () => this.categories.rootCategories();
 
-  // Live task from the service — reflects Firestore updates instantly
-  // (the `task` input is a static snapshot that never changes after open).
-  readonly live = computed(() => this.taskService.getTaskById(this.task().id) ?? this.task());
+  // Drill-in: when the user opens a subtask, we focus it without leaving
+  // the drawer, enabling unlimited nesting (T1 → T1a → T1a1 → …).
+  readonly viewId = signal<string | null>(null);
+  readonly activeId = computed(() => this.viewId() ?? this.task().id);
 
-  readonly subtasks = computed(() => this.taskService.getSubtasks(this.task().id));
+  // Live (active) task from the service — reflects updates instantly
+  // (the `task` input is a static snapshot that never changes after open).
+  readonly live = computed(() => this.taskService.getTaskById(this.activeId()) ?? this.task());
+
+  readonly subtasks = computed(() => this.taskService.getSubtasks(this.activeId()));
+
+  /** Ancestor breadcrumb from the root input task down to the active task. */
+  readonly trail = computed(() => {
+    const chain: Task[] = [];
+    let cur: Task | undefined = this.live();
+    const rootId = this.task().id;
+    while (cur) {
+      chain.unshift(cur);
+      if (cur.id === rootId || !cur.parentId) break;
+      cur = this.taskService.getTaskById(cur.parentId);
+    }
+    return chain;
+  });
+
+  openSubtask(sub: Task): void { this.viewId.set(sub.id); }
+  focusTask(id: string): void { this.viewId.set(id === this.task().id ? null : id); }
+  childCount = (id: string): number => this.taskService.getSubtasks(id).length;
 
   readonly subtaskProgress = computed(() => {
     const subs = this.subtasks();
@@ -102,9 +124,16 @@ export class TaskDrawerComponent implements OnDestroy {
   };
 
   constructor() {
+    // Reset drill-in whenever the drawer is pointed at a new root task.
     effect(() => {
-      const t = this.task();
+      this.task();
+      untracked(() => this.viewId.set(null));
+    });
+    // (Re)populate edit fields when the active task changes (open or drill-in).
+    effect(() => {
+      this.activeId();
       untracked(() => {
+        const t = this.live();
         this.editTitle.set(t.title);
         this.editDesc.set(t.description ?? '');
         this.editStatus.set(t.status);
@@ -163,7 +192,7 @@ export class TaskDrawerComponent implements OnDestroy {
     if (!this.editTitle().trim()) return;
     this.saveState.set('saving');
     try {
-      await this.taskService.updateTask(this.task().id, {
+      await this.taskService.updateTask(this.activeId(), {
         title:       this.editTitle().trim(),
         description: this.editDesc(),
         status:      this.editStatus(),
@@ -183,19 +212,24 @@ export class TaskDrawerComponent implements OnDestroy {
   }
 
   async deleteTask(): Promise<void> {
-    if (!confirm('Delete this task?')) return;
-    await this.taskService.deleteTask(this.task().id);
-    this.close();
+    const active = this.live();
+    const isDrilled = active.id !== this.task().id;
+    if (!confirm(isDrilled ? 'Delete this subtask?' : 'Delete this task?')) return;
+    const parent = active.parentId ?? null;
+    await this.taskService.deleteTask(active.id);
+    // When deleting a drilled-in subtask, pop back to its parent instead of closing.
+    if (isDrilled) this.viewId.set(parent === this.task().id ? null : parent);
+    else this.close();
   }
 
   async toggleChecklist(itemId: string): Promise<void> {
-    await this.taskService.toggleChecklistItem(this.task().id, itemId);
+    await this.taskService.toggleChecklistItem(this.activeId(), itemId);
   }
 
   async addChecklistItem(): Promise<void> {
     const text = this.newItemText().trim();
     if (!text) return;
-    await this.taskService.addChecklistItem(this.task().id, text);
+    await this.taskService.addChecklistItem(this.activeId(), text);
     this.newItemText.set('');
   }
 
@@ -207,7 +241,7 @@ export class TaskDrawerComponent implements OnDestroy {
     const title = this.newSubtaskTitle().trim();
     if (!title) return;
     this.newSubtaskTitle.set('');
-    await this.taskService.createSubtask(this.task().id, title);
+    await this.taskService.createSubtask(this.activeId(), title);
   }
 
   async toggleSubtaskStatus(subtask: Task): Promise<void> {

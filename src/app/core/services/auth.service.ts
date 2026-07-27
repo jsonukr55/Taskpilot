@@ -45,29 +45,46 @@ export class AuthService {
     else this.userProfile.set(null);
     this.isLoading.set(false);
     this._resolveInit();
-    // Only on a fresh sign-in (not INITIAL_SESSION / token refresh) do we
-    // send the user to their startup screen.
-    if (user && event === 'SIGNED_IN') void this.routeAfterLogin();
+    // On a fresh sign-in AND on app open with a restored session, send the
+    // user to their landing screen.
+    if (user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) void this.routeAfterLogin();
   }
 
-  /** Post-login destination: an explicit returnUrl wins; otherwise the
-   *  user's startup Space if set; otherwise the dashboard. Guarded so it
-   *  only ever takes over from an auth/landing route — never hijacks deep
-   *  navigation (e.g. a spurious SIGNED_IN while the user is mid-app). */
+  /** Landing destination, in priority order:
+   *   1. an explicit returnUrl (deep-link that required auth)
+   *   2. the user's chosen startup Space (if set)
+   *   3. the first organization's first space
+   *   4. personal Tasks
+   *  Guarded to only take over from an auth/landing route — never hijacks a
+   *  deep link or in-app navigation. */
   private async routeAfterLogin(): Promise<void> {
     const returnUrl = this.router.parseUrl(this.router.url).queryParams['returnUrl'];
     if (returnUrl && typeof returnUrl === 'string') { await this.router.navigateByUrl(returnUrl); return; }
 
-    const path = this.router.url.split('?')[0];
+    // Use the real address bar so a deep link on app-open isn't hijacked.
+    const path = window.location.pathname;
     const landing = path === '/' || path === '/dashboard' || path.startsWith('/auth');
     if (!landing) return;
 
     const prefs = this.userProfile()?.preferences;
     if (prefs?.startupSpaceId && prefs?.startupOrgId) {
       await this.router.navigate(['/organizations', prefs.startupOrgId, 'spaces', prefs.startupSpaceId]);
-    } else {
-      await this.router.navigate(['/dashboard']);
+      return;
     }
+
+    // Default: first org's first space (RLS returns only accessible rows).
+    try {
+      const { data: orgs } = await this.supa.db('organizations').select('id').order('created_at').limit(1);
+      const orgId = orgs?.[0]?.id;
+      if (orgId) {
+        const { data: spaces } = await this.supa.db('spaces').select('id').eq('org_id', orgId).order('created_at').limit(1);
+        const spaceId = spaces?.[0]?.id;
+        await this.router.navigate(spaceId ? ['/organizations', orgId, 'spaces', spaceId] : ['/organizations', orgId]);
+        return;
+      }
+    } catch { /* fall through to personal */ }
+
+    await this.router.navigate(['/tasks']);
   }
 
   /** Supabase session access token (replaces the old getIdToken()). */

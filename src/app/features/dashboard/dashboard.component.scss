@@ -94,9 +94,16 @@
   &__section {
     @include card(false);
     padding: $space-5;
+    min-width: 0;   // allow grid tracks to shrink (prevents page overflow)
 
     @include mobile-only { padding: $space-3; }
   }
+
+  // Grid children must be allowed to shrink below their content width,
+  // otherwise the 1fr tracks blow out and the page scrolls sideways.
+  &__stats > *,
+  &__hero > *,
+  &__grid > * { min-width: 0; }
 }
 
 // ---- Stat Cards ----

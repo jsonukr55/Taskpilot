@@ -1,7 +1,8 @@
-import { Component, inject, input, computed, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, input, computed, signal, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { Timestamp } from '@angular/fire/firestore';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { SpaceService } from '@core/services/space.service';
 import { SpaceGroupService } from '@core/services/space-group.service';
@@ -138,6 +139,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     this.tasks.openSpaceTasks(this.spaceId());
     this.spaceGroups.open(this.spaceId());
     this.spaceColumns.open(this.spaceId());
+    this.loadWidths();
     try {
       const saved = localStorage.getItem('space-view:' + this.spaceId());
       if (saved === 'section' || saved === 'status' || saved === 'sprint') this.view.set(saved);
@@ -149,14 +151,70 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     this.spaceColumns.close();
   }
 
+  // ---- Columns: built-in fields (in render order) + resizable widths ----
+  readonly FIELDS: { key: string; label: string; def: number; min: number }[] = [
+    { key: 'task',     label: 'Task',     def: 260, min: 160 },
+    { key: 'status',   label: 'Status',   def: 148, min: 110 },
+    { key: 'priority', label: 'Priority', def: 120, min: 96 },
+    { key: 'assignee', label: 'Assignee', def: 128, min: 90 },
+    { key: 'start',    label: 'Start',    def: 128, min: 96 },
+    { key: 'due',      label: 'Due',      def: 128, min: 96 },
+    { key: 'duetime',  label: 'Due time', def: 108, min: 90 },
+    { key: 'est',      label: 'Est (h)',  def: 84,  min: 64 },
+    { key: 'tags',     label: 'Tags',     def: 160, min: 110 },
+    { key: 'sprint',   label: 'Sprint',   def: 120, min: 96 },
+  ];
+  private static readonly CUSTOM_DEFAULT = 140;
+  private static readonly CUSTOM_MIN = 90;
+
+  readonly colWidths = signal<Record<string, number>>({});
+
+  private widthsKey(): string { return 'space-cols:' + this.spaceId(); }
+  private loadWidths(): void {
+    try {
+      const raw = localStorage.getItem(this.widthsKey());
+      this.colWidths.set(raw ? JSON.parse(raw) : {});
+    } catch { this.colWidths.set({}); }
+  }
+  widthOf = (key: string, fallback: number): number => this.colWidths()[key] ?? fallback;
+
+  /** Grid track list: built-in fields + custom columns + the add-column cell. */
+  readonly gridTemplate = computed(() => {
+    const widths = this.colWidths();
+    const builtin = this.FIELDS.map(f => (widths[f.key] ?? f.def) + 'px');
+    const custom  = this.spaceColumns.columns().map(cc =>
+      (widths['cc:' + cc.id] ?? SpaceDetailComponent.CUSTOM_DEFAULT) + 'px');
+    return [...builtin, ...custom, '44px'].join(' ');
+  });
+
+  // ---- Column resize (pointer drag on a header's right edge) ----
+  private resizing?: { key: string; startX: number; startW: number; min: number };
+
+  startResize(key: string, min: number, ev: PointerEvent): void {
+    ev.preventDefault(); ev.stopPropagation();
+    this.resizing = { key, startX: ev.clientX, startW: this.widthOf(key, 0) || this.defaultWidth(key), min };
+    document.body.style.userSelect = 'none';
+  }
+  private defaultWidth(key: string): number {
+    const f = this.FIELDS.find(x => x.key === key);
+    return f ? f.def : SpaceDetailComponent.CUSTOM_DEFAULT;
+  }
+  @HostListener('document:pointermove', ['$event'])
+  onResizeMove(ev: PointerEvent): void {
+    if (!this.resizing) return;
+    const w = Math.max(this.resizing.min, this.resizing.startW + (ev.clientX - this.resizing.startX));
+    this.colWidths.update(m => ({ ...m, [this.resizing!.key]: w }));
+  }
+  @HostListener('document:pointerup')
+  endResize(): void {
+    if (!this.resizing) return;
+    this.resizing = undefined;
+    document.body.style.userSelect = '';
+    try { localStorage.setItem(this.widthsKey(), JSON.stringify(this.colWidths())); } catch { /* ignore */ }
+  }
+
   // ---- Custom columns ----
   readonly COLUMN_TYPES = SPACE_COLUMN_TYPES;
-
-  /** Dynamic grid: base columns + one 140px track per custom column + add-col cell. */
-  readonly gridTemplate = computed(() => {
-    const custom = this.spaceColumns.columns().map(() => '140px').join(' ');
-    return `260px 148px 120px 108px 88px 116px ${custom} 44px`;
-  });
 
   fieldValue = (t: Task, colId: string): string | number | null => t.customFields?.[colId] ?? null;
 
@@ -280,6 +338,30 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   async setPriority(id: string, priority: string): Promise<void> {
     try { await this.tasks.updateTask(id, { priority: priority as TaskPriority }); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not update priority'); }
+  }
+
+  // ---- Inline scalar fields ----
+  /** ISO yyyy-mm-dd for a <input type="date"> value. */
+  dateInput = (t?: Timestamp | null): string => t ? t.toDate().toISOString().split('T')[0] : '';
+
+  private async patch(id: string, changes: Partial<Task>): Promise<void> {
+    try { await this.tasks.updateTask(id, changes); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not update the task'); }
+  }
+  setStart   = (id: string, v: string) => this.patch(id, { startDate: v ? Timestamp.fromDate(new Date(v)) : null });
+  setDue     = (id: string, v: string) => this.patch(id, { dueDate:   v ? Timestamp.fromDate(new Date(v)) : null });
+  setDueTime = (id: string, v: string) => this.patch(id, { dueTime: v || null });
+  setEst     = (id: string, v: string) => this.patch(id, { estimatedHours: v === '' ? null : Number(v) });
+  setTags    = (id: string, v: string) => this.patch(id, { tags: v.split(',').map(s => s.trim()).filter(Boolean) });
+
+  // ---- Inline assignee picker ----
+  readonly assignFor = signal<string | null>(null);   // task id whose picker is open
+  toggleAssign(id: string): void { this.assignFor.update(v => v === id ? null : id); }
+  isAssigned = (t: Task, uid: string): boolean => (t.assigneeIds ?? []).includes(uid);
+  async toggleAssignee(t: Task, uid: string): Promise<void> {
+    const set = new Set(t.assigneeIds ?? []);
+    set.has(uid) ? set.delete(uid) : set.add(uid);
+    await this.patch(t.id, { assigneeIds: [...set] });
   }
 
   assigneesOf(t: Task): { displayName: string; photoURL: string | null }[] {

@@ -66,13 +66,17 @@
             <div class="tblwrap">
               <div class="tbl">
                 <div class="tbl__row tbl__row--head" [style.grid-template-columns]="gridTemplate()">
-                  <div class="c c--task">Task</div><div class="c c--status">Status</div>
-                  <div class="c c--prio">Priority</div><div class="c c--people">Assignee</div>
-                  <div class="c c--date">Due</div><div class="c c--sprint">Sprint</div>
+                  @for (f of FIELDS; track f.key) {
+                    <div class="c c--head-cell">
+                      <span class="ch-name">{{ f.label }}</span>
+                      <span class="colresize" (pointerdown)="startResize(f.key, f.min, $event)"></span>
+                    </div>
+                  }
                   @for (cc of spaceColumns.columns(); track cc.id) {
                     <div class="c c--custom c--custom-head">
                       <span class="ch-name">{{ cc.name }}</span>
                       @if (canEdit()) { <button class="ch-del" (click)="deleteColumn(cc)" data-tooltip="Delete column"><tp-icon name="x" [size]="11" /></button> }
+                      <span class="colresize" (pointerdown)="startResize('cc:' + cc.id, 90, $event)"></span>
                     </div>
                   }
                   <div class="c c--addcol">
@@ -114,10 +118,12 @@
     <!-- Reusable task row -->
     <ng-template #rowTpl let-t>
       <div class="tbl__row" [style.grid-template-columns]="gridTemplate()" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
+        <!-- Task -->
         <div class="c c--task">
           @if (canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
           <button class="tname" (click)="selectedTask.set(t)">{{ t.title }}</button>
         </div>
+        <!-- Status -->
         <div class="c c--status">
           @if (canEdit()) {
             <select class="pill" [attr.data-stage]="t.stage" [value]="t.stage" (change)="setStage(t.id, $any($event.target).value)">
@@ -127,6 +133,7 @@
             <span class="pill pill--static" [attr.data-stage]="t.stage">{{ stageLabel(t.stage) }}</span>
           }
         </div>
+        <!-- Priority -->
         <div class="c c--prio">
           @if (canEdit()) {
             <select class="pill" [attr.data-prio]="t.priority" [value]="t.priority" (change)="setPriority(t.id, $any($event.target).value)">
@@ -136,17 +143,66 @@
             <span class="pill pill--static" [attr.data-prio]="t.priority">{{ priorityLabel(t.priority) }}</span>
           }
         </div>
+        <!-- Assignee (inline picker) -->
         <div class="c c--people">
-          @for (a of assigneesOf(t); track $index) {
-            <span class="ava2" [attr.data-tooltip]="a.displayName" data-tooltip>
-              @if (a.photoURL) { <img [src]="a.photoURL" alt=""> } @else { {{ initial(a.displayName) }} }
-            </span>
-          } @empty { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
+          <button class="ava-row" (click)="canEdit() && toggleAssign(t.id)">
+            @for (a of assigneesOf(t); track $index) {
+              <span class="ava2" [attr.data-tooltip]="a.displayName" data-tooltip>
+                @if (a.photoURL) { <img [src]="a.photoURL" alt=""> } @else { {{ initial(a.displayName) }} }
+              </span>
+            } @empty { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
+          </button>
+          @if (assignFor() === t.id) {
+            <div class="assign-pop">
+              @for (m of members(); track m.userId) {
+                <button class="assign-opt" (click)="toggleAssignee(t, m.userId)">
+                  <span class="avatar avatar--sm">
+                    @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+                  </span>
+                  <span class="assign-opt__name">{{ m.displayName }}</span>
+                  @if (isAssigned(t, m.userId)) { <tp-icon name="check" [size]="14" /> }
+                </button>
+              } @empty { <p class="assign-empty">No space members yet.</p> }
+            </div>
+            <div class="assign-backdrop" (click)="assignFor.set(null)"></div>
+          }
         </div>
-        <div class="c c--date">{{ t.dueDate ? (t.dueDate.toDate() | date:'MMM d') : '—' }}</div>
+        <!-- Start -->
+        <div class="c c--date">
+          @if (canEdit()) {
+            <input class="cell-input" type="date" [value]="dateInput(t.startDate)" (change)="setStart(t.id, $any($event.target).value)">
+          } @else { <span class="tp-muted">{{ t.startDate ? (t.startDate.toDate() | date:'MMM d') : '—' }}</span> }
+        </div>
+        <!-- Due -->
+        <div class="c c--date">
+          @if (canEdit()) {
+            <input class="cell-input" type="date" [value]="dateInput(t.dueDate)" (change)="setDue(t.id, $any($event.target).value)">
+          } @else { <span class="tp-muted">{{ t.dueDate ? (t.dueDate.toDate() | date:'MMM d') : '—' }}</span> }
+        </div>
+        <!-- Due time -->
+        <div class="c c--date">
+          @if (canEdit()) {
+            <input class="cell-input" type="time" [value]="t.dueTime || ''" (change)="setDueTime(t.id, $any($event.target).value)">
+          } @else { <span class="tp-muted">{{ t.dueTime || '—' }}</span> }
+        </div>
+        <!-- Est hours -->
+        <div class="c c--num">
+          @if (canEdit()) {
+            <input class="cell-input" type="number" min="0" step="0.5" [value]="t.estimatedHours ?? ''" placeholder="—"
+                   (blur)="setEst(t.id, $any($event.target).value)" (keydown.enter)="$any($event.target).blur()">
+          } @else { <span class="tp-muted">{{ t.estimatedHours ?? '—' }}</span> }
+        </div>
+        <!-- Tags -->
+        <div class="c c--tags">
+          @if (canEdit()) {
+            <input class="cell-input" [value]="(t.tags || []).join(', ')" placeholder="—"
+                   (blur)="setTags(t.id, $any($event.target).value)" (keydown.enter)="$any($event.target).blur()">
+          } @else { <span class="tp-muted">{{ (t.tags || []).join(', ') || '—' }}</span> }
+        </div>
+        <!-- Sprint -->
         <div class="c c--sprint">
           @if (canEdit()) {
-            <input class="sprint-input" [value]="t.sprint || ''" placeholder="—"
+            <input class="cell-input" [value]="t.sprint || ''" placeholder="—"
                    (blur)="setSprint(t.id, $any($event.target).value)"
                    (keydown.enter)="$any($event.target).blur()">
           } @else {

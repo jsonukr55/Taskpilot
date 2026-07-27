@@ -416,3 +416,62 @@
   cursor: pointer; border-radius: $radius-md;
   &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 }
+
+// ---- Resizable column headers ----
+.c--head-cell { position: relative; overflow: visible; justify-content: space-between; gap: $space-1; }
+.colresize {
+  position: absolute;
+  top: 0; right: -1px;
+  width: 9px; height: 100%;
+  cursor: col-resize;
+  z-index: 3;
+  touch-action: none;
+  &:hover { background: var(--accent-500); opacity: 0.5; }
+}
+.c--custom-head { position: relative; overflow: visible; }
+
+// ---- Generic inline cell editor (dates, time, number, tags, sprint) ----
+.cell-input {
+  width: 100%;
+  padding: 3px $space-2;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  &::placeholder { color: var(--text-tertiary); }
+  &:hover  { border-color: var(--border-subtle); }
+  &:focus  { outline: none; border-color: var(--input-focus); background: var(--input-bg); }
+}
+.c--num, .c--tags { padding: $space-1 $space-2; }
+
+// ---- Inline assignee picker ----
+.c--people { overflow: visible; position: relative; }
+.ava-row {
+  display: flex; align-items: center;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+}
+.assign-pop {
+  position: absolute;
+  top: calc(100% - 4px); left: $space-2;
+  z-index: 30;
+  width: 220px; max-height: 240px; overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  padding: $space-1;
+  @include custom-scrollbar;
+}
+.assign-opt {
+  display: flex; align-items: center; gap: $space-2;
+  width: 100%; padding: $space-1 $space-2;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: $radius-sm;
+  color: var(--text-primary); font-size: $font-size-sm; font-family: $font-sans; text-align: left;
+  &:hover { background: var(--bg-tertiary); }
+  &__name { flex: 1; @include text-truncate; }
+}
+.assign-empty { padding: $space-2; color: var(--text-tertiary); font-size: $font-size-xs; }
+.assign-backdrop { position: fixed; inset: 0; z-index: 29; }

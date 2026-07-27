@@ -295,9 +295,24 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
 
   fieldValue = (t: Task, colId: string): string | number | null => t.customFields?.[colId] ?? null;
 
-  /** Resolve a member custom-field value (a profile uid) to a display name. */
+  /** Resolve a member custom-field value (a profile uid) to a display name / photo. */
   memberLabel = (uid: string | number | null): string =>
     uid ? (this.members().find(m => m.userId === uid)?.displayName ?? '—') : '—';
+  memberPhoto = (uid: string | number | null): string | null =>
+    uid ? (this.members().find(m => m.userId === uid)?.photoURL ?? null) : null;
+
+  // Member custom-column picker (single select), keyed by task + column.
+  readonly memberFor = signal<string | null>(null);
+  private mkey = (taskId: string, colId: string) => taskId + ':' + colId;
+  isMemberPickOpen = (taskId: string, colId: string): boolean => this.memberFor() === this.mkey(taskId, colId);
+  toggleMemberPick(taskId: string, colId: string): void {
+    const k = this.mkey(taskId, colId);
+    this.memberFor.update(v => v === k ? null : k);
+  }
+  async setMember(t: Task, colId: string, uid: string): Promise<void> {
+    this.memberFor.set(null);
+    await this.setCustomField(t, colId, uid);
+  }
 
   async setCustomField(t: Task, colId: string, value: string): Promise<void> {
     const cf = { ...(t.customFields ?? {}), [colId]: value === '' ? null : value };

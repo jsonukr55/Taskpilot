@@ -510,8 +510,8 @@
   background: var(--bg-secondary);
 }
 
-// ---- Inline assignee picker ----
-.c--people { overflow: visible; position: relative; }
+// ---- Inline assignee / member picker ----
+.c--people, .c--member { overflow: visible; position: relative; }
 .ava-row {
   display: flex; align-items: center;
   background: transparent; border: 0; padding: 0; cursor: pointer;

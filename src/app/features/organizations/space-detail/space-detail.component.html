@@ -158,8 +158,36 @@
 
         @for (col of movableCols(); track col.key) {
           @if (col.kind === 'custom') {
-            <div class="c c--custom">
-              @if (canEdit()) {
+            <div class="c c--custom" [class.c--member]="col.custom!.type === 'member'">
+              @if (col.custom!.type === 'member') {
+                <!-- Member column: avatar + picker, like Assignee -->
+                <button class="ava-row" (click)="canEdit() && toggleMemberPick(t.id, col.custom!.id)">
+                  @if (fieldValue(t, col.custom!.id); as uid) {
+                    <span class="ava2" [attr.data-tooltip]="memberLabel(uid)" data-tooltip>
+                      @if (memberPhoto(uid); as p) { <img [src]="p" alt=""> } @else { {{ initial(memberLabel(uid)) }} }
+                    </span>
+                  } @else { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
+                </button>
+                @if (isMemberPickOpen(t.id, col.custom!.id)) {
+                  <div class="assign-pop">
+                    <button class="assign-opt" (click)="setMember(t, col.custom!.id, '')">
+                      <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span>
+                      <span class="assign-opt__name">Unassigned</span>
+                      @if (!fieldValue(t, col.custom!.id)) { <tp-icon name="check" [size]="14" /> }
+                    </button>
+                    @for (m of members(); track m.userId) {
+                      <button class="assign-opt" (click)="setMember(t, col.custom!.id, m.userId)">
+                        <span class="avatar avatar--sm">
+                          @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+                        </span>
+                        <span class="assign-opt__name">{{ m.displayName }}</span>
+                        @if (fieldValue(t, col.custom!.id) === m.userId) { <tp-icon name="check" [size]="14" /> }
+                      </button>
+                    } @empty { <p class="assign-empty">No space members yet.</p> }
+                  </div>
+                  <div class="assign-backdrop" (click)="memberFor.set(null)"></div>
+                }
+              } @else if (canEdit()) {
                 @switch (col.custom!.type) {
                   @case ('dropdown') {
                     <select class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" (change)="setCustomField(t, col.custom!.id, $any($event.target).value)">
@@ -173,18 +201,12 @@
                   @case ('number') {
                     <input class="cf-input" type="number" [value]="fieldValue(t, col.custom!.id) ?? ''" (blur)="setCustomField(t, col.custom!.id, $any($event.target).value)">
                   }
-                  @case ('member') {
-                    <select class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" (change)="setCustomField(t, col.custom!.id, $any($event.target).value)">
-                      <option value="">—</option>
-                      @for (m of members(); track m.userId) { <option [value]="m.userId">{{ m.displayName }}</option> }
-                    </select>
-                  }
                   @default {
                     <input class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" placeholder="—" (blur)="setCustomField(t, col.custom!.id, $any($event.target).value)">
                   }
                 }
               } @else {
-                <span class="tp-muted">{{ col.custom!.type === 'member' ? memberLabel(fieldValue(t, col.custom!.id)) : (fieldValue(t, col.custom!.id) ?? '—') }}</span>
+                <span class="tp-muted">{{ fieldValue(t, col.custom!.id) ?? '—' }}</span>
               }
             </div>
           } @else {

@@ -253,7 +253,7 @@
 }
 
 @if (selectedTask()) {
-  <tp-task-drawer [task]="selectedTask()!" (closed)="selectedTask.set(null)" />
+  <tp-task-drawer [task]="selectedTask()!" mode="discussion" (closed)="selectedTask.set(null)" />
 }
 
 @if (showMembers()) {

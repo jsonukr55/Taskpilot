@@ -38,6 +38,7 @@
       autocomplete="off"
     />
 
+    @if (mode() === 'full') {
     <!-- Property rows (ClickUp style) -->
     <div class="drawer__props">
 
@@ -240,6 +241,8 @@
         </button>
       </div>
     </div>
+
+    }
 
     <!-- Subtasks -->
     <div class="drawer__subtask-section">

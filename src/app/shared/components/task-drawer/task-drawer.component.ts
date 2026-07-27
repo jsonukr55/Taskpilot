@@ -24,6 +24,9 @@ import { Timestamp } from '@angular/fire/firestore';
 })
 export class TaskDrawerComponent implements OnDestroy {
   task = input.required<Task>();
+  /** 'full' = all property editors (default). 'discussion' = title + subtasks
+   *  + comments/activity only (used by the board, where fields edit inline). */
+  mode = input<'full' | 'discussion'>('full');
   closed = output<void>();
 
   private readonly taskService = inject(TaskService);

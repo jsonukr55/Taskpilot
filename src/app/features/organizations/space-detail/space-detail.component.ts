@@ -84,6 +84,15 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   subtasksOf   = (id: string): Task[] => this.subByParent().get(id) ?? [];
   childCountOf = (id: string): number => this.subtasksOf(id).length;
 
+  /** Total descendants (all nested subtasks) under a task. */
+  private descCount(id: string): number {
+    let n = 0;
+    for (const s of this.subtasksOf(id)) n += 1 + this.descCount(s.id);
+    return n;
+  }
+  /** Total subtasks across a column's root tasks — for the group header summary. */
+  subtaskTotal = (tasks: Task[]): number => tasks.reduce((sum, t) => sum + this.descCount(t.id), 0);
+
   // Inline subtask expand/collapse per row.
   readonly expandedRows = signal<Set<string>>(new Set());
   isRowOpen = (id: string): boolean => this.expandedRows().has(id);

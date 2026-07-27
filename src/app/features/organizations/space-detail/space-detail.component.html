@@ -64,7 +64,10 @@
             } @else {
               <span class="grp__name-static" [style.color]="col.color">{{ col.name }}</span>
             }
-            <span class="grp__count">{{ col.tasks.length }}</span>
+            <span class="grp__count">
+              {{ col.tasks.length }} {{ col.tasks.length === 1 ? 'item' : 'items' }}
+              @if (subtaskTotal(col.tasks); as st) { <span class="grp__count-sub">/ {{ st }} {{ st === 1 ? 'subitem' : 'subitems' }}</span> }
+            </span>
             @if (col.canManage && col.group) {
               <button class="btn-icon grp__del" (click)="deleteGroup(col.group)" data-tooltip="Delete section"><tp-icon name="trash-2" [size]="14" /></button>
             }
@@ -136,8 +139,8 @@
          header: same columns/widths/positions, just indented. No sub-header. -->
     <ng-template #childRows let-parentId="parentId" let-depth="depth" let-rootId="rootId">
       @if (isRowOpen(parentId)) {
-        <div class="tbl__row tbl__row--sublabel">
-          <span class="sublabel" [style.padding-left.px]="depth * 18 + 30">Subitem</span>
+        <div class="tbl__row tbl__row--sublabel" [style.--ind.px]="depth * 18">
+          <span class="sublabel" [style.padding-left.px]="depth * 18 + 34">Subitem</span>
         </div>
         @for (s of subtasksOf(parentId); track s.id) {
           <div class="tbl__row tbl__row--sub" [style.grid-template-columns]="gridTemplateForTask(rootId)">

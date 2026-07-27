@@ -4,6 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { TaskService } from '@core/services/task.service';
 import { OrganizationService } from '@core/services/organization.service';
+import { SpaceService } from '@core/services/space.service';
 import { ThemeService, Theme } from '@core/services/theme.service';
 import { CategoryService } from '@core/services/category.service';
 import { ReleaseNotesService } from '@core/services/release-notes.service';
@@ -33,6 +34,7 @@ export class SidebarComponent {
   readonly auth       = inject(AuthService);
   readonly tasks      = inject(TaskService);
   readonly orgs       = inject(OrganizationService);
+  readonly spaces     = inject(SpaceService);
   readonly theme      = inject(ThemeService);
   readonly categories = inject(CategoryService);
   readonly release    = inject(ReleaseNotesService);

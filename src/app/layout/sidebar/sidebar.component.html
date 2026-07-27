@@ -83,6 +83,16 @@
                     <span class="sidebar__nav-label">{{ o.name }}</span>
                   </a>
                 </li>
+                <!-- Spaces (boards) the user can access within this org -->
+                @for (s of spaces.spacesInOrg(o.id); track s.id) {
+                  <li class="sidebar__nav-item">
+                    <a [routerLink]="['/organizations', o.id, 'spaces', s.id]" routerLinkActive="active"
+                       class="sidebar__nav-link sidebar__nav-link--space">
+                      <span class="sidebar__org-emoji" [style.color]="s.color">{{ s.icon }}</span>
+                      <span class="sidebar__nav-label">{{ s.name }}</span>
+                    </a>
+                  </li>
+                }
               }
             }
           }

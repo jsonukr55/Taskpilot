@@ -127,6 +127,13 @@
     flex-shrink: 0;
   }
 
+  // Spaces nested one level under their organization
+  &__nav-link--space {
+    padding-left: $space-8;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
+
   &__nav-divider {
     height: 1px;
     background: var(--border-subtle);

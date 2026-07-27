@@ -230,8 +230,9 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
 
   toggleSelectRow(id: string): void { this.selectedRow.update(v => v === id ? null : id); }
 
-  /** Reset column widths — the selected task's overrides if one is selected,
-   *  otherwise the board defaults. */
+  /** Reset column widths. With a task selected → reset just that task's
+   *  overrides. With nothing selected → reset the board default AND every
+   *  task's overrides, so all tasks return to default widths. */
   resetColumnWidths(): void {
     const sel = this.selectedRow();
     if (sel) {
@@ -239,7 +240,11 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
       try { localStorage.setItem(this.taskColsKey(), JSON.stringify(this.taskWidths())); } catch { /* ignore */ }
     } else {
       this.colWidths.set({});
-      try { localStorage.removeItem(this.widthsKey()); } catch { /* ignore */ }
+      this.taskWidths.set({});
+      try {
+        localStorage.removeItem(this.widthsKey());
+        localStorage.removeItem(this.taskColsKey());
+      } catch { /* ignore */ }
     }
   }
 

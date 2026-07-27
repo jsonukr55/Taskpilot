@@ -268,6 +268,11 @@
       </div>
     </div>
 
+    <!-- Comments -->
+    <div class="drawer__comments">
+      <tp-task-comments [taskId]="task().id" />
+    </div>
+
     <!-- AI suggestion -->
     @if (live().aiMetadata?.schedulingSuggestion) {
       <div class="drawer__ai-hint">

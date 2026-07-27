@@ -1,0 +1,96 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.tc {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__title {
+    @include flex-start;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: var(--text-secondary);
+  }
+  &__count {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    border-radius: $radius-full;
+    padding: 1px $space-2;
+  }
+
+  &__list { display: flex; flex-direction: column; gap: $space-3; }
+  &__empty { color: var(--text-tertiary); font-size: $font-size-sm; }
+
+  &__compose {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+    align-items: flex-end;
+    .form-textarea { width: 100%; resize: vertical; min-height: 56px; }
+  }
+}
+
+.tc-thread {
+  &__replies {
+    margin-left: $space-6;
+    padding-left: $space-3;
+    border-left: 2px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    margin-top: $space-2;
+  }
+}
+
+.tc-replybtn {
+  @include flex-start;
+  gap: $space-1;
+  margin: $space-1 0 0 $space-8;
+  padding: 2px $space-2;
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary);
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  cursor: pointer;
+  border-radius: $radius-sm;
+  &:hover { color: var(--text-brand); background: var(--bg-tertiary); }
+}
+
+.tc-reply, .tc-edit {
+  display: flex;
+  gap: $space-2;
+  align-items: center;
+  margin-top: $space-1;
+  .form-input { flex: 1; }
+}
+
+.comment {
+  display: flex;
+  gap: $space-2;
+
+  &__body { flex: 1; min-width: 0; }
+  &__meta { @include flex-start; gap: $space-2; }
+  &__author { font-size: $font-size-sm; font-weight: $font-weight-medium; color: var(--text-primary); }
+  &__time   { font-size: $font-size-xs; color: var(--text-tertiary); }
+  &__text {
+    font-size: $font-size-sm;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-top: 2px;
+  }
+  &__actions {
+    display: flex;
+    gap: $space-3;
+    margin-top: $space-1;
+    button {
+      background: transparent; border: 0; cursor: pointer;
+      color: var(--text-tertiary); font-size: $font-size-xs; font-family: $font-sans;
+      &:hover { color: var(--text-brand); }
+    }
+  }
+}

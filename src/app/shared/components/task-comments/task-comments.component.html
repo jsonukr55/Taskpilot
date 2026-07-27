@@ -1,0 +1,76 @@
+<div class="tc">
+  <h4 class="tc__title"><tp-icon name="message-circle" [size]="15" /> Comments @if (count()) { <span class="tc__count">{{ count() }}</span> }</h4>
+
+  <div class="tc__list">
+    @for (th of threads(); track th.post.id) {
+      <div class="tc-thread">
+        <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: th.post }"></ng-container>
+
+        @if (th.replies.length || replyTo() === th.post.id) {
+          <div class="tc-thread__replies">
+            @for (r of th.replies; track r.id) {
+              <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: r }"></ng-container>
+            }
+            @if (replyTo() === th.post.id) {
+              <div class="tc-reply">
+                <input class="form-input" placeholder="Write a reply…" autofocus
+                       [ngModel]="replyText()" (ngModelChange)="replyText.set($event)"
+                       (keydown.enter)="sendReply(th.post.id)" (keydown.escape)="cancelReply()">
+                <button class="btn-sm btn-primary" (click)="sendReply(th.post.id)" [disabled]="!replyText().trim()">Reply</button>
+                <button class="btn-sm btn-ghost" (click)="cancelReply()">Cancel</button>
+              </div>
+            }
+          </div>
+        }
+
+        @if (canComment() && replyTo() !== th.post.id) {
+          <button class="tc-replybtn" (click)="openReply(th.post.id)"><tp-icon name="corner-down-left" [size]="12" /> Reply</button>
+        }
+      </div>
+    } @empty {
+      <p class="tc__empty">No comments yet.@if (canComment()) {  Start the discussion.}</p>
+    }
+  </div>
+
+  @if (canComment()) {
+    <div class="tc__compose">
+      <textarea class="form-textarea" rows="2" placeholder="Add a comment…"
+                [ngModel]="draft()" (ngModelChange)="draft.set($event)"
+                (keydown.enter)="$event.preventDefault(); post()"></textarea>
+      <button class="btn-primary btn-sm" (click)="post()" [disabled]="!draft().trim()">
+        <tp-icon name="send" [size]="14" /> Comment
+      </button>
+    </div>
+  }
+</div>
+
+<!-- One comment (used for both a post and a reply) -->
+<ng-template #commentTpl let-c>
+  <div class="comment">
+    <span class="avatar avatar--sm">
+      @if (c.authorPhoto) { <img [src]="c.authorPhoto" alt=""> } @else { {{ initial(c.authorName) }} }
+    </span>
+    <div class="comment__body">
+      <div class="comment__meta">
+        <span class="comment__author">{{ c.authorName }}</span>
+        <span class="comment__time">{{ timeAgo(c) }}</span>
+      </div>
+      @if (editId() === c.id) {
+        <div class="tc-edit">
+          <input class="form-input" [ngModel]="editText()" (ngModelChange)="editText.set($event)"
+                 (keydown.enter)="saveEdit(c)" (keydown.escape)="cancelEdit()">
+          <button class="btn-sm btn-primary" (click)="saveEdit(c)" [disabled]="!editText().trim()">Save</button>
+          <button class="btn-sm btn-ghost" (click)="cancelEdit()">Cancel</button>
+        </div>
+      } @else {
+        <p class="comment__text">{{ c.body }}</p>
+        @if (canModify(c)) {
+          <div class="comment__actions">
+            <button (click)="startEdit(c)">Edit</button>
+            <button (click)="remove(c)">Delete</button>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</ng-template>

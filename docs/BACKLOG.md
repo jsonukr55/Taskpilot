@@ -66,7 +66,7 @@ rename of existing entities.
 | 2 | Boards, Columns & Custom Fields | P0 | Todo |
 | 3 | Views system (Task / Sprint / custom) | P1 | Todo |
 | 4 | Task Status & Sprint Status | P1 | Todo |
-| 5 | Threaded Comments | P1 | Todo |
+| 5 | Threaded Comments | P1 | Done (text); images w/ Epic 6 |
 | 6 | File & Media uploads (storage, types, size, preview) | P1 | Todo |
 | 7 | Activity log & debounced Mailer (Redis) | P1 | Todo |
 | 8 | Notifications | P2 | Todo |
@@ -204,18 +204,28 @@ saved preference per user per project.
 - As a user, I can attach images to a comment.
 
 **Tasks**
-- [ ] Comment model supporting parent/child (post → replies) per task.
-- [ ] Post, reply, edit, delete within permissions.
-- [ ] Image upload inside comments (stored via the file system — see Epic 6).
-- [ ] Render inline image thumbnails; open in media preview (see Epic 6).
+- [x] Comment model supporting parent/child (post → replies) per task.
+  *(`task_comments` with `parent_id`; migration 0013)*
+- [x] Post, reply, edit, delete within permissions. *(RLS: view mirrors task
+  visibility; posting requires task edit rights so viewers are read-only;
+  edit/delete restricted to the author.)*
+- [ ] Image upload inside comments — **deferred to Epic 6** (file storage).
+- [ ] Render inline image thumbnails; open in media preview — **deferred to Epic 6**.
 
 **Acceptance criteria**
-- A task shows a threaded discussion; replies nest under their post.
-- Images attached to a comment display as thumbnails and open in a preview dialog.
+- ✅ A task shows a threaded discussion; replies nest under their post (one level).
+- ⏳ Image attachments — pending Epic 6 (storage).
+
+**Implementation notes**
+- `task_comments` table (threaded via `parent_id`, `client_id` auto-stamped from the
+  parent task), realtime channel per task. `TaskCommentService` (open/close + add/edit/
+  remove), `TaskCommentsComponent` mounted in the task drawer. Text-first; the composer,
+  reply and edit are inline. RLS helpers `can_view_task` / `can_comment_task`.
 
 **Open questions**
-- Thread depth: single-level replies or fully nested? Notes say "post and reply thread".
-- Mentions/@notifications in comments — in scope? (Not stated; default: out of scope.)
+- ~~Thread depth~~ ✅ **RESOLVED** — one-level (post → replies), matching "post and reply
+  thread". Deeper nesting can layer on later if needed.
+- Mentions/@notifications in comments — out of scope for now (ties into Epic 8).
 
 ---
 

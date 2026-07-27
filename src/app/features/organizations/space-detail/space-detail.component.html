@@ -150,7 +150,7 @@
         }
         @if (canEdit()) {
           <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="gridTemplateForTask(rootId)">
-            <div class="c c--task" [style.padding-left.px]="depth * 18 + 10">
+            <div class="c c--task c--task-sub c--task-sub-last" [style.--ind.px]="depth * 18" [style.padding-left.px]="depth * 18 + 28">
               <input #si class="addrow addrow--sub" placeholder="+ Add subtask" (keydown.enter)="addSubtaskInline(parentId, si)">
             </div>
           </div>
@@ -162,7 +162,7 @@
          subtask rows use their block parent's own column set. -->
     <ng-template #cells let-t let-depth="depth" let-drag="drag" let-rootId="rootId">
         <!-- Task (pinned, frozen) -->
-        <div class="c c--task" [class.c--task-sub]="!drag" [style.--ind.px]="depth * 18" [style.padding-left.px]="depth * 18">
+        <div class="c c--task" [class.c--task-sub]="!drag" [style.--ind.px]="depth * 18" [style.padding-left.px]="depth * 18 + (drag ? 0 : 28)">
           @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
           <button class="tw-expand" [class.tw-expand--on]="isRowOpen(t.id)" (click)="toggleRow(t.id)"
                   [attr.data-tooltip]="childCountOf(t.id) ? childCountOf(t.id) + ' subtasks' : 'Subtasks'">

@@ -305,43 +305,56 @@
   color: var(--text-tertiary);
 }
 
-// Monday-style connector bracket on nested rows: a continuous group-colored
-// vertical bar down the left of a task's subtasks, with a tick to each row.
+// Monday-style connector: a fat group-colored trunk down the left of a task's
+// subtasks, with a tight curved branch (╰) into each row. The trunk is formed
+// by each nested cell's full-height segment; the last row (+ Add) caps it.
 .c--task-sub {
-  &::before {
+  &::before {                              // trunk segment (rows stack into one bar)
     content: '';
     position: absolute;
-    left: calc(var(--ind, 0px) + 14px);
-    top: 0; bottom: 0;                    // full height → adjacent rows join up
-    border-left: 2px solid var(--gc, var(--border-strong));
-    opacity: 0.55;
+    left: calc(var(--ind, 0px) + 16px);
+    top: 0; bottom: 0; width: 3px;
+    background: var(--gc, var(--border-strong));
+    opacity: 0.9;
   }
-  &::after {
+  &::after {                              // curved branch to this row
     content: '';
     position: absolute;
-    left: calc(var(--ind, 0px) + 14px);
-    top: 50%; width: 10px;
-    border-top: 2px solid var(--gc, var(--border-strong));
-    opacity: 0.55;
+    left: calc(var(--ind, 0px) + 16px);
+    top: 0; height: 50%; width: 10px;
+    border-left: 3px solid var(--gc, var(--border-strong));
+    border-bottom: 3px solid var(--gc, var(--border-strong));
+    border-bottom-left-radius: 8px;
+    opacity: 0.9;
   }
 }
+// The "+ Add subtask" row caps the trunk: only draw down to its branch, not past.
+.c--task-sub-last::before { bottom: 50%; }
 
-// "Subitem" section label above nested rows + the rounded top of the bracket
+// "Subitem" section label + the rounded TOP of the bracket (curves from parent)
 .tbl__row--sublabel {
   display: block;
   position: relative;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
 
-  &::before {   // rounded top-left corner that begins the connector bracket
+  &::before {                            // trunk through the label
     content: '';
     position: absolute;
-    left: calc(var(--ind, 0px) + 14px);
-    top: 50%; bottom: 0; width: 12px;
-    border-left: 2px solid var(--gc, var(--border-strong));
-    border-top: 2px solid var(--gc, var(--border-strong));
-    border-top-left-radius: 6px;
-    opacity: 0.55;
+    left: calc(var(--ind, 0px) + 16px);
+    top: 50%; bottom: 0; width: 3px;
+    background: var(--gc, var(--border-strong));
+    opacity: 0.9;
+  }
+  &::after {                            // rounded elbow curving up toward the parent
+    content: '';
+    position: absolute;
+    left: calc(var(--ind, 0px) + 7px);
+    top: -12px; width: 12px; height: 24px;
+    border-left: 3px solid var(--gc, var(--border-strong));
+    border-bottom: 3px solid var(--gc, var(--border-strong));
+    border-bottom-left-radius: 10px;
+    opacity: 0.9;
   }
 }
 .sublabel {

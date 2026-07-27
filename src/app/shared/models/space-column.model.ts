@@ -14,7 +14,8 @@ export interface SpaceColumn {
   name:      string;
   type:      SpaceColumnType;
   options:   string[];   // dropdown choices
-  scope:     SpaceColumnScope;   // 'item' rows or 'subitem' rows
+  scope:     SpaceColumnScope;   // legacy; unused
+  taskId:    string | null;      // owning top-level task (null = board-wide)
   position:  number;
   createdAt: Timestamp;
   updatedAt: Timestamp;

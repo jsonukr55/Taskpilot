@@ -230,11 +230,11 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
 
   toggleSelectRow(id: string): void { this.selectedRow.update(v => v === id ? null : id); }
 
-  /** Board columns (built-in fields + custom columns) in the user's order:
-   *  stored order first, then any newly-added columns appended. Subitems
-   *  render under this same set (parent header). */
-  readonly itemCols = computed(() => {
-    const customs = this.spaceColumns.columns();
+  /** Columns for a task's block: built-in fields + board-wide custom columns
+   *  + (for a specific task) that task's own custom columns. `rootId` null =
+   *  board-wide only (the default header). */
+  columnsFor(rootId: string | null) {
+    const customs = this.spaceColumns.columns().filter(c => !c.taskId || c.taskId === rootId);
     const valid = [
       ...this.FIELDS.filter(f => f.key !== 'task').map(f => f.key),
       ...customs.map(cc => 'cc:' + cc.id),
@@ -249,21 +249,21 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
       const f = this.FIELD_MAP.get(key)!;
       return { key, wkey: key, kind: 'field' as const, label: f.label, min: f.min, def: f.def, custom: undefined as SpaceColumn | undefined };
     });
-  });
-
-  readonly gridTemplate = computed(() => {
-    const task = this.widthOf('task', 260) + 'px';
-    const rest = this.itemCols().map(c => this.widthOf(c.wkey, c.def) + 'px');
-    return [task, ...rest, '44px'].join(' ');
-  });
-
-  /** Grid for a task's own block (its row + subtasks) using its width overrides. */
-  gridTemplateForTask(rootId: string): string {
-    const task = this.widthForTask(rootId, 'task', 260) + 'px';
-    const rest = this.itemCols().map(c => this.widthForTask(rootId, c.wkey, c.def) + 'px');
-    return [task, ...rest, '44px'].join(' ');
   }
-  /** The header mirrors the selected task's widths (so you see what you resize). */
+
+  readonly itemCols   = computed(() => this.columnsFor(null));                       // board-wide (default)
+  readonly headerCols = computed(() => this.columnsFor(this.selectedRow()));         // header follows selection
+
+  private gridFrom(cols: ReturnType<SpaceDetailComponent['columnsFor']>, rootId: string | null): string {
+    const w = (wkey: string, def: number) => rootId ? this.widthForTask(rootId, wkey, def) : this.widthOf(wkey, def);
+    return [w('task', 260) + 'px', ...cols.map(c => w(c.wkey, c.def) + 'px'), '44px'].join(' ');
+  }
+  readonly gridTemplate = computed(() => this.gridFrom(this.itemCols(), null));
+  /** Grid for a task's own block (row + subtasks): its columns + width overrides. */
+  gridTemplateForTask(rootId: string): string {
+    return this.gridFrom(this.columnsFor(rootId), rootId);
+  }
+  /** Header mirrors the selected task's columns + widths. */
   readonly headerGrid = computed(() => {
     const sel = this.selectedRow();
     return sel ? this.gridTemplateForTask(sel) : this.gridTemplate();
@@ -290,7 +290,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     ev.preventDefault();
     const from = this.dragCol(); this.dragCol.set(null);
     if (!from || from === targetKey) return;
-    const next = this.reorder(this.itemCols().map(c => c.key), from, targetKey);
+    const next = this.reorder(this.headerCols().map(c => c.key), from, targetKey);
     this.colOrder.set(next);
     try { localStorage.setItem(this.orderKey(), JSON.stringify(next)); } catch { /* ignore */ }
   }
@@ -388,7 +388,8 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     const options = this.newColType() === 'dropdown'
       ? this.newColOptions().split(',').map(s => s.trim()).filter(Boolean) : [];
     try {
-      await this.spaceColumns.create(this.spaceId(), name, this.newColType(), options);
+      // If a task is selected, the new column belongs to just that task.
+      await this.spaceColumns.create(this.spaceId(), name, this.newColType(), options, this.selectedRow());
       this.showAddColumn.set(false);
     } catch (e: any) {
       this.toast.error(e?.message ?? 'Could not add the column');

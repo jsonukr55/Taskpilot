@@ -71,8 +71,8 @@
                     <span class="ch-name">{{ selectedRow() ? 'Task — adjusting one task' : 'Task' }}</span>
                     <span class="colresize" (pointerdown)="startResize('task', 260, 160, $event)"></span>
                   </div>
-                  <!-- Movable item columns (drag the label to reorder) -->
-                  @for (col of itemCols(); track col.key) {
+                  <!-- Movable columns (header follows the selected task) -->
+                  @for (col of headerCols(); track col.key) {
                     <div class="c c--head-cell" [class.c--custom-head]="col.kind === 'custom'" [class.c--dragover]="dragCol() && dragCol() !== col.key"
                          (dragover)="$event.preventDefault()" (drop)="colDrop(col.key, $event)">
                       <span class="ch-name" [attr.draggable]="canEdit() ? true : null"
@@ -164,7 +164,7 @@
           }
         </div>
 
-        @for (col of itemCols(); track col.key) {
+        @for (col of columnsFor(rootId); track col.key) {
           @if (col.kind === 'custom') {
             <div class="c c--custom" [class.c--member]="col.custom!.type === 'member'">
               @if (col.custom!.type === 'member') {

@@ -114,6 +114,19 @@
 
   &__nav-list--nested { padding-left: $space-2; margin-bottom: $space-1; }
 
+  // Organization rows nested under the "Organizations" link
+  &__nav-link--org {
+    padding-left: $space-6;
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
+  &__org-emoji {
+    width: 18px;
+    text-align: center;
+    font-size: $font-size-sm;
+    flex-shrink: 0;
+  }
+
   &__nav-divider {
     height: 1px;
     background: var(--border-subtle);

@@ -72,6 +72,19 @@
         <ul class="sidebar__nav-list sidebar__nav-list--nested">
           @for (item of orgNav; track item.route) {
             <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+
+            <!-- List the actual organizations by name under the Organizations link -->
+            @if (item.route === '/organizations') {
+              @for (o of orgs.organizations(); track o.id) {
+                <li class="sidebar__nav-item">
+                  <a [routerLink]="['/organizations', o.id]" routerLinkActive="active"
+                     class="sidebar__nav-link sidebar__nav-link--org">
+                    <span class="sidebar__org-emoji" [style.color]="o.color">{{ o.icon }}</span>
+                    <span class="sidebar__nav-label">{{ o.name }}</span>
+                  </a>
+                </li>
+              }
+            }
           }
           @if (auth.isAdmin()) {
             <li class="sidebar__nav-item">

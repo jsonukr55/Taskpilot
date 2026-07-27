@@ -26,9 +26,11 @@
   &__titles {
     flex: 1;
     min-width: 0;
-    h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; @include text-truncate; }
+    h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; @include text-truncate; display: flex; align-items: center; gap: $space-2; }
     p  { color: var(--text-secondary); font-size: $font-size-sm; }
   }
+
+  &__startup { display: inline-flex; color: var(--accent-500); flex-shrink: 0; }
 
   &__avatars { @include flex-start; gap: 2px; }
   &__add-member { margin-left: $space-1; }

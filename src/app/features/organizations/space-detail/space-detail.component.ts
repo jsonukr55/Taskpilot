@@ -11,6 +11,7 @@ import { TaskService } from '@core/services/task.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { spaceMembers, SpaceRole, ASSIGNABLE_SPACE_ROLES, SPACE_ROLE_LABELS } from '@shared/models/space.model';
@@ -35,7 +36,7 @@ const STAGE_HEX: Record<TaskStage, string> = {
 @Component({
   selector:   'tp-space-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, TooltipDirective, TaskDrawerComponent],
+  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, MenuComponent, TooltipDirective, TaskDrawerComponent],
   templateUrl: './space-detail.component.html',
   styleUrl:    './space-detail.component.scss'
 })
@@ -296,6 +297,27 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  }
+
+  // ---- Startup screen ----
+  readonly isStartup = computed(() => this.auth.startupSpaceId() === this.spaceId());
+  readonly headerMenu = computed<MenuItem[]>(() => [
+    this.isStartup()
+      ? { label: 'Remove as startup screen', icon: 'x',    action: () => this.toggleStartup() }
+      : { label: 'Set as startup screen',    icon: 'star', action: () => this.toggleStartup() },
+  ]);
+  async toggleStartup(): Promise<void> {
+    try {
+      if (this.isStartup()) {
+        await this.auth.clearStartupSpace();
+        this.toast.success('Removed as startup screen');
+      } else {
+        await this.auth.setStartupSpace(this.orgId(), this.spaceId());
+        this.toast.success('This space now opens first on login');
+      }
+    } catch (e: any) {
+      this.toast.error(e?.message ?? 'Could not update the startup screen');
+    }
   }
 
   // ---- Members ----

@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import type { User } from '@supabase/supabase-js';
+import type { AuthChangeEvent, User } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
 import { UserProfile, DEFAULT_PREFERENCES } from '@shared/models/user.model';
 import { NoteAccessState } from '@shared/models/note.model';
@@ -34,17 +34,40 @@ export class AuthService {
   constructor() {
     // Fires INITIAL_SESSION on load (from stored session / OAuth redirect),
     // then on every sign-in / sign-out / token refresh.
-    this.supa.auth.onAuthStateChange((_event, session) => {
-      void this.handleSession(session?.user ?? null);
+    this.supa.auth.onAuthStateChange((event, session) => {
+      void this.handleSession(session?.user ?? null, event);
     });
   }
 
-  private async handleSession(user: User | null): Promise<void> {
+  private async handleSession(user: User | null, event?: AuthChangeEvent): Promise<void> {
     this.currentUser.set(user);
     if (user) await this.loadOrCreateProfile(user);
     else this.userProfile.set(null);
     this.isLoading.set(false);
     this._resolveInit();
+    // Only on a fresh sign-in (not INITIAL_SESSION / token refresh) do we
+    // send the user to their startup screen.
+    if (user && event === 'SIGNED_IN') void this.routeAfterLogin();
+  }
+
+  /** Post-login destination: an explicit returnUrl wins; otherwise the
+   *  user's startup Space if set; otherwise the dashboard. Guarded so it
+   *  only ever takes over from an auth/landing route — never hijacks deep
+   *  navigation (e.g. a spurious SIGNED_IN while the user is mid-app). */
+  private async routeAfterLogin(): Promise<void> {
+    const returnUrl = this.router.parseUrl(this.router.url).queryParams['returnUrl'];
+    if (returnUrl && typeof returnUrl === 'string') { await this.router.navigateByUrl(returnUrl); return; }
+
+    const path = this.router.url.split('?')[0];
+    const landing = path === '/' || path === '/dashboard' || path.startsWith('/auth');
+    if (!landing) return;
+
+    const prefs = this.userProfile()?.preferences;
+    if (prefs?.startupSpaceId && prefs?.startupOrgId) {
+      await this.router.navigate(['/organizations', prefs.startupOrgId, 'spaces', prefs.startupSpaceId]);
+    } else {
+      await this.router.navigate(['/dashboard']);
+    }
   }
 
   /** Supabase session access token (replaces the old getIdToken()). */
@@ -77,15 +100,15 @@ export class AuthService {
       options: { data: { displayName: name } },
     });
     if (error) throw error;
-    // Profile is created lazily on the SIGNED_IN event. (Requires email
-    // confirmation to be OFF in Supabase Auth settings for immediate login.)
-    await this.router.navigateByUrl(this.postAuthTarget());
+    // Profile is created lazily on the SIGNED_IN event, which also drives
+    // post-login navigation (routeAfterLogin). Requires email confirmation
+    // to be OFF in Supabase Auth settings for immediate login.
   }
 
   async signInWithEmail(email: string, password: string): Promise<void> {
     const { error } = await this.supa.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    await this.router.navigateByUrl(this.postAuthTarget());
+    // Navigation is handled by the SIGNED_IN handler (routeAfterLogin).
   }
 
   async signOut(): Promise<void> {
@@ -136,6 +159,16 @@ export class AuthService {
     if (!uid) return;
     const { data } = await this.supa.db('profiles').select('*').eq('id', uid).maybeSingle();
     if (data) this.userProfile.set(rowToProfile(data));
+  }
+
+  // ---- Startup screen (Space opened first on login) ----
+  readonly startupSpaceId = computed(() => this.userProfile()?.preferences?.startupSpaceId ?? null);
+
+  async setStartupSpace(orgId: string, spaceId: string): Promise<void> {
+    await this.updatePreferences({ startupOrgId: orgId, startupSpaceId: spaceId });
+  }
+  async clearStartupSpace(): Promise<void> {
+    await this.updatePreferences({ startupOrgId: null, startupSpaceId: null });
   }
 
   async updatePreferences(prefs: Partial<UserProfile['preferences']>): Promise<void> {

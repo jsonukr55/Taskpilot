@@ -27,6 +27,11 @@ export interface UserPreferences {
   aiAutoCategory:     boolean;
   language:           string;       // 'en', 'es', etc.
   dateFormat:         'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
+
+  /** Startup screen: a Space the user opens first on login. null = default
+   *  (dashboard). Optional so pre-existing profiles need no migration. */
+  startupSpaceId?:    string | null;
+  startupOrgId?:      string | null;   // parent org, to build the route
 }
 
 export interface UserStats {
@@ -77,5 +82,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   aiAutoSchedule:     true,
   aiAutoCategory:     true,
   language:           'en',
-  dateFormat:         'MM/DD/YYYY'
+  dateFormat:         'MM/DD/YYYY',
+  startupSpaceId:     null,
+  startupOrgId:       null
 };

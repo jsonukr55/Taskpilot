@@ -73,7 +73,7 @@ rename of existing entities.
 | 9 | Roles & Permissions (admin / member / viewer) | P0 | Done |
 | 10 | Admin panel (users, tasks, files, retention) | P1 | Todo |
 | 11 | Multi-tenancy (`client_id` on tenant tree) | P0 | Done |
-| 12 | Startup screen & user preferences | P2 | Todo |
+| 12 | Startup screen & user preferences | P2 | Done |
 | 13 | Infrastructure (Postgres, Redis, file storage) | P0 | Partly done |
 
 ---
@@ -398,15 +398,21 @@ Azure Database for PostgreSQL via `pg_dump`.
 - On login, the **startup screen shows up**.
 
 **Tasks**
-- [ ] "Set as startup screen" action on a project.
-- [ ] Persist the startup preference per user.
-- [ ] On login, route to the chosen startup project (fallback to default when unset).
+- [x] "Set as startup screen" action on a Space (board header ⋯ menu; toggles
+  set/remove, with a star indicator next to the space name when active).
+- [x] Persist the startup preference per user (`profiles.preferences.startupSpaceId`
+  + `startupOrgId`; via `AuthService.setStartupSpace/clearStartupSpace`).
+- [x] On login, route to the chosen startup Space — handled in the `SIGNED_IN`
+  auth event (`routeAfterLogin`): explicit `returnUrl` wins, else the startup
+  Space, else `/dashboard`. Guarded to only take over from an auth/landing route
+  so it never hijacks deep navigation.
 
 **Acceptance criteria**
-- After setting a startup project, logging in opens that project first.
+- ✅ After setting a startup Space, logging in opens that Space first.
 
 **Open questions**
-- Startup preference is global per user (one) — confirm it's not per-tenant.
+- ~~Startup preference is global per user (one)~~ ✅ **RESOLVED** — one global startup
+  Space per user, stored on the profile (not per-tenant).
 
 ---
 

@@ -170,25 +170,28 @@
         <!-- Start -->
         <div class="c c--date">
           @if (canEdit()) {
-            <input class="cell-input" type="date" [value]="dateInput(t.startDate)" (change)="setStart(t.id, $any($event.target).value)">
+            <input class="cell-input cell-input--date" type="date" [value]="dateInput(t.startDate)"
+                   (click)="openPicker($event)" (change)="setStart(t.id, $any($event.target).value)">
           } @else { <span class="tp-muted">{{ t.startDate ? (t.startDate.toDate() | date:'MMM d') : '—' }}</span> }
         </div>
         <!-- Due -->
         <div class="c c--date">
           @if (canEdit()) {
-            <input class="cell-input" type="date" [value]="dateInput(t.dueDate)" (change)="setDue(t.id, $any($event.target).value)">
+            <input class="cell-input cell-input--date" type="date" [value]="dateInput(t.dueDate)"
+                   (click)="openPicker($event)" (change)="setDue(t.id, $any($event.target).value)">
           } @else { <span class="tp-muted">{{ t.dueDate ? (t.dueDate.toDate() | date:'MMM d') : '—' }}</span> }
         </div>
         <!-- Due time -->
         <div class="c c--date">
           @if (canEdit()) {
-            <input class="cell-input" type="time" [value]="t.dueTime || ''" (change)="setDueTime(t.id, $any($event.target).value)">
+            <input class="cell-input cell-input--date" type="time" [value]="t.dueTime || ''"
+                   (click)="openPicker($event)" (change)="setDueTime(t.id, $any($event.target).value)">
           } @else { <span class="tp-muted">{{ t.dueTime || '—' }}</span> }
         </div>
         <!-- Est hours -->
         <div class="c c--num">
           @if (canEdit()) {
-            <input class="cell-input" type="number" min="0" step="0.5" [value]="t.estimatedHours ?? ''" placeholder="—"
+            <input class="cell-input" type="text" inputmode="decimal" [value]="t.estimatedHours ?? ''" placeholder="—"
                    (blur)="setEst(t.id, $any($event.target).value)" (keydown.enter)="$any($event.target).blur()">
           } @else { <span class="tp-muted">{{ t.estimatedHours ?? '—' }}</span> }
         </div>

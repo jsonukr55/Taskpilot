@@ -344,6 +344,12 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   /** ISO yyyy-mm-dd for a <input type="date"> value. */
   dateInput = (t?: Timestamp | null): string => t ? t.toDate().toISOString().split('T')[0] : '';
 
+  /** Open the native date/time picker on a click anywhere in the cell. */
+  openPicker(ev: Event): void {
+    const el = ev.target as HTMLInputElement & { showPicker?: () => void };
+    try { el.showPicker?.(); } catch { /* not user-activated / unsupported */ }
+  }
+
   private async patch(id: string, changes: Partial<Task>): Promise<void> {
     try { await this.tasks.updateTask(id, changes); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not update the task'); }

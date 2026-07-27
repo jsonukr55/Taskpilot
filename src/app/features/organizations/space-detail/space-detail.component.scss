@@ -2,8 +2,8 @@
 @use 'mixins' as *;
 
 .sd {
-  max-width: $content-max-width;
-  margin: 0 auto;
+  max-width: none;      // board uses the full available width
+  margin: 0;
   padding: $space-6;
 
   &__header {
@@ -445,6 +445,39 @@
   &:focus  { outline: none; border-color: var(--input-focus); background: var(--input-bg); }
 }
 .c--num, .c--tags { padding: $space-1 $space-2; }
+
+// Date/time cells: input fills the whole cell so a click anywhere opens
+// the native picker (openPicker → showPicker), not just the tiny icon.
+.c--date { padding: 0; }
+.cell-input--date {
+  height: 100%;
+  padding: 0 $space-3;
+  cursor: pointer;
+}
+
+// No spinner buttons on numeric inputs (built-in Est + custom number cols).
+.cell-input[type='number'],
+.cf-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+}
+
+// ---- Frozen Task column (stays put while the rest scrolls) ----
+.c--task {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--card-bg);
+}
+.tbl__row:hover .c--task { background: var(--bg-tertiary); }
+.tbl__row--head .c--head-cell:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-secondary);
+}
 
 // ---- Inline assignee picker ----
 .c--people { overflow: visible; position: relative; }

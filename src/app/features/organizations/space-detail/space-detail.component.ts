@@ -203,11 +203,17 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   private static readonly CUSTOM_MIN = 90;
   private readonly FIELD_MAP = new Map(this.FIELDS.map(f => [f.key, f]));
 
-  readonly colWidths = signal<Record<string, number>>({});   // keyed by wkey (unique)
+  readonly colWidths = signal<Record<string, number>>({});   // default widths, keyed by wkey
   readonly colOrder  = signal<string[]>([]);                 // column order (excl. 'task')
+  // Per-task width overrides: rootTaskId -> { wkey -> px }. A task's row and
+  // ALL its subtasks follow the task's own widths (falling back to defaults).
+  readonly taskWidths = signal<Record<string, Record<string, number>>>({});
+  // The top-level task currently being customized (its widths drive the header).
+  readonly selectedRow = signal<string | null>(null);
 
-  private widthsKey(): string { return 'space-cols:' + this.spaceId(); }
-  private orderKey():  string { return 'space-colorder:' + this.spaceId(); }
+  private widthsKey():    string { return 'space-cols:' + this.spaceId(); }
+  private orderKey():     string { return 'space-colorder:' + this.spaceId(); }
+  private taskColsKey():  string { return 'space-taskcols:' + this.spaceId(); }
 
   private loadWidths(): void {
     const read = (k: string, fb: any) => {
@@ -215,8 +221,14 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     };
     this.colWidths.set(read(this.widthsKey(), {}));
     this.colOrder.set(read(this.orderKey(), []));
+    this.taskWidths.set(read(this.taskColsKey(), {}));
   }
   widthOf = (wkey: string, fallback: number): number => this.colWidths()[wkey] ?? fallback;
+  /** Width for a column within a specific task's block (override → default → fallback). */
+  widthForTask = (rootId: string, wkey: string, fallback: number): number =>
+    this.taskWidths()[rootId]?.[wkey] ?? this.colWidths()[wkey] ?? fallback;
+
+  toggleSelectRow(id: string): void { this.selectedRow.update(v => v === id ? null : id); }
 
   /** Board columns (built-in fields + custom columns) in the user's order:
    *  stored order first, then any newly-added columns appended. Subitems
@@ -243,6 +255,18 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     const task = this.widthOf('task', 260) + 'px';
     const rest = this.itemCols().map(c => this.widthOf(c.wkey, c.def) + 'px');
     return [task, ...rest, '44px'].join(' ');
+  });
+
+  /** Grid for a task's own block (its row + subtasks) using its width overrides. */
+  gridTemplateForTask(rootId: string): string {
+    const task = this.widthForTask(rootId, 'task', 260) + 'px';
+    const rest = this.itemCols().map(c => this.widthForTask(rootId, c.wkey, c.def) + 'px');
+    return [task, ...rest, '44px'].join(' ');
+  }
+  /** The header mirrors the selected task's widths (so you see what you resize). */
+  readonly headerGrid = computed(() => {
+    const sel = this.selectedRow();
+    return sel ? this.gridTemplateForTask(sel) : this.gridTemplate();
   });
 
 
@@ -272,25 +296,38 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   }
 
   // ---- Column resize (pointer drag on a header's right edge) ----
-  private resizing?: { key: string; startX: number; startW: number; min: number };
+  //   When a task is selected, the drag writes that task's width override;
+  //   otherwise it sets the board default.
+  private resizing?: { key: string; startX: number; startW: number; min: number; rootId: string | null };
 
   startResize(wkey: string, def: number, min: number, ev: PointerEvent): void {
     ev.preventDefault(); ev.stopPropagation();
-    this.resizing = { key: wkey, startX: ev.clientX, startW: this.widthOf(wkey, def), min };
+    const rootId = this.selectedRow();
+    const startW = rootId ? this.widthForTask(rootId, wkey, def) : this.widthOf(wkey, def);
+    this.resizing = { key: wkey, startX: ev.clientX, startW, min, rootId };
     document.body.style.userSelect = 'none';
   }
   @HostListener('document:pointermove', ['$event'])
   onResizeMove(ev: PointerEvent): void {
     if (!this.resizing) return;
     const w = Math.max(this.resizing.min, this.resizing.startW + (ev.clientX - this.resizing.startX));
-    this.colWidths.update(m => ({ ...m, [this.resizing!.key]: w }));
+    const { key, rootId } = this.resizing;
+    if (rootId) {
+      this.taskWidths.update(m => ({ ...m, [rootId]: { ...(m[rootId] ?? {}), [key]: w } }));
+    } else {
+      this.colWidths.update(m => ({ ...m, [key]: w }));
+    }
   }
   @HostListener('document:pointerup')
   endResize(): void {
     if (!this.resizing) return;
+    const wasTask = !!this.resizing.rootId;
     this.resizing = undefined;
     document.body.style.userSelect = '';
-    try { localStorage.setItem(this.widthsKey(), JSON.stringify(this.colWidths())); } catch { /* ignore */ }
+    try {
+      if (wasTask) localStorage.setItem(this.taskColsKey(), JSON.stringify(this.taskWidths()));
+      else localStorage.setItem(this.widthsKey(), JSON.stringify(this.colWidths()));
+    } catch { /* ignore */ }
   }
 
   // ---- Custom columns ----

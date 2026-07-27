@@ -91,6 +91,31 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     this.expandedRows.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
 
+  // ---- Row selection (checkboxes) + bulk actions ----
+  readonly checked = signal<Set<string>>(new Set());
+  readonly checkedCount = computed(() => this.checked().size);
+  isChecked = (id: string): boolean => this.checked().has(id);
+  toggleCheck(id: string): void {
+    this.checked.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+  clearChecked(): void { this.checked.set(new Set()); }
+
+  async deleteChecked(): Promise<void> {
+    const ids = [...this.checked()];
+    if (!ids.length) return;
+    if (!(await this.dialog.confirm({
+      title: 'Delete tasks',
+      message: `Delete ${ids.length} ${ids.length === 1 ? 'task' : 'tasks'}? Their subtasks are removed too.`,
+      confirmText: 'Delete', danger: true,
+    }))) return;
+    try {
+      await Promise.all(ids.map(id => this.tasks.deleteTask(id)));
+      this.clearChecked();
+    } catch (e: any) {
+      this.toast.error(e?.message ?? 'Could not delete the tasks');
+    }
+  }
+
   async addSubtaskInline(parentId: string, input: HTMLInputElement): Promise<void> {
     const title = input.value.trim();
     if (!title) return;

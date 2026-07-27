@@ -304,6 +304,65 @@
   color: var(--text-tertiary);
 }
 
+// Nesting connector guide (Monday-style L) on subtask task cells.
+.c--task-sub {
+  &::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--ind, 0px) + 15px);
+    top: 0; height: 50%;
+    border-left: 1px solid var(--border-strong);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--ind, 0px) + 15px);
+    top: 50%; width: 8px;
+    border-top: 1px solid var(--border-strong);
+  }
+}
+
+// Row selection checkbox
+.row-check {
+  flex-shrink: 0;
+  width: 15px; height: 15px;
+  accent-color: var(--accent-500);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity $transition-fast;
+}
+.tbl__row:hover .row-check, .row-check:checked { opacity: 1; }
+
+// "Subitem" section label above nested rows
+.tbl__row--sublabel {
+  display: block;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky; left: 0;
+}
+.sublabel {
+  display: inline-block;
+  padding-top: $space-1; padding-bottom: $space-1;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// Bulk-selection action bar
+.bulkbar {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-2 $space-4;
+  background: var(--surface-brand);
+  border: 1px solid var(--accent-500);
+  border-radius: $radius-md;
+  &__count { font-size: $font-size-sm; font-weight: $font-weight-semibold; color: var(--text-brand); }
+  &__spacer { flex: 1; }
+}
+
 // Subitem column header — a distinct, non-sticky header for the sub level.
 .tbl__row--subhead {
   position: static;

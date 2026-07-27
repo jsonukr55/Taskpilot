@@ -6,12 +6,15 @@ import { Timestamp } from '@angular/fire/firestore';
 // ============================================================
 export type SpaceColumnType = 'text' | 'number' | 'date' | 'dropdown' | 'member';
 
+export type SpaceColumnScope = 'item' | 'subitem';
+
 export interface SpaceColumn {
   id:        string;
   spaceId:   string;
   name:      string;
   type:      SpaceColumnType;
   options:   string[];   // dropdown choices
+  scope:     SpaceColumnScope;   // 'item' rows or 'subitem' rows
   position:  number;
   createdAt: Timestamp;
   updatedAt: Timestamp;

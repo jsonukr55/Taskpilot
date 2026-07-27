@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
-import { SpaceColumn, SpaceColumnType } from '@shared/models/space-column.model';
+import { SpaceColumn, SpaceColumnType, SpaceColumnScope } from '@shared/models/space-column.model';
 import { toTs } from './supabase-map.util';
 
 // ============================================================
@@ -36,10 +36,10 @@ export class SpaceColumnService {
     this.columns.set((data ?? []).map(rowToColumn));
   }
 
-  async create(spaceId: string, name: string, type: SpaceColumnType, options: string[] = []): Promise<string> {
-    const position = this.columns().length;
+  async create(spaceId: string, name: string, type: SpaceColumnType, options: string[] = [], scope: SpaceColumnScope = 'item'): Promise<string> {
+    const position = this.columns().filter(c => c.scope === scope).length;
     const { data, error } = await this.supa.db('space_columns')
-      .insert({ space_id: spaceId, name: name.trim() || 'Column', type, options, position })
+      .insert({ space_id: spaceId, name: name.trim() || 'Column', type, options, scope, position })
       .select('id').single();
     if (error) throw error;
     return data.id;
@@ -63,6 +63,7 @@ function rowToColumn(r: any): SpaceColumn {
     name:      r.name,
     type:      r.type,
     options:   r.options ?? [],
+    scope:     r.scope ?? 'item',
     position:  r.position ?? 0,
     createdAt: toTs(r.created_at) as any,
     updatedAt: toTs(r.updated_at) as any,

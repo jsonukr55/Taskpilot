@@ -201,46 +201,57 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   private static readonly CUSTOM_MIN = 90;
   private readonly FIELD_MAP = new Map(this.FIELDS.map(f => [f.key, f]));
 
-  readonly colWidths = signal<Record<string, number>>({});
-  readonly colOrder  = signal<string[]>([]);   // movable column keys (excludes 'task')
+  readonly colWidths   = signal<Record<string, number>>({});   // keyed by wkey (unique)
+  readonly colOrder    = signal<string[]>([]);                 // item column order (excl. 'task')
+  readonly subColOrder = signal<string[]>([]);                 // subitem column order
 
-  private widthsKey(): string { return 'space-cols:' + this.spaceId(); }
-  private orderKey(): string  { return 'space-colorder:' + this.spaceId(); }
+  private widthsKey():   string { return 'space-cols:' + this.spaceId(); }
+  private orderKey():    string { return 'space-colorder:' + this.spaceId(); }
+  private subOrderKey(): string { return 'space-subcolorder:' + this.spaceId(); }
+
   private loadWidths(): void {
-    try {
-      const raw = localStorage.getItem(this.widthsKey());
-      this.colWidths.set(raw ? JSON.parse(raw) : {});
-    } catch { this.colWidths.set({}); }
-    try {
-      const raw = localStorage.getItem(this.orderKey());
-      this.colOrder.set(raw ? JSON.parse(raw) : []);
-    } catch { this.colOrder.set([]); }
+    const read = (k: string, fb: any) => {
+      try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; }
+    };
+    this.colWidths.set(read(this.widthsKey(), {}));
+    this.colOrder.set(read(this.orderKey(), []));
+    this.subColOrder.set(read(this.subOrderKey(), []));
   }
-  widthOf = (key: string, fallback: number): number => this.colWidths()[key] ?? fallback;
+  widthOf = (wkey: string, fallback: number): number => this.colWidths()[wkey] ?? fallback;
 
-  /** Movable columns (everything except the pinned Task), in the user's order:
-   *  stored order first, then any newly-added fields/custom columns appended. */
-  readonly movableCols = computed(() => {
+  readonly itemCustoms = computed(() => this.spaceColumns.columns().filter(c => c.scope !== 'subitem'));
+  readonly subCustoms  = computed(() => this.spaceColumns.columns().filter(c => c.scope === 'subitem'));
+
+  /** Build a column-descriptor list from an order + custom-column set.
+   *  `wprefix` namespaces built-in width keys so item vs subitem widths differ. */
+  private buildCols(order: string[], customs: SpaceColumn[], wprefix: string) {
     const valid = [
       ...this.FIELDS.filter(f => f.key !== 'task').map(f => f.key),
-      ...this.spaceColumns.columns().map(cc => 'cc:' + cc.id),
+      ...customs.map(cc => 'cc:' + cc.id),
     ];
-    const stored = this.colOrder().filter(k => valid.includes(k));
+    const stored = order.filter(k => valid.includes(k));
     const ordered = [...stored, ...valid.filter(k => !stored.includes(k))];
     return ordered.map(key => {
       if (key.startsWith('cc:')) {
-        const cc = this.spaceColumns.columns().find(c => 'cc:' + c.id === key)!;
-        return { key, kind: 'custom' as const, label: cc.name, min: SpaceDetailComponent.CUSTOM_MIN, def: SpaceDetailComponent.CUSTOM_DEFAULT, custom: cc };
+        const cc = customs.find(c => 'cc:' + c.id === key)!;
+        return { key, wkey: 'cc:' + cc.id, kind: 'custom' as const, label: cc.name, min: SpaceDetailComponent.CUSTOM_MIN, def: SpaceDetailComponent.CUSTOM_DEFAULT, custom: cc as SpaceColumn | undefined };
       }
       const f = this.FIELD_MAP.get(key)!;
-      return { key, kind: 'field' as const, label: f.label, min: f.min, def: f.def, custom: undefined };
+      return { key, wkey: wprefix + key, kind: 'field' as const, label: f.label, min: f.min, def: f.def, custom: undefined as SpaceColumn | undefined };
     });
-  });
+  }
 
-  /** Grid track list: pinned Task + movable columns (in order) + add-column cell. */
+  readonly itemCols = computed(() => this.buildCols(this.colOrder(), this.itemCustoms(), ''));
+  readonly subCols  = computed(() => this.buildCols(this.subColOrder(), this.subCustoms(), 'sub:'));
+
   readonly gridTemplate = computed(() => {
     const task = this.widthOf('task', 260) + 'px';
-    const rest = this.movableCols().map(c => this.widthOf(c.key, c.def) + 'px');
+    const rest = this.itemCols().map(c => this.widthOf(c.wkey, c.def) + 'px');
+    return [task, ...rest, '44px'].join(' ');
+  });
+  readonly subGridTemplate = computed(() => {
+    const task = this.widthOf('sub:task', 260) + 'px';
+    const rest = this.subCols().map(c => this.widthOf(c.wkey, c.def) + 'px');
     return [task, ...rest, '44px'].join(' ');
   });
 
@@ -250,32 +261,40 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     this.dragCol.set(key);
     if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
   }
+  private reorder(keys: string[], from: string, target: string): string[] {
+    const fi = keys.indexOf(from), ti = keys.indexOf(target);
+    if (fi < 0 || ti < 0) return keys;
+    const arr = [...keys];
+    arr.splice(fi, 1);
+    let at = arr.indexOf(target);
+    if (ti > fi) at += 1;
+    arr.splice(at, 0, from);
+    return arr;
+  }
   colDrop(targetKey: string, ev: DragEvent): void {
     ev.preventDefault();
     const from = this.dragCol(); this.dragCol.set(null);
     if (!from || from === targetKey) return;
-    const order = this.movableCols().map(c => c.key);
-    const fi = order.indexOf(from), ti = order.indexOf(targetKey);
-    if (fi < 0 || ti < 0) return;
-    order.splice(fi, 1);
-    let insertAt = order.indexOf(targetKey);
-    if (ti > fi) insertAt += 1;           // dropped to the right of the target
-    order.splice(insertAt, 0, from);
-    this.colOrder.set(order);
-    try { localStorage.setItem(this.orderKey(), JSON.stringify(order)); } catch { /* ignore */ }
+    const next = this.reorder(this.itemCols().map(c => c.key), from, targetKey);
+    this.colOrder.set(next);
+    try { localStorage.setItem(this.orderKey(), JSON.stringify(next)); } catch { /* ignore */ }
+  }
+  subColDrop(targetKey: string, ev: DragEvent): void {
+    ev.preventDefault();
+    const from = this.dragCol(); this.dragCol.set(null);
+    if (!from || from === targetKey) return;
+    const next = this.reorder(this.subCols().map(c => c.key), from, targetKey);
+    this.subColOrder.set(next);
+    try { localStorage.setItem(this.subOrderKey(), JSON.stringify(next)); } catch { /* ignore */ }
   }
 
   // ---- Column resize (pointer drag on a header's right edge) ----
   private resizing?: { key: string; startX: number; startW: number; min: number };
 
-  startResize(key: string, min: number, ev: PointerEvent): void {
+  startResize(wkey: string, def: number, min: number, ev: PointerEvent): void {
     ev.preventDefault(); ev.stopPropagation();
-    this.resizing = { key, startX: ev.clientX, startW: this.widthOf(key, 0) || this.defaultWidth(key), min };
+    this.resizing = { key: wkey, startX: ev.clientX, startW: this.widthOf(wkey, def), min };
     document.body.style.userSelect = 'none';
-  }
-  private defaultWidth(key: string): number {
-    const f = this.FIELDS.find(x => x.key === key);
-    return f ? f.def : SpaceDetailComponent.CUSTOM_DEFAULT;
   }
   @HostListener('document:pointermove', ['$event'])
   onResizeMove(ev: PointerEvent): void {
@@ -338,9 +357,10 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly newColName    = signal('');
   readonly newColType    = signal<SpaceColumnType>('text');
   readonly newColOptions = signal('');   // comma-separated for dropdown
+  readonly newColScope   = signal<'item' | 'subitem'>('item');
 
-  openAddColumn(): void {
-    this.newColName.set(''); this.newColType.set('text'); this.newColOptions.set('');
+  openAddColumn(scope: 'item' | 'subitem' = 'item'): void {
+    this.newColName.set(''); this.newColType.set('text'); this.newColOptions.set(''); this.newColScope.set(scope);
     this.showAddColumn.set(true);
   }
   async createColumn(): Promise<void> {
@@ -349,7 +369,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     const options = this.newColType() === 'dropdown'
       ? this.newColOptions().split(',').map(s => s.trim()).filter(Boolean) : [];
     try {
-      await this.spaceColumns.create(this.spaceId(), name, this.newColType(), options);
+      await this.spaceColumns.create(this.spaceId(), name, this.newColType(), options, this.newColScope());
       this.showAddColumn.set(false);
     } catch (e: any) {
       this.toast.error(e?.message ?? 'Could not add the column');

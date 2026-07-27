@@ -285,6 +285,14 @@
   color: var(--text-tertiary);
 }
 
+// Subitem column header — a distinct, non-sticky header for the sub level.
+.tbl__row--subhead {
+  position: static;
+  top: auto;
+  border-top: 2px solid var(--border-subtle);
+  .c--head-cell:first-child { z-index: 3; }   // below the main frozen header
+}
+
 .tname {
   @include text-truncate;
   max-width: 100%;

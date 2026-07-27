@@ -69,10 +69,10 @@
                   <!-- Task (pinned, frozen) -->
                   <div class="c c--head-cell">
                     <span class="ch-name">Task</span>
-                    <span class="colresize" (pointerdown)="startResize('task', 160, $event)"></span>
+                    <span class="colresize" (pointerdown)="startResize('task', 260, 160, $event)"></span>
                   </div>
-                  <!-- Movable columns (drag the label to reorder) -->
-                  @for (col of movableCols(); track col.key) {
+                  <!-- Movable item columns (drag the label to reorder) -->
+                  @for (col of itemCols(); track col.key) {
                     <div class="c c--head-cell" [class.c--custom-head]="col.kind === 'custom'" [class.c--dragover]="dragCol() && dragCol() !== col.key"
                          (dragover)="$event.preventDefault()" (drop)="colDrop(col.key, $event)">
                       <span class="ch-name" [attr.draggable]="canEdit() ? true : null"
@@ -81,18 +81,18 @@
                       @if (col.kind === 'custom' && canEdit()) {
                         <button class="ch-del" (click)="deleteColumn(col.custom!)" data-tooltip="Delete column"><tp-icon name="x" [size]="11" /></button>
                       }
-                      <span class="colresize" (pointerdown)="startResize(col.key, col.min, $event)"></span>
+                      <span class="colresize" (pointerdown)="startResize(col.wkey, col.def, col.min, $event)"></span>
                     </div>
                   }
                   <div class="c c--addcol">
-                    @if (canEdit()) { <button class="addcol-btn" (click)="openAddColumn()" data-tooltip="Add column"><tp-icon name="plus" [size]="14" /></button> }
+                    @if (canEdit()) { <button class="addcol-btn" (click)="openAddColumn('item')" data-tooltip="Add column"><tp-icon name="plus" [size]="14" /></button> }
                   </div>
                 </div>
 
                 <div cdkDropList [cdkDropListData]="col.tasks" (cdkDropListDropped)="drop($event, col)">
                   @for (t of col.tasks; track t.id) {
                     <div class="tbl__row" [style.grid-template-columns]="gridTemplate()" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
-                      <ng-container *ngTemplateOutlet="cells; context: { $implicit: t, depth: 0, drag: true }"></ng-container>
+                      <ng-container *ngTemplateOutlet="cells; context: { $implicit: t, depth: 0, drag: true, cols: itemCols() }"></ng-container>
                       <div class="drag-preview" *cdkDragPreview><tp-icon name="drag" [size]="14" /> {{ t.title }}</div>
                     </div>
                     <ng-container *ngTemplateOutlet="childRows; context: { parentId: t.id, depth: 1 }"></ng-container>
@@ -124,17 +124,40 @@
       }
     </div>
 
-    <!-- Recursive nested subtask rows -->
+    <!-- Recursive nested subtask rows (with their own SUBITEM column set) -->
     <ng-template #childRows let-parentId="parentId" let-depth="depth">
       @if (isRowOpen(parentId)) {
+        <!-- Subitem header — a separate, independently ordered/sized column set -->
+        <div class="tbl__row tbl__row--head tbl__row--subhead" [style.grid-template-columns]="subGridTemplate()">
+          <div class="c c--head-cell" [style.padding-left.px]="depth * 18">
+            <span class="ch-name">Subitem</span>
+            <span class="colresize" (pointerdown)="startResize('sub:task', 260, 160, $event)"></span>
+          </div>
+          @for (col of subCols(); track col.key) {
+            <div class="c c--head-cell" [class.c--custom-head]="col.kind === 'custom'" [class.c--dragover]="dragCol() && dragCol() !== col.key"
+                 (dragover)="$event.preventDefault()" (drop)="subColDrop(col.key, $event)">
+              <span class="ch-name" [attr.draggable]="canEdit() ? true : null"
+                    (dragstart)="colDragStart(col.key, $event)" (dragend)="dragCol.set(null)"
+                    [attr.data-tooltip]="canEdit() ? 'Drag to reorder' : null">{{ col.label }}</span>
+              @if (col.kind === 'custom' && canEdit()) {
+                <button class="ch-del" (click)="deleteColumn(col.custom!)" data-tooltip="Delete column"><tp-icon name="x" [size]="11" /></button>
+              }
+              <span class="colresize" (pointerdown)="startResize(col.wkey, col.def, col.min, $event)"></span>
+            </div>
+          }
+          <div class="c c--addcol">
+            @if (canEdit()) { <button class="addcol-btn" (click)="openAddColumn('subitem')" data-tooltip="Add subitem column"><tp-icon name="plus" [size]="14" /></button> }
+          </div>
+        </div>
+
         @for (s of subtasksOf(parentId); track s.id) {
-          <div class="tbl__row tbl__row--sub" [style.grid-template-columns]="gridTemplate()">
-            <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: depth, drag: false }"></ng-container>
+          <div class="tbl__row tbl__row--sub" [style.grid-template-columns]="subGridTemplate()">
+            <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: depth, drag: false, cols: subCols() }"></ng-container>
           </div>
           <ng-container *ngTemplateOutlet="childRows; context: { parentId: s.id, depth: depth + 1 }"></ng-container>
         }
         @if (canEdit()) {
-          <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="gridTemplate()">
+          <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="subGridTemplate()">
             <div class="c c--task" [style.padding-left.px]="depth * 18 + 10">
               <input #si class="addrow addrow--sub" placeholder="+ Add subtask" (keydown.enter)="addSubtaskInline(parentId, si)">
             </div>
@@ -143,8 +166,8 @@
       }
     </ng-template>
 
-    <!-- Reusable task-row cells (task + movable columns), shared by root and sub rows -->
-    <ng-template #cells let-t let-depth="depth" let-drag="drag">
+    <!-- Reusable task-row cells (task + the given column set), shared by root and sub rows -->
+    <ng-template #cells let-t let-depth="depth" let-drag="drag" let-cols="cols">
         <!-- Task (pinned, frozen) -->
         <div class="c c--task" [style.padding-left.px]="depth * 18">
           @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
@@ -156,7 +179,7 @@
           @if (childCountOf(t.id)) { <span class="tw-count">{{ childCountOf(t.id) }}</span> }
         </div>
 
-        @for (col of movableCols(); track col.key) {
+        @for (col of cols; track col.key) {
           @if (col.kind === 'custom') {
             <div class="c c--custom" [class.c--member]="col.custom!.type === 'member'">
               @if (col.custom!.type === 'member') {
@@ -428,7 +451,7 @@
   <div class="modal-overlay" (click)="showAddColumn.set(false)">
     <div class="modal scale-in" (click)="$event.stopPropagation()">
       <div class="modal__header">
-        <h2>New column</h2>
+        <h2>New {{ newColScope() === 'subitem' ? 'subitem ' : '' }}column</h2>
         <button class="btn-icon" (click)="showAddColumn.set(false)"><tp-icon name="x" [size]="18" /></button>
       </div>
       <div class="modal__body">

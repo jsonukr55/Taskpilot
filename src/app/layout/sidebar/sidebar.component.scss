@@ -85,6 +85,22 @@
     gap: 2px;
   }
 
+  &__nav-heading {
+    display: block;
+    padding: $space-2 $space-3 $space-1;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  &__nav-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: $space-3 $space-2;
+  }
+
   &__nav-link {
     display: flex;
     align-items: center;

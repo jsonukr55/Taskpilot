@@ -25,41 +25,20 @@
 
   <!-- Main Nav -->
   <nav class="sidebar__nav">
+    <!-- Personal view -->
+    @if (!collapsed()) { <span class="sidebar__nav-heading">Personal</span> }
     <ul class="sidebar__nav-list">
-      @for (item of navItems; track item.route) {
-        <li class="sidebar__nav-item">
-          @if (item.comingSoon) {
-            <div
-              class="sidebar__nav-link sidebar__nav-link--soon"
-              data-tooltip [attr.data-tooltip]="collapsed() ? item.label + ' — coming soon' : 'Coming soon'"
-            >
-              <tp-icon [name]="item.icon" [size]="18" />
-              @if (!collapsed()) {
-                <span class="sidebar__nav-label">{{ item.label }}</span>
-                <span class="sidebar__soon">Soon</span>
-              }
-            </div>
-          } @else {
-            <a
-              [routerLink]="item.route"
-              routerLinkActive="active"
-              class="sidebar__nav-link"
-              data-tooltip [attr.data-tooltip]="collapsed() ? item.label : null"
-            >
-              <tp-icon [name]="item.icon" [size]="18" />
-              @if (!collapsed()) {
-                <span class="sidebar__nav-label">{{ item.label }}</span>
-                @if (item.badge && item.badge() > 0) {
-                  <span class="sidebar__badge">{{ item.badge() }}</span>
-                } @else if (item.dot && item.dot()) {
-                  <span class="sidebar__new">New</span>
-                }
-              } @else if ((item.badge && item.badge() > 0) || (item.dot && item.dot())) {
-                <span class="sidebar__badge sidebar__badge--dot"></span>
-              }
-            </a>
-          }
-        </li>
+      @for (item of personalNav; track item.route) {
+        <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+      }
+    </ul>
+
+    <!-- Organization view -->
+    <div class="sidebar__nav-divider"></div>
+    @if (!collapsed()) { <span class="sidebar__nav-heading">Organization</span> }
+    <ul class="sidebar__nav-list">
+      @for (item of orgNav; track item.route) {
+        <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
       }
 
       <!-- Admin panel — platform admins only -->
@@ -74,6 +53,43 @@
       }
     </ul>
   </nav>
+
+  <!-- Reusable nav link (used by both sections) -->
+  <ng-template #navLink let-item>
+    <li class="sidebar__nav-item">
+      @if (item.comingSoon) {
+        <div
+          class="sidebar__nav-link sidebar__nav-link--soon"
+          data-tooltip [attr.data-tooltip]="collapsed() ? item.label + ' — coming soon' : 'Coming soon'"
+        >
+          <tp-icon [name]="item.icon" [size]="18" />
+          @if (!collapsed()) {
+            <span class="sidebar__nav-label">{{ item.label }}</span>
+            <span class="sidebar__soon">Soon</span>
+          }
+        </div>
+      } @else {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          class="sidebar__nav-link"
+          data-tooltip [attr.data-tooltip]="collapsed() ? item.label : null"
+        >
+          <tp-icon [name]="item.icon" [size]="18" />
+          @if (!collapsed()) {
+            <span class="sidebar__nav-label">{{ item.label }}</span>
+            @if (item.badge && item.badge() > 0) {
+              <span class="sidebar__badge">{{ item.badge() }}</span>
+            } @else if (item.dot && item.dot()) {
+              <span class="sidebar__new">New</span>
+            }
+          } @else if ((item.badge && item.badge() > 0) || (item.dot && item.dot())) {
+            <span class="sidebar__badge sidebar__badge--dot"></span>
+          }
+        </a>
+      }
+    </li>
+  </ng-template>
 
   <!-- Categories -->
   @if (!collapsed()) {

@@ -28,17 +28,6 @@
 
     <!-- Board -->
     <div class="board" cdkDropListGroup>
-      <!-- Bulk selection bar -->
-      @if (checkedCount() > 0) {
-        <div class="bulkbar">
-          <span class="bulkbar__count">{{ checkedCount() }} selected</span>
-          <span class="bulkbar__spacer"></span>
-          @if (canEdit()) {
-            <button class="btn-danger btn-sm" (click)="deleteChecked()"><tp-icon name="trash-2" [size]="14" /> Delete</button>
-          }
-          <button class="btn-ghost btn-sm" (click)="clearChecked()">Clear</button>
-        </div>
-      }
       <!-- Toolbar: view tabs -->
       <div class="board__bar">
         <div class="board__views">
@@ -171,8 +160,6 @@
     <ng-template #cells let-t let-depth="depth" let-drag="drag" let-rootId="rootId">
         <!-- Task (pinned, frozen) -->
         <div class="c c--task" [class.c--task-sub]="!drag" [style.--ind.px]="depth * 18" [style.padding-left.px]="depth * 18">
-          <input type="checkbox" class="row-check" [checked]="isChecked(t.id)" (change)="toggleCheck(t.id)"
-                 (click)="$event.stopPropagation()" data-tooltip="Select">
           @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
           <button class="tw-expand" [class.tw-expand--on]="isRowOpen(t.id)" (click)="toggleRow(t.id)"
                   [attr.data-tooltip]="childCountOf(t.id) ? childCountOf(t.id) + ' subtasks' : 'Subtasks'">

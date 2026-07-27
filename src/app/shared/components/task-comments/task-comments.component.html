@@ -1,5 +1,28 @@
 <div class="tc">
-  <h4 class="tc__title"><tp-icon name="message-circle" [size]="15" /> Comments @if (count()) { <span class="tc__count">{{ count() }}</span> }</h4>
+  <div class="tc__tabs">
+    <button class="tc__tab" [class.active]="tab() === 'comments'" (click)="tab.set('comments')">
+      <tp-icon name="message-circle" [size]="14" /> Comments @if (count()) { <span class="tc__count">{{ count() }}</span> }
+    </button>
+    <button class="tc__tab" [class.active]="tab() === 'activity'" (click)="tab.set('activity')">
+      <tp-icon name="clock" [size]="14" /> Activity @if (activityCount()) { <span class="tc__count">{{ activityCount() }}</span> }
+    </button>
+  </div>
+
+  @if (tab() === 'activity') {
+    <div class="tc__list">
+      @for (a of activity(); track a.id) {
+        <div class="act-item">
+          <span class="act-item__dot"></span>
+          <span class="act-item__body">
+            <span class="act-item__text"><b>{{ a.actorName || 'Someone' }}</b> {{ a.detail }}</span>
+            <span class="act-item__time">{{ activityTime(a) }}</span>
+          </span>
+        </div>
+      } @empty {
+        <p class="tc__empty">No activity yet.</p>
+      }
+    </div>
+  } @else {
 
   <div class="tc__list">
     @for (th of threads(); track th.post.id) {
@@ -41,6 +64,8 @@
         <tp-icon name="send" [size]="14" /> Comment
       </button>
     </div>
+  }
+
   }
 </div>
 

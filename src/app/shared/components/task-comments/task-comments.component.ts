@@ -2,10 +2,12 @@ import { Component, inject, input, computed, signal, effect, OnDestroy } from '@
 import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { TaskCommentService } from '@core/services/task-comment.service';
+import { TaskActivityService } from '@core/services/task-activity.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '../icon/icon.component';
 import { TaskComment, threadComments } from '@shared/models/task-comment.model';
+import { TaskActivity } from '@shared/models/task-activity.model';
 
 @Component({
   selector:   'tp-task-comments',
@@ -19,11 +21,16 @@ export class TaskCommentsComponent implements OnDestroy {
   canComment = input<boolean>(true);
 
   private readonly svc   = inject(TaskCommentService);
+  private readonly act   = inject(TaskActivityService);
   readonly auth          = inject(AuthService);
   private readonly toast = inject(ToastService);
 
+  readonly tab = signal<'comments' | 'activity'>('comments');
+
   readonly threads = computed(() => threadComments(this.svc.comments()));
   readonly count   = computed(() => this.svc.comments().length);
+  readonly activity = computed(() => this.act.activity());
+  readonly activityCount = computed(() => this.act.activity().length);
 
   readonly draft     = signal('');
   readonly replyTo   = signal<string | null>(null);   // parent comment id
@@ -32,9 +39,19 @@ export class TaskCommentsComponent implements OnDestroy {
   readonly editText  = signal('');
 
   constructor() {
-    effect(() => this.svc.open(this.taskId()));
+    effect(() => { const id = this.taskId(); this.svc.open(id); this.act.open(id); });
   }
-  ngOnDestroy(): void { this.svc.close(); }
+  ngOnDestroy(): void { this.svc.close(); this.act.close(); }
+
+  activityTime = (a: TaskActivity): string => {
+    const d = a.createdAt?.toDate?.();
+    if (!d) return '';
+    const s = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (s < 60)    return 'just now';
+    if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return d.toLocaleDateString();
+  };
 
   canModify = (c: TaskComment): boolean => c.authorId === this.auth.userId();
   initial   = (name: string): string => (name?.charAt(0) || '?').toUpperCase();

@@ -13,6 +13,27 @@
     font-weight: $font-weight-semibold;
     color: var(--text-secondary);
   }
+
+  &__tabs {
+    display: flex;
+    gap: $space-1;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  &__tab {
+    @include flex-start;
+    gap: $space-2;
+    padding: $space-2 $space-3;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-family: $font-sans;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    &:hover { color: var(--text-primary); }
+    &.active { color: var(--text-brand); border-bottom-color: var(--accent-500); }
+  }
   &__count {
     font-size: $font-size-xs;
     color: var(--text-tertiary);
@@ -66,6 +87,23 @@
   align-items: center;
   margin-top: $space-1;
   .form-input { flex: 1; }
+}
+
+// ---- Activity feed ----
+.act-item {
+  display: flex;
+  gap: $space-2;
+  align-items: flex-start;
+  padding: 2px 0;
+
+  &__dot {
+    width: 7px; height: 7px; margin-top: 6px; flex-shrink: 0;
+    border-radius: $radius-full;
+    background: var(--border-strong);
+  }
+  &__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  &__text { font-size: $font-size-sm; color: var(--text-secondary); b { color: var(--text-primary); font-weight: $font-weight-medium; } }
+  &__time { font-size: $font-size-xs; color: var(--text-tertiary); }
 }
 
 .comment {

@@ -37,9 +37,17 @@
             </button>
           }
         </div>
-        @if (canEdit() && view() === 'section') {
-          <button class="btn-secondary btn-sm" (click)="addGroup()"><tp-icon name="plus" [size]="14" /> New section</button>
-        }
+        <div class="board__bar-actions">
+          @if (canEdit()) {
+            <button class="btn-ghost btn-sm" (click)="resetColumnWidths()"
+                    [attr.data-tooltip]="selectedRow() ? 'Reset this task\'s column widths' : 'Reset column widths'" data-tooltip>
+              <tp-icon name="rotate-ccw" [size]="14" /> Reset columns
+            </button>
+          }
+          @if (canEdit() && view() === 'section') {
+            <button class="btn-secondary btn-sm" (click)="addGroup()"><tp-icon name="plus" [size]="14" /> New section</button>
+          }
+        </div>
       </div>
 
       <!-- Columns for the current view -->

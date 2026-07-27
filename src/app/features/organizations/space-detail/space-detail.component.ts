@@ -230,6 +230,19 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
 
   toggleSelectRow(id: string): void { this.selectedRow.update(v => v === id ? null : id); }
 
+  /** Reset column widths — the selected task's overrides if one is selected,
+   *  otherwise the board defaults. */
+  resetColumnWidths(): void {
+    const sel = this.selectedRow();
+    if (sel) {
+      this.taskWidths.update(m => { const n = { ...m }; delete n[sel]; return n; });
+      try { localStorage.setItem(this.taskColsKey(), JSON.stringify(this.taskWidths())); } catch { /* ignore */ }
+    } else {
+      this.colWidths.set({});
+      try { localStorage.removeItem(this.widthsKey()); } catch { /* ignore */ }
+    }
+  }
+
   /** Columns for a task's block: built-in fields + board-wide custom columns
    *  + (for a specific task) that task's own custom columns. `rootId` null =
    *  board-wide only (the default header). */

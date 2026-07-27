@@ -189,6 +189,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     { key: 'status',   label: 'Status',   def: 148, min: 110 },
     { key: 'priority', label: 'Priority', def: 120, min: 96 },
     { key: 'assignee', label: 'Assignee', def: 128, min: 90 },
+    { key: 'pmpo',     label: 'PM/PO',    def: 110, min: 80 },
     { key: 'start',    label: 'Start',    def: 128, min: 96 },
     { key: 'due',      label: 'Due',      def: 128, min: 96 },
     { key: 'duetime',  label: 'Due time', def: 108, min: 90 },
@@ -312,6 +313,12 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   async setMember(t: Task, colId: string, uid: string): Promise<void> {
     this.memberFor.set(null);
     await this.setCustomField(t, colId, uid);
+  }
+
+  /** PM/PO built-in member field (reuses the member-picker open state). */
+  async setPmPo(t: Task, uid: string): Promise<void> {
+    this.memberFor.set(null);
+    await this.patch(t.id, { pmPo: uid || null });
   }
 
   async setCustomField(t: Task, colId: string, value: string): Promise<void> {

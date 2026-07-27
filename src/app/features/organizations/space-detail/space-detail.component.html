@@ -258,6 +258,36 @@
                   }
                 </div>
               }
+              @case ('pmpo') {
+                <div class="c c--people c--member">
+                  <button class="ava-row" (click)="canEdit() && toggleMemberPick(t.id, '__pmpo')">
+                    @if (t.pmPo; as uid) {
+                      <span class="ava2" [attr.data-tooltip]="memberLabel(uid)" data-tooltip>
+                        @if (memberPhoto(uid); as p) { <img [src]="p" alt=""> } @else { {{ initial(memberLabel(uid)) }} }
+                      </span>
+                    } @else { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
+                  </button>
+                  @if (isMemberPickOpen(t.id, '__pmpo')) {
+                    <div class="assign-pop">
+                      <button class="assign-opt" (click)="setPmPo(t, '')">
+                        <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span>
+                        <span class="assign-opt__name">Unassigned</span>
+                        @if (!t.pmPo) { <tp-icon name="check" [size]="14" /> }
+                      </button>
+                      @for (m of members(); track m.userId) {
+                        <button class="assign-opt" (click)="setPmPo(t, m.userId)">
+                          <span class="avatar avatar--sm">
+                            @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+                          </span>
+                          <span class="assign-opt__name">{{ m.displayName }}</span>
+                          @if (t.pmPo === m.userId) { <tp-icon name="check" [size]="14" /> }
+                        </button>
+                      } @empty { <p class="assign-empty">No space members yet.</p> }
+                    </div>
+                    <div class="assign-backdrop" (click)="memberFor.set(null)"></div>
+                  }
+                </div>
+              }
               @case ('start') {
                 <div class="c c--date">
                   @if (canEdit()) {

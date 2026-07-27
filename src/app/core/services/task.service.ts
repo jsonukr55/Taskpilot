@@ -571,6 +571,7 @@ function rowToTask(r: any): Task {
     position:       r.position ?? 0,
     stage:          r.stage ?? 'created',
     sprint:         r.sprint ?? null,
+    pmPo:           r.pm_po ?? null,
     customFields:   r.custom_fields ?? {},
     title:          r.title,
     description:    r.description ?? '',
@@ -607,6 +608,7 @@ function taskInsertRow(dto: any, uid: string): Record<string, unknown> {
     position:       dto.position ?? 0,
     stage:          dto.stage ?? 'created',
     sprint:         dto.sprint ?? null,
+    pm_po:          dto.pmPo ?? null,
     assignee_ids:   dto.assigneeIds ?? [],
     title:          dto.title,
     description:    dto.description ?? '',
@@ -660,6 +662,7 @@ function taskPatch(c: Partial<Task>): Record<string, unknown> {
   if (c.position        !== undefined) p['position'] = c.position;
   if (c.stage           !== undefined) p['stage'] = c.stage;
   if (c.sprint          !== undefined) p['sprint'] = c.sprint;
+  if (c.pmPo            !== undefined) p['pm_po'] = c.pmPo;
   if (c.customFields    !== undefined) p['custom_fields'] = c.customFields;
   if (c.orgId           !== undefined) p['org_id'] = c.orgId;
   return p;

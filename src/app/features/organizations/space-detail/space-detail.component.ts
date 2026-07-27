@@ -201,13 +201,11 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   private static readonly CUSTOM_MIN = 90;
   private readonly FIELD_MAP = new Map(this.FIELDS.map(f => [f.key, f]));
 
-  readonly colWidths   = signal<Record<string, number>>({});   // keyed by wkey (unique)
-  readonly colOrder    = signal<string[]>([]);                 // item column order (excl. 'task')
-  readonly subColOrder = signal<string[]>([]);                 // subitem column order
+  readonly colWidths = signal<Record<string, number>>({});   // keyed by wkey (unique)
+  readonly colOrder  = signal<string[]>([]);                 // column order (excl. 'task')
 
-  private widthsKey():   string { return 'space-cols:' + this.spaceId(); }
-  private orderKey():    string { return 'space-colorder:' + this.spaceId(); }
-  private subOrderKey(): string { return 'space-subcolorder:' + this.spaceId(); }
+  private widthsKey(): string { return 'space-cols:' + this.spaceId(); }
+  private orderKey():  string { return 'space-colorder:' + this.spaceId(); }
 
   private loadWidths(): void {
     const read = (k: string, fb: any) => {
@@ -215,21 +213,19 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     };
     this.colWidths.set(read(this.widthsKey(), {}));
     this.colOrder.set(read(this.orderKey(), []));
-    this.subColOrder.set(read(this.subOrderKey(), []));
   }
   widthOf = (wkey: string, fallback: number): number => this.colWidths()[wkey] ?? fallback;
 
-  readonly itemCustoms = computed(() => this.spaceColumns.columns().filter(c => c.scope !== 'subitem'));
-  readonly subCustoms  = computed(() => this.spaceColumns.columns().filter(c => c.scope === 'subitem'));
-
-  /** Build a column-descriptor list from an order + custom-column set.
-   *  `wprefix` namespaces built-in width keys so item vs subitem widths differ. */
-  private buildCols(order: string[], customs: SpaceColumn[], wprefix: string) {
+  /** Board columns (built-in fields + custom columns) in the user's order:
+   *  stored order first, then any newly-added columns appended. Subitems
+   *  render under this same set (parent header). */
+  readonly itemCols = computed(() => {
+    const customs = this.spaceColumns.columns();
     const valid = [
       ...this.FIELDS.filter(f => f.key !== 'task').map(f => f.key),
       ...customs.map(cc => 'cc:' + cc.id),
     ];
-    const stored = order.filter(k => valid.includes(k));
+    const stored = this.colOrder().filter(k => valid.includes(k));
     const ordered = [...stored, ...valid.filter(k => !stored.includes(k))];
     return ordered.map(key => {
       if (key.startsWith('cc:')) {
@@ -237,21 +233,13 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
         return { key, wkey: 'cc:' + cc.id, kind: 'custom' as const, label: cc.name, min: SpaceDetailComponent.CUSTOM_MIN, def: SpaceDetailComponent.CUSTOM_DEFAULT, custom: cc as SpaceColumn | undefined };
       }
       const f = this.FIELD_MAP.get(key)!;
-      return { key, wkey: wprefix + key, kind: 'field' as const, label: f.label, min: f.min, def: f.def, custom: undefined as SpaceColumn | undefined };
+      return { key, wkey: key, kind: 'field' as const, label: f.label, min: f.min, def: f.def, custom: undefined as SpaceColumn | undefined };
     });
-  }
-
-  readonly itemCols = computed(() => this.buildCols(this.colOrder(), this.itemCustoms(), ''));
-  readonly subCols  = computed(() => this.buildCols(this.subColOrder(), this.subCustoms(), 'sub:'));
+  });
 
   readonly gridTemplate = computed(() => {
     const task = this.widthOf('task', 260) + 'px';
     const rest = this.itemCols().map(c => this.widthOf(c.wkey, c.def) + 'px');
-    return [task, ...rest, '44px'].join(' ');
-  });
-  readonly subGridTemplate = computed(() => {
-    const task = this.widthOf('sub:task', 260) + 'px';
-    const rest = this.subCols().map(c => this.widthOf(c.wkey, c.def) + 'px');
     return [task, ...rest, '44px'].join(' ');
   });
 
@@ -278,14 +266,6 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     const next = this.reorder(this.itemCols().map(c => c.key), from, targetKey);
     this.colOrder.set(next);
     try { localStorage.setItem(this.orderKey(), JSON.stringify(next)); } catch { /* ignore */ }
-  }
-  subColDrop(targetKey: string, ev: DragEvent): void {
-    ev.preventDefault();
-    const from = this.dragCol(); this.dragCol.set(null);
-    if (!from || from === targetKey) return;
-    const next = this.reorder(this.subCols().map(c => c.key), from, targetKey);
-    this.subColOrder.set(next);
-    try { localStorage.setItem(this.subOrderKey(), JSON.stringify(next)); } catch { /* ignore */ }
   }
 
   // ---- Column resize (pointer drag on a header's right edge) ----
@@ -357,10 +337,9 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly newColName    = signal('');
   readonly newColType    = signal<SpaceColumnType>('text');
   readonly newColOptions = signal('');   // comma-separated for dropdown
-  readonly newColScope   = signal<'item' | 'subitem'>('item');
 
-  openAddColumn(scope: 'item' | 'subitem' = 'item'): void {
-    this.newColName.set(''); this.newColType.set('text'); this.newColOptions.set(''); this.newColScope.set(scope);
+  openAddColumn(): void {
+    this.newColName.set(''); this.newColType.set('text'); this.newColOptions.set('');
     this.showAddColumn.set(true);
   }
   async createColumn(): Promise<void> {
@@ -369,7 +348,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     const options = this.newColType() === 'dropdown'
       ? this.newColOptions().split(',').map(s => s.trim()).filter(Boolean) : [];
     try {
-      await this.spaceColumns.create(this.spaceId(), name, this.newColType(), options, this.newColScope());
+      await this.spaceColumns.create(this.spaceId(), name, this.newColType(), options);
       this.showAddColumn.set(false);
     } catch (e: any) {
       this.toast.error(e?.message ?? 'Could not add the column');

@@ -66,17 +66,22 @@
             <div class="tblwrap">
               <div class="tbl">
                 <div class="tbl__row tbl__row--head" [style.grid-template-columns]="gridTemplate()">
-                  @for (f of FIELDS; track f.key) {
-                    <div class="c c--head-cell">
-                      <span class="ch-name">{{ f.label }}</span>
-                      <span class="colresize" (pointerdown)="startResize(f.key, f.min, $event)"></span>
-                    </div>
-                  }
-                  @for (cc of spaceColumns.columns(); track cc.id) {
-                    <div class="c c--custom c--custom-head">
-                      <span class="ch-name">{{ cc.name }}</span>
-                      @if (canEdit()) { <button class="ch-del" (click)="deleteColumn(cc)" data-tooltip="Delete column"><tp-icon name="x" [size]="11" /></button> }
-                      <span class="colresize" (pointerdown)="startResize('cc:' + cc.id, 90, $event)"></span>
+                  <!-- Task (pinned, frozen) -->
+                  <div class="c c--head-cell">
+                    <span class="ch-name">Task</span>
+                    <span class="colresize" (pointerdown)="startResize('task', 160, $event)"></span>
+                  </div>
+                  <!-- Movable columns (drag the label to reorder) -->
+                  @for (col of movableCols(); track col.key) {
+                    <div class="c c--head-cell" [class.c--custom-head]="col.kind === 'custom'" [class.c--dragover]="dragCol() && dragCol() !== col.key"
+                         (dragover)="$event.preventDefault()" (drop)="colDrop(col.key, $event)">
+                      <span class="ch-name" [attr.draggable]="canEdit() ? true : null"
+                            (dragstart)="colDragStart(col.key, $event)" (dragend)="dragCol.set(null)"
+                            [attr.data-tooltip]="canEdit() ? 'Drag to reorder' : null">{{ col.label }}</span>
+                      @if (col.kind === 'custom' && canEdit()) {
+                        <button class="ch-del" (click)="deleteColumn(col.custom!)" data-tooltip="Delete column"><tp-icon name="x" [size]="11" /></button>
+                      }
+                      <span class="colresize" (pointerdown)="startResize(col.key, col.min, $event)"></span>
                     </div>
                   }
                   <div class="c c--addcol">
@@ -118,125 +123,141 @@
     <!-- Reusable task row -->
     <ng-template #rowTpl let-t>
       <div class="tbl__row" [style.grid-template-columns]="gridTemplate()" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
-        <!-- Task -->
+        <!-- Task (pinned, frozen) -->
         <div class="c c--task">
           @if (canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
           <button class="tname" (click)="selectedTask.set(t)">{{ t.title }}</button>
         </div>
-        <!-- Status -->
-        <div class="c c--status">
-          @if (canEdit()) {
-            <select class="pill" [attr.data-stage]="t.stage" [value]="t.stage" (change)="setStage(t.id, $any($event.target).value)">
-              @for (o of STAGES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
-            </select>
-          } @else {
-            <span class="pill pill--static" [attr.data-stage]="t.stage">{{ stageLabel(t.stage) }}</span>
-          }
-        </div>
-        <!-- Priority -->
-        <div class="c c--prio">
-          @if (canEdit()) {
-            <select class="pill" [attr.data-prio]="t.priority" [value]="t.priority" (change)="setPriority(t.id, $any($event.target).value)">
-              @for (o of PRIORITIES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
-            </select>
-          } @else {
-            <span class="pill pill--static" [attr.data-prio]="t.priority">{{ priorityLabel(t.priority) }}</span>
-          }
-        </div>
-        <!-- Assignee (inline picker) -->
-        <div class="c c--people">
-          <button class="ava-row" (click)="canEdit() && toggleAssign(t.id)">
-            @for (a of assigneesOf(t); track $index) {
-              <span class="ava2" [attr.data-tooltip]="a.displayName" data-tooltip>
-                @if (a.photoURL) { <img [src]="a.photoURL" alt=""> } @else { {{ initial(a.displayName) }} }
-              </span>
-            } @empty { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
-          </button>
-          @if (assignFor() === t.id) {
-            <div class="assign-pop">
-              @for (m of members(); track m.userId) {
-                <button class="assign-opt" (click)="toggleAssignee(t, m.userId)">
-                  <span class="avatar avatar--sm">
-                    @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
-                  </span>
-                  <span class="assign-opt__name">{{ m.displayName }}</span>
-                  @if (isAssigned(t, m.userId)) { <tp-icon name="check" [size]="14" /> }
-                </button>
-              } @empty { <p class="assign-empty">No space members yet.</p> }
-            </div>
-            <div class="assign-backdrop" (click)="assignFor.set(null)"></div>
-          }
-        </div>
-        <!-- Start -->
-        <div class="c c--date">
-          @if (canEdit()) {
-            <input class="cell-input cell-input--date" type="date" [value]="dateInput(t.startDate)"
-                   (click)="openPicker($event)" (change)="setStart(t.id, $any($event.target).value)">
-          } @else { <span class="tp-muted">{{ t.startDate ? (t.startDate.toDate() | date:'MMM d') : '—' }}</span> }
-        </div>
-        <!-- Due -->
-        <div class="c c--date">
-          @if (canEdit()) {
-            <input class="cell-input cell-input--date" type="date" [value]="dateInput(t.dueDate)"
-                   (click)="openPicker($event)" (change)="setDue(t.id, $any($event.target).value)">
-          } @else { <span class="tp-muted">{{ t.dueDate ? (t.dueDate.toDate() | date:'MMM d') : '—' }}</span> }
-        </div>
-        <!-- Due time -->
-        <div class="c c--date">
-          @if (canEdit()) {
-            <input class="cell-input cell-input--date" type="time" [value]="t.dueTime || ''"
-                   (click)="openPicker($event)" (change)="setDueTime(t.id, $any($event.target).value)">
-          } @else { <span class="tp-muted">{{ t.dueTime || '—' }}</span> }
-        </div>
-        <!-- Est hours -->
-        <div class="c c--num">
-          @if (canEdit()) {
-            <input class="cell-input" type="text" inputmode="decimal" [value]="t.estimatedHours ?? ''" placeholder="—"
-                   (blur)="setEst(t.id, $any($event.target).value)" (keydown.enter)="$any($event.target).blur()">
-          } @else { <span class="tp-muted">{{ t.estimatedHours ?? '—' }}</span> }
-        </div>
-        <!-- Tags -->
-        <div class="c c--tags">
-          @if (canEdit()) {
-            <input class="cell-input" [value]="(t.tags || []).join(', ')" placeholder="—"
-                   (blur)="setTags(t.id, $any($event.target).value)" (keydown.enter)="$any($event.target).blur()">
-          } @else { <span class="tp-muted">{{ (t.tags || []).join(', ') || '—' }}</span> }
-        </div>
-        <!-- Sprint -->
-        <div class="c c--sprint">
-          @if (canEdit()) {
-            <input class="cell-input" [value]="t.sprint || ''" placeholder="—"
-                   (blur)="setSprint(t.id, $any($event.target).value)"
-                   (keydown.enter)="$any($event.target).blur()">
-          } @else {
-            <span class="tp-muted">{{ t.sprint || '—' }}</span>
-          }
-        </div>
-        @for (cc of spaceColumns.columns(); track cc.id) {
-          <div class="c c--custom">
-            @if (canEdit()) {
-              @switch (cc.type) {
-                @case ('dropdown') {
-                  <select class="cf-input" [value]="fieldValue(t, cc.id) ?? ''" (change)="setCustomField(t, cc.id, $any($event.target).value)">
-                    <option value="">—</option>
-                    @for (o of cc.options; track o) { <option [value]="o">{{ o }}</option> }
-                  </select>
+
+        @for (col of movableCols(); track col.key) {
+          @if (col.kind === 'custom') {
+            <div class="c c--custom">
+              @if (canEdit()) {
+                @switch (col.custom!.type) {
+                  @case ('dropdown') {
+                    <select class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" (change)="setCustomField(t, col.custom!.id, $any($event.target).value)">
+                      <option value="">—</option>
+                      @for (o of col.custom!.options; track o) { <option [value]="o">{{ o }}</option> }
+                    </select>
+                  }
+                  @case ('date') {
+                    <input class="cf-input" type="date" [value]="fieldValue(t, col.custom!.id) ?? ''" (change)="setCustomField(t, col.custom!.id, $any($event.target).value)">
+                  }
+                  @case ('number') {
+                    <input class="cf-input" type="number" [value]="fieldValue(t, col.custom!.id) ?? ''" (blur)="setCustomField(t, col.custom!.id, $any($event.target).value)">
+                  }
+                  @default {
+                    <input class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" placeholder="—" (blur)="setCustomField(t, col.custom!.id, $any($event.target).value)">
+                  }
                 }
-                @case ('date') {
-                  <input class="cf-input" type="date" [value]="fieldValue(t, cc.id) ?? ''" (change)="setCustomField(t, cc.id, $any($event.target).value)">
-                }
-                @case ('number') {
-                  <input class="cf-input" type="number" [value]="fieldValue(t, cc.id) ?? ''" (blur)="setCustomField(t, cc.id, $any($event.target).value)">
-                }
-                @default {
-                  <input class="cf-input" [value]="fieldValue(t, cc.id) ?? ''" placeholder="—" (blur)="setCustomField(t, cc.id, $any($event.target).value)">
-                }
+              } @else {
+                <span class="tp-muted">{{ fieldValue(t, col.custom!.id) ?? '—' }}</span>
               }
-            } @else {
-              <span class="tp-muted">{{ fieldValue(t, cc.id) ?? '—' }}</span>
+            </div>
+          } @else {
+            @switch (col.key) {
+              @case ('status') {
+                <div class="c c--status">
+                  @if (canEdit()) {
+                    <select class="pill" [attr.data-stage]="t.stage" [value]="t.stage" (change)="setStage(t.id, $any($event.target).value)">
+                      @for (o of STAGES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+                    </select>
+                  } @else {
+                    <span class="pill pill--static" [attr.data-stage]="t.stage">{{ stageLabel(t.stage) }}</span>
+                  }
+                </div>
+              }
+              @case ('priority') {
+                <div class="c c--prio">
+                  @if (canEdit()) {
+                    <select class="pill" [attr.data-prio]="t.priority" [value]="t.priority" (change)="setPriority(t.id, $any($event.target).value)">
+                      @for (o of PRIORITIES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+                    </select>
+                  } @else {
+                    <span class="pill pill--static" [attr.data-prio]="t.priority">{{ priorityLabel(t.priority) }}</span>
+                  }
+                </div>
+              }
+              @case ('assignee') {
+                <div class="c c--people">
+                  <button class="ava-row" (click)="canEdit() && toggleAssign(t.id)">
+                    @for (a of assigneesOf(t); track $index) {
+                      <span class="ava2" [attr.data-tooltip]="a.displayName" data-tooltip>
+                        @if (a.photoURL) { <img [src]="a.photoURL" alt=""> } @else { {{ initial(a.displayName) }} }
+                      </span>
+                    } @empty { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
+                  </button>
+                  @if (assignFor() === t.id) {
+                    <div class="assign-pop">
+                      @for (m of members(); track m.userId) {
+                        <button class="assign-opt" (click)="toggleAssignee(t, m.userId)">
+                          <span class="avatar avatar--sm">
+                            @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+                          </span>
+                          <span class="assign-opt__name">{{ m.displayName }}</span>
+                          @if (isAssigned(t, m.userId)) { <tp-icon name="check" [size]="14" /> }
+                        </button>
+                      } @empty { <p class="assign-empty">No space members yet.</p> }
+                    </div>
+                    <div class="assign-backdrop" (click)="assignFor.set(null)"></div>
+                  }
+                </div>
+              }
+              @case ('start') {
+                <div class="c c--date">
+                  @if (canEdit()) {
+                    <input class="cell-input cell-input--date" type="date" [value]="dateInput(t.startDate)"
+                           (click)="openPicker($event)" (change)="setStart(t.id, $any($event.target).value)">
+                  } @else { <span class="tp-muted">{{ t.startDate ? (t.startDate.toDate() | date:'MMM d') : '—' }}</span> }
+                </div>
+              }
+              @case ('due') {
+                <div class="c c--date">
+                  @if (canEdit()) {
+                    <input class="cell-input cell-input--date" type="date" [value]="dateInput(t.dueDate)"
+                           (click)="openPicker($event)" (change)="setDue(t.id, $any($event.target).value)">
+                  } @else { <span class="tp-muted">{{ t.dueDate ? (t.dueDate.toDate() | date:'MMM d') : '—' }}</span> }
+                </div>
+              }
+              @case ('duetime') {
+                <div class="c c--date">
+                  @if (canEdit()) {
+                    <input class="cell-input cell-input--date" type="time" [value]="t.dueTime || ''"
+                           (click)="openPicker($event)" (change)="setDueTime(t.id, $any($event.target).value)">
+                  } @else { <span class="tp-muted">{{ t.dueTime || '—' }}</span> }
+                </div>
+              }
+              @case ('est') {
+                <div class="c c--num">
+                  @if (canEdit()) {
+                    <input class="cell-input" type="text" inputmode="decimal" [value]="t.estimatedHours ?? ''" placeholder="—"
+                           (blur)="setEst(t.id, $any($event.target).value)" (keydown.enter)="$any($event.target).blur()">
+                  } @else { <span class="tp-muted">{{ t.estimatedHours ?? '—' }}</span> }
+                </div>
+              }
+              @case ('tags') {
+                <div class="c c--tags">
+                  @if (canEdit()) {
+                    <input class="cell-input" [value]="(t.tags || []).join(', ')" placeholder="—"
+                           (blur)="setTags(t.id, $any($event.target).value)" (keydown.enter)="$any($event.target).blur()">
+                  } @else { <span class="tp-muted">{{ (t.tags || []).join(', ') || '—' }}</span> }
+                </div>
+              }
+              @case ('sprint') {
+                <div class="c c--sprint">
+                  @if (canEdit()) {
+                    <input class="cell-input" [value]="t.sprint || ''" placeholder="—"
+                           (blur)="setSprint(t.id, $any($event.target).value)"
+                           (keydown.enter)="$any($event.target).blur()">
+                  } @else {
+                    <span class="tp-muted">{{ t.sprint || '—' }}</span>
+                  }
+                </div>
+              }
             }
-          </div>
+          }
         }
+
         <div class="c c--addcol"></div>
         <div class="drag-preview" *cdkDragPreview>
           <tp-icon name="drag" [size]="14" /> {{ t.title }}

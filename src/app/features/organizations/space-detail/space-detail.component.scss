@@ -429,6 +429,8 @@
   &:hover { background: var(--accent-500); opacity: 0.5; }
 }
 .c--custom-head { position: relative; overflow: visible; }
+.c--dragover { box-shadow: inset 2px 0 0 var(--accent-500); }
+.c--head-cell .ch-name[draggable='true'] { cursor: grab; &:active { cursor: grabbing; } }
 
 // ---- Generic inline cell editor (dates, time, number, tags, sprint) ----
 .cell-input {

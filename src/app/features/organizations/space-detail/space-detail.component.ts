@@ -166,26 +166,71 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   ];
   private static readonly CUSTOM_DEFAULT = 140;
   private static readonly CUSTOM_MIN = 90;
+  private readonly FIELD_MAP = new Map(this.FIELDS.map(f => [f.key, f]));
 
   readonly colWidths = signal<Record<string, number>>({});
+  readonly colOrder  = signal<string[]>([]);   // movable column keys (excludes 'task')
 
   private widthsKey(): string { return 'space-cols:' + this.spaceId(); }
+  private orderKey(): string  { return 'space-colorder:' + this.spaceId(); }
   private loadWidths(): void {
     try {
       const raw = localStorage.getItem(this.widthsKey());
       this.colWidths.set(raw ? JSON.parse(raw) : {});
     } catch { this.colWidths.set({}); }
+    try {
+      const raw = localStorage.getItem(this.orderKey());
+      this.colOrder.set(raw ? JSON.parse(raw) : []);
+    } catch { this.colOrder.set([]); }
   }
   widthOf = (key: string, fallback: number): number => this.colWidths()[key] ?? fallback;
 
-  /** Grid track list: built-in fields + custom columns + the add-column cell. */
-  readonly gridTemplate = computed(() => {
-    const widths = this.colWidths();
-    const builtin = this.FIELDS.map(f => (widths[f.key] ?? f.def) + 'px');
-    const custom  = this.spaceColumns.columns().map(cc =>
-      (widths['cc:' + cc.id] ?? SpaceDetailComponent.CUSTOM_DEFAULT) + 'px');
-    return [...builtin, ...custom, '44px'].join(' ');
+  /** Movable columns (everything except the pinned Task), in the user's order:
+   *  stored order first, then any newly-added fields/custom columns appended. */
+  readonly movableCols = computed(() => {
+    const valid = [
+      ...this.FIELDS.filter(f => f.key !== 'task').map(f => f.key),
+      ...this.spaceColumns.columns().map(cc => 'cc:' + cc.id),
+    ];
+    const stored = this.colOrder().filter(k => valid.includes(k));
+    const ordered = [...stored, ...valid.filter(k => !stored.includes(k))];
+    return ordered.map(key => {
+      if (key.startsWith('cc:')) {
+        const cc = this.spaceColumns.columns().find(c => 'cc:' + c.id === key)!;
+        return { key, kind: 'custom' as const, label: cc.name, min: SpaceDetailComponent.CUSTOM_MIN, def: SpaceDetailComponent.CUSTOM_DEFAULT, custom: cc };
+      }
+      const f = this.FIELD_MAP.get(key)!;
+      return { key, kind: 'field' as const, label: f.label, min: f.min, def: f.def, custom: undefined };
+    });
   });
+
+  /** Grid track list: pinned Task + movable columns (in order) + add-column cell. */
+  readonly gridTemplate = computed(() => {
+    const task = this.widthOf('task', 260) + 'px';
+    const rest = this.movableCols().map(c => this.widthOf(c.key, c.def) + 'px');
+    return [task, ...rest, '44px'].join(' ');
+  });
+
+  // ---- Column reordering (native drag on header labels) ----
+  readonly dragCol = signal<string | null>(null);
+  colDragStart(key: string, ev: DragEvent): void {
+    this.dragCol.set(key);
+    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  }
+  colDrop(targetKey: string, ev: DragEvent): void {
+    ev.preventDefault();
+    const from = this.dragCol(); this.dragCol.set(null);
+    if (!from || from === targetKey) return;
+    const order = this.movableCols().map(c => c.key);
+    const fi = order.indexOf(from), ti = order.indexOf(targetKey);
+    if (fi < 0 || ti < 0) return;
+    order.splice(fi, 1);
+    let insertAt = order.indexOf(targetKey);
+    if (ti > fi) insertAt += 1;           // dropped to the right of the target
+    order.splice(insertAt, 0, from);
+    this.colOrder.set(order);
+    try { localStorage.setItem(this.orderKey(), JSON.stringify(order)); } catch { /* ignore */ }
+  }
 
   // ---- Column resize (pointer drag on a header's right edge) ----
   private resizing?: { key: string; startX: number; startW: number; min: number };

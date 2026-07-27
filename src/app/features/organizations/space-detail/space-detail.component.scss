@@ -308,24 +308,24 @@
 // Monday-style connector: a fat group-colored trunk down the left of a task's
 // subtasks, with a tight curved branch (╰) into each row. The trunk is formed
 // by each nested cell's full-height segment; the last row (+ Add) caps it.
+// Trunk sits just inside the group's outer rail (so they read as one bar);
+// big sweeping curved branches hook into each subtask row.
 .c--task-sub {
   &::before {                              // trunk segment (rows stack into one bar)
     content: '';
     position: absolute;
-    left: calc(var(--ind, 0px) + 16px);
+    left: calc(var(--ind, 0px) - 14px);
     top: 0; bottom: 0; width: 3px;
     background: var(--gc, var(--border-strong));
-    opacity: 0.9;
   }
-  &::after {                              // curved branch to this row
+  &::after {                              // big curved branch (╰) into this row
     content: '';
     position: absolute;
-    left: calc(var(--ind, 0px) + 16px);
-    top: 0; height: 50%; width: 10px;
+    left: calc(var(--ind, 0px) - 14px);
+    top: 0; height: 62%; width: 20px;
     border-left: 3px solid var(--gc, var(--border-strong));
     border-bottom: 3px solid var(--gc, var(--border-strong));
-    border-bottom-left-radius: 8px;
-    opacity: 0.9;
+    border-bottom-left-radius: 16px;
   }
 }
 // The "+ Add subtask" row caps the trunk: only draw down to its branch, not past.
@@ -341,20 +341,9 @@
   &::before {                            // trunk through the label
     content: '';
     position: absolute;
-    left: calc(var(--ind, 0px) + 16px);
-    top: 50%; bottom: 0; width: 3px;
+    left: calc(var(--ind, 0px) - 14px);
+    top: 40%; bottom: 0; width: 3px;
     background: var(--gc, var(--border-strong));
-    opacity: 0.9;
-  }
-  &::after {                            // rounded elbow curving up toward the parent
-    content: '';
-    position: absolute;
-    left: calc(var(--ind, 0px) + 7px);
-    top: -12px; width: 12px; height: 24px;
-    border-left: 3px solid var(--gc, var(--border-strong));
-    border-bottom: 3px solid var(--gc, var(--border-strong));
-    border-bottom-left-radius: 10px;
-    opacity: 0.9;
   }
 }
 .sublabel {

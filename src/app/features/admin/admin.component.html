@@ -143,6 +143,73 @@
         </div>
       </section>
 
+      <!-- Users -->
+      <section class="admin-card card">
+        <div class="admin-card__head">
+          <h2><tp-icon name="users" [size]="18" /> Users ({{ users().length }})</h2>
+        </div>
+        @if (loadingData()) {
+          <p class="admin-muted">Loading…</p>
+        } @else if (users().length === 0) {
+          <p class="admin-muted">No users found.</p>
+        } @else {
+          <ul class="admin-list">
+            @for (u of users(); track u.id) {
+              <li class="admin-list__row">
+                <span class="avatar avatar--sm">
+                  @if (u.photoURL) { <img [src]="u.photoURL" alt=""> } @else { {{ userInitial(u) }} }
+                </span>
+                <span class="admin-list__name">{{ u.displayName }} <span class="admin-list__tag">{{ u.email }}</span></span>
+                @if (u.globalRole === 'admin') {
+                  <span class="badge">Admin</span>
+                  <button class="btn-ghost btn-sm admin-danger" (click)="setUserAdmin(u, false)" [disabled]="working()">Remove admin</button>
+                } @else {
+                  <button class="btn-ghost btn-sm" (click)="setUserAdmin(u, true)" [disabled]="working()">Make admin</button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- Tasks overview -->
+      <section class="admin-card card">
+        <div class="admin-card__head">
+          <h2><tp-icon name="check-square" [size]="18" /> Tasks</h2>
+        </div>
+        <div class="admin-stats">
+          <div class="admin-stat"><span class="admin-stat__n">{{ stats().roots }}</span><span class="admin-stat__l">Tasks</span></div>
+          <div class="admin-stat"><span class="admin-stat__n">{{ stats().subs }}</span><span class="admin-stat__l">Subtasks</span></div>
+          <div class="admin-stat"><span class="admin-stat__n">{{ stats().total }}</span><span class="admin-stat__l">Total</span></div>
+        </div>
+        @if (stats().byStage.length) {
+          <div class="admin-chips">
+            @for (s of stats().byStage; track s.label) { <span class="admin-chip">{{ s.label }} · {{ s.n }}</span> }
+          </div>
+        }
+      </section>
+
+      <!-- Data footprint -->
+      <section class="admin-card card">
+        <div class="admin-card__head">
+          <h2><tp-icon name="layers" [size]="18" /> Data footprint</h2>
+        </div>
+        <p class="admin-muted">Data held per client across the platform.</p>
+        @if (footprint().length === 0) {
+          <p class="admin-muted">No clients yet.</p>
+        } @else {
+          <ul class="admin-list">
+            @for (f of footprint(); track f.client.id) {
+              <li class="admin-list__row">
+                <span class="admin-list__icon" [style.color]="f.client.color"><tp-icon name="briefcase" [size]="16" /></span>
+                <span class="admin-list__name">{{ f.client.name }}</span>
+                <span class="admin-list__meta">{{ f.orgs }} orgs · {{ f.spaces }} spaces · {{ f.tasks }} tasks</span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
     </div>
   }
 </div>

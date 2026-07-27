@@ -62,16 +62,16 @@ rename of existing entities.
 
 | # | Epic | Priority | Status |
 |---|------|----------|--------|
-| 1 | Projects & Spaces structure | P0 | Todo |
-| 2 | Boards, Columns & Custom Fields | P0 | Todo |
-| 3 | Views system (Task / Sprint / custom) | P1 | Todo |
-| 4 | Task Status & Sprint Status | P1 | Todo |
+| 1 | Projects & Spaces structure | P0 | Done |
+| 2 | Boards, Columns & Custom Fields | P0 | Done |
+| 3 | Views system (Task / Sprint / custom) | P1 | Done |
+| 4 | Task Status & Sprint Status | P1 | Done |
 | 5 | Threaded Comments | P1 | Done (text); images w/ Epic 6 |
 | 6 | File & Media uploads (storage, types, size, preview) | P1 | Todo |
 | 7 | Activity log & debounced Mailer (Redis) | P1 | Todo |
 | 8 | Notifications (in-app) | P2 | Done (in-app); email later |
 | 9 | Roles & Permissions (admin / member / viewer) | P0 | Done |
-| 10 | Admin panel (users, tasks, files, retention) | P1 | Todo |
+| 10 | Admin panel (users, tasks, files, retention) | P1 | Done (files w/ Epic 6) |
 | 11 | Multi-tenancy (`client_id` on tenant tree) | P0 | Done |
 | 12 | Startup screen & user preferences | P2 | Done |
 | 13 | Infrastructure (Postgres, Redis, file storage) | P0 | Partly done |
@@ -352,17 +352,26 @@ using **Redis keyed by task id**.
 - **Company data retention** — show in one place.
 
 **Tasks**
-- [ ] User management (list, roles, add/remove).
-- [ ] Global view of all tasks + sub-tasks.
-- [ ] Files dashboard: list uploads + **total size of all files** (per Epic 6 aggregation).
-- [ ] Data-retention view: surface the company's retention info in one place.
+- [x] User management — list all users with global role; promote/remove admin inline.
+  *(admin RLS read on profiles; migration 0020)*
+- [x] Global view of all tasks + sub-tasks — counts (tasks / subtasks / total) + per-stage
+  breakdown across the whole platform. *(admin RLS read on tasks)*
+- [ ] Files dashboard: list uploads + **total size of all files** — **deferred to Epic 6**.
+- [x] Data-retention / footprint view — per-client data held (orgs · spaces · tasks) in one place.
+  *(admin RLS read on spaces)*
 
 **Acceptance criteria**
-- Admin can manage users and review all tasks/sub-tasks and file usage from one panel.
-- Retention information is visible in a single location.
+- ✅ Admin can manage users and review all tasks/sub-tasks and per-client data footprint from one panel.
+- ⏳ File usage — pending Epic 6.
+
+**Implementation notes**
+- `AdminService.allUsers / allTasks / allSpaces` (RLS-gated to `is_global_admin`). The
+  panel loads them on open and computes stats + footprint client-side. Existing
+  client/org/admin management retained.
 
 **Open questions**
-- What does "company data retention" cover (period, what's retained/purged)? Define the policy.
+- "Company data retention" period/purge policy still undefined — the footprint view shows
+  current data held; a retention *policy* (auto-purge windows) is a later decision.
 
 ---
 

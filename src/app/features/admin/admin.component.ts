@@ -1,14 +1,15 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
-import { AdminService } from '@core/services/admin.service';
+import { AdminService, AdminUser, TaskLite, SpaceLite } from '@core/services/admin.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { ClientService } from '@core/services/client.service';
 import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { Client } from '@shared/models/client.model';
+import { TASK_STAGE_LABELS } from '@shared/models/task.model';
 
 const CLIENT_ICONS  = ['🏢','🏦','🏪','🏭','🌐','💼','🚀','🧩','🛰️','🎯','📦','⚙️'];
 const CLIENT_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
@@ -36,6 +37,73 @@ export class AdminComponent {
 
   readonly CLIENT_ICONS  = CLIENT_ICONS;
   readonly CLIENT_COLORS = CLIENT_COLORS;
+
+  // ---- Platform data (loaded when an admin opens the panel) ----
+  readonly users  = signal<AdminUser[]>([]);
+  readonly tasks  = signal<TaskLite[]>([]);
+  readonly spaces = signal<SpaceLite[]>([]);
+  readonly loadingData = signal(false);
+
+  readonly stats = computed(() => {
+    const t = this.tasks();
+    const byStage: Record<string, number> = {};
+    for (const x of t) byStage[x.stage] = (byStage[x.stage] ?? 0) + 1;
+    return {
+      total: t.length,
+      roots: t.filter(x => !x.parentId).length,
+      subs:  t.filter(x => x.parentId).length,
+      byStage: Object.entries(byStage).map(([stage, n]) => ({ label: TASK_STAGE_LABELS[stage as keyof typeof TASK_STAGE_LABELS] ?? stage, n })),
+    };
+  });
+
+  /** Per-client data footprint (orgs / spaces / tasks). */
+  readonly footprint = computed(() => {
+    const orgs = this.orgs.organizations();
+    const spaces = this.spaces();
+    const tasks = this.tasks();
+    return this.clients.clients().map(c => ({
+      client: c,
+      orgs:   orgs.filter(o => o.clientId === c.id).length,
+      spaces: spaces.filter(s => s.clientId === c.id).length,
+      tasks:  tasks.filter(t => t.clientId === c.id).length,
+    }));
+  });
+
+  constructor() {
+    // Load platform data once the user is (or becomes) an admin.
+    effect(() => { if (this.auth.isAdmin()) this.loadData(); });
+  }
+
+  private async loadData(): Promise<void> {
+    if (this.loadingData()) return;
+    this.loadingData.set(true);
+    try {
+      const [users, tasks, spaces] = await Promise.all([
+        this.admin.allUsers(), this.admin.allTasks(), this.admin.allSpaces(),
+      ]);
+      this.users.set(users); this.tasks.set(tasks); this.spaces.set(spaces);
+    } catch (e: any) {
+      this.toast.error(this.msg(e) || 'Could not load platform data');
+    } finally {
+      this.loadingData.set(false);
+    }
+  }
+
+  async setUserAdmin(u: AdminUser, makeAdmin: boolean): Promise<void> {
+    if (!makeAdmin && !(await this.dialog.confirm({ title: 'Remove admin', message: `Remove admin access from ${u.email}?`, confirmText: 'Remove', danger: true }))) return;
+    this.working.set(true);
+    try {
+      await this.admin.setGlobalRole(u.email, makeAdmin ? 'admin' : null);
+      this.users.update(list => list.map(x => x.id === u.id ? { ...x, globalRole: makeAdmin ? 'admin' : null } : x));
+      if (u.id === this.auth.userId()) await this.auth.reloadProfile();
+      this.toast.success(makeAdmin ? `${u.email} is now an admin` : `${u.email} is no longer an admin`);
+    } catch (e: any) {
+      this.toast.error(this.msg(e) || 'Could not update the role');
+    } finally {
+      this.working.set(false);
+    }
+  }
+  userInitial = (u: AdminUser): string => (u.displayName?.charAt(0) || u.email?.charAt(0) || '?').toUpperCase();
 
   // Create-client form
   readonly showClientForm  = signal(false);

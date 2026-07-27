@@ -256,6 +256,35 @@
   &--empty { grid-column: 1 / -1; color: var(--text-tertiary); justify-content: center; }
 }
 
+// ---- Inline subtask expand + nested rows ----
+.tw-expand {
+  @include flex-center;
+  width: 20px; height: 20px; flex-shrink: 0;
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer; border-radius: $radius-sm;
+  &:hover { background: var(--bg-elevated); color: var(--text-primary); }
+  &--on { color: var(--text-secondary); }
+}
+.tw-count {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border-radius: $radius-full;
+  padding: 0 $space-2;
+}
+.tbl__row--sub {
+  background: var(--bg-secondary);
+  .c--task { background: var(--bg-secondary); }
+  &:hover { background: var(--bg-tertiary); }
+  &:hover .c--task { background: var(--bg-tertiary); }
+}
+.tbl__row--subadd .addrow--sub {
+  font-size: $font-size-xs;
+  color: var(--text-tertiary);
+}
+
 .tname {
   @include text-truncate;
   max-width: 100%;

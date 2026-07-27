@@ -64,10 +64,42 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly canManageMembers = computed(() =>
     this.isOwner() || this.orgs.canManageOrg(this.orgs.getOrgById(this.orgId())));
 
-  /** Root tasks in this space (subtasks render inside the drawer). */
+  /** Root tasks in this space (subtasks render as nested rows). */
   readonly rootTasks = computed(() =>
     this.tasks.spaceTasks().filter(t => !t.parentId)
   );
+
+  /** Space subtasks grouped by parent (from the space-scoped task set, since
+   *  the board loads spaceTasks() — the global getSubtasks() doesn't see these). */
+  readonly subByParent = computed(() => {
+    const m = new Map<string, Task[]>();
+    for (const t of this.tasks.spaceTasks()) {
+      if (t.parentId) { const a = m.get(t.parentId); a ? a.push(t) : m.set(t.parentId, [t]); }
+    }
+    for (const arr of m.values()) arr.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    return m;
+  });
+  subtasksOf   = (id: string): Task[] => this.subByParent().get(id) ?? [];
+  childCountOf = (id: string): number => this.subtasksOf(id).length;
+
+  // Inline subtask expand/collapse per row.
+  readonly expandedRows = signal<Set<string>>(new Set());
+  isRowOpen = (id: string): boolean => this.expandedRows().has(id);
+  toggleRow(id: string): void {
+    this.expandedRows.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  async addSubtaskInline(parentId: string, input: HTMLInputElement): Promise<void> {
+    const title = input.value.trim();
+    if (!title) return;
+    input.value = '';
+    try {
+      await this.tasks.createSubtask(parentId, title);
+      this.expandedRows.update(s => new Set(s).add(parentId));   // keep it open to show the new child
+    } catch (e: any) {
+      this.toast.error(e?.message ?? 'Could not add the subtask');
+    }
+  }
 
   // ---- Board views: Table (sections) / Status (stage) / Sprint ----
   readonly view = signal<BoardView>('section');

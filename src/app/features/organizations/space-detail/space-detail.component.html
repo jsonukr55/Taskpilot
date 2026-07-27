@@ -91,7 +91,11 @@
 
                 <div cdkDropList [cdkDropListData]="col.tasks" (cdkDropListDropped)="drop($event, col)">
                   @for (t of col.tasks; track t.id) {
-                    <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: t }"></ng-container>
+                    <div class="tbl__row" [style.grid-template-columns]="gridTemplate()" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
+                      <ng-container *ngTemplateOutlet="cells; context: { $implicit: t, depth: 0, drag: true }"></ng-container>
+                      <div class="drag-preview" *cdkDragPreview><tp-icon name="drag" [size]="14" /> {{ t.title }}</div>
+                    </div>
+                    <ng-container *ngTemplateOutlet="childRows; context: { parentId: t.id, depth: 1 }"></ng-container>
                   }
                   @if (!col.tasks.length) {
                     <div class="tbl__row" [style.grid-template-columns]="gridTemplate()"><div class="c c--empty">Drag tasks here, or add below</div></div>
@@ -120,13 +124,36 @@
       }
     </div>
 
-    <!-- Reusable task row -->
-    <ng-template #rowTpl let-t>
-      <div class="tbl__row" [style.grid-template-columns]="gridTemplate()" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
+    <!-- Recursive nested subtask rows -->
+    <ng-template #childRows let-parentId="parentId" let-depth="depth">
+      @if (isRowOpen(parentId)) {
+        @for (s of subtasksOf(parentId); track s.id) {
+          <div class="tbl__row tbl__row--sub" [style.grid-template-columns]="gridTemplate()">
+            <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: depth, drag: false }"></ng-container>
+          </div>
+          <ng-container *ngTemplateOutlet="childRows; context: { parentId: s.id, depth: depth + 1 }"></ng-container>
+        }
+        @if (canEdit()) {
+          <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="gridTemplate()">
+            <div class="c c--task" [style.padding-left.px]="depth * 18 + 10">
+              <input #si class="addrow addrow--sub" placeholder="+ Add subtask" (keydown.enter)="addSubtaskInline(parentId, si)">
+            </div>
+          </div>
+        }
+      }
+    </ng-template>
+
+    <!-- Reusable task-row cells (task + movable columns), shared by root and sub rows -->
+    <ng-template #cells let-t let-depth="depth" let-drag="drag">
         <!-- Task (pinned, frozen) -->
-        <div class="c c--task">
-          @if (canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
+        <div class="c c--task" [style.padding-left.px]="depth * 18">
+          @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
+          <button class="tw-expand" [class.tw-expand--on]="isRowOpen(t.id)" (click)="toggleRow(t.id)"
+                  [attr.data-tooltip]="childCountOf(t.id) ? childCountOf(t.id) + ' subtasks' : 'Subtasks'">
+            <tp-icon [name]="isRowOpen(t.id) ? 'chevron-down' : 'chevron-right'" [size]="14" />
+          </button>
           <button class="tname" (click)="selectedTask.set(t)">{{ t.title }}</button>
+          @if (childCountOf(t.id)) { <span class="tw-count">{{ childCountOf(t.id) }}</span> }
         </div>
 
         @for (col of movableCols(); track col.key) {
@@ -259,10 +286,6 @@
         }
 
         <div class="c c--addcol"></div>
-        <div class="drag-preview" *cdkDragPreview>
-          <tp-icon name="drag" [size]="14" /> {{ t.title }}
-        </div>
-      </div>
     </ng-template>
   </div>
 } @else if (notFound()) {

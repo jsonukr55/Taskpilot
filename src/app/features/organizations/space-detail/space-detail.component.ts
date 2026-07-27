@@ -295,6 +295,10 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
 
   fieldValue = (t: Task, colId: string): string | number | null => t.customFields?.[colId] ?? null;
 
+  /** Resolve a member custom-field value (a profile uid) to a display name. */
+  memberLabel = (uid: string | number | null): string =>
+    uid ? (this.members().find(m => m.userId === uid)?.displayName ?? '—') : '—';
+
   async setCustomField(t: Task, colId: string, value: string): Promise<void> {
     const cf = { ...(t.customFields ?? {}), [colId]: value === '' ? null : value };
     try { await this.tasks.updateTask(t.id, { customFields: cf }); }

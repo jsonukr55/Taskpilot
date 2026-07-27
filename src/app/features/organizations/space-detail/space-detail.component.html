@@ -173,12 +173,18 @@
                   @case ('number') {
                     <input class="cf-input" type="number" [value]="fieldValue(t, col.custom!.id) ?? ''" (blur)="setCustomField(t, col.custom!.id, $any($event.target).value)">
                   }
+                  @case ('member') {
+                    <select class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" (change)="setCustomField(t, col.custom!.id, $any($event.target).value)">
+                      <option value="">—</option>
+                      @for (m of members(); track m.userId) { <option [value]="m.userId">{{ m.displayName }}</option> }
+                    </select>
+                  }
                   @default {
                     <input class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" placeholder="—" (blur)="setCustomField(t, col.custom!.id, $any($event.target).value)">
                   }
                 }
               } @else {
-                <span class="tp-muted">{{ fieldValue(t, col.custom!.id) ?? '—' }}</span>
+                <span class="tp-muted">{{ col.custom!.type === 'member' ? memberLabel(fieldValue(t, col.custom!.id)) : (fieldValue(t, col.custom!.id) ?? '—') }}</span>
               }
             </div>
           } @else {

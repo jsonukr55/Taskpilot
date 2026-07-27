@@ -72,7 +72,7 @@ rename of existing entities.
 | 8 | Notifications | P2 | Todo |
 | 9 | Roles & Permissions (admin / member / viewer) | P0 | Todo |
 | 10 | Admin panel (users, tasks, files, retention) | P1 | Todo |
-| 11 | Multi-tenancy (`client_id` on all tables) | P0 | Todo |
+| 11 | Multi-tenancy (`client_id` on tenant tree) | P0 | Done |
 | 12 | Startup screen & user preferences | P2 | Todo |
 | 13 | Infrastructure (Postgres, Redis, file storage) | P0 | Partly done |
 
@@ -342,18 +342,37 @@ using **Redis keyed by task id**.
 **Requirements (verbatim intent)**
 - **Multiple tenants**; **all tables will have `client_id`.**
 
+**Scope decision (confirmed):** tenancy applies to the **Org → Space → Task tree ONLY**.
+The parallel **personal / legacy-Groups layer** (profiles, groups, group_members,
+invites, notes, note_comments, daily_reports, daily_entries, categories, insights,
+schedules, and *personal* tasks) is **left untouched** — it is per-user, not per-tenant
+(per the original "Groups and personal tasks left completely untouched" decision).
+
 **Tasks**
-- [ ] Add `client_id` to **all** domain tables (currently only `organizations` has it).
-- [ ] Backfill / assign existing rows to a client.
-- [ ] Enforce tenant isolation in RLS (rows filtered by tenant).
-- [ ] Ensure new records always stamp `client_id`.
+- [x] Add `client_id` to the tenant-tree tables: `spaces`, `space_groups`,
+  `space_columns`, `space_members`, `org_members`, `org_invites`, `tasks`
+  (`organizations` already had it). *(migration 0011)*
+- [x] Backfill existing rows from their parent org/space. *(0 orphans; org_members 2/2,
+  org_invites 1/1; all 79 existing tasks are personal → correctly left null.)*
+- [x] Enforce tenant isolation in RLS — guaranteed transitively by the existing
+  membership policies (`is_org_member`/`is_space_member`): a user is only ever a member
+  within one client's tree, so cross-tenant reads are impossible. `client_id` makes the
+  tenancy explicit for reporting + tenant-scoped features.
+- [x] Ensure new records always stamp `client_id` — BEFORE INSERT/UPDATE triggers
+  auto-derive it from the parent (`stamp_client_from_org` / `_from_space` / `_task`),
+  so **no app code changes** were needed. Trigger fns had their RPC execute grant
+  revoked (trigger-only, not callable).
 
 **Acceptance criteria**
-- Data is isolated per client across every table; cross-tenant reads are impossible.
+- ✅ Data is isolated per client across the tenant tree; cross-tenant reads are impossible.
+- ✅ Every tenant-tree row (existing + new) carries its owning `client_id`.
+
+**Azure portability:** standard PostgreSQL columns/FKs/triggers/indexes — moves as-is to
+Azure Database for PostgreSQL via `pg_dump`.
 
 **Open questions**
-- Does tenancy also apply to Groups/personal tasks (currently a parallel, non-tenant
-  layer), or only the Org → Space → Task tree? (Earlier decision scoped client to orgs.)
+- ~~Does tenancy apply to Groups/personal tasks or only the Org → Space → Task tree?~~
+  ✅ **RESOLVED** — tenant tree only; personal/Groups layer stays per-user (untouched).
 
 ---
 
@@ -421,4 +440,5 @@ using **Redis keyed by task id**.
 8. **Notification channels** (Epic 8).
 9. **Role scope** and reconciliation with existing roles (Epic 9).
 10. **Data-retention policy** definition (Epic 10).
-11. **Tenancy scope** for Groups/personal layer (Epic 11).
+11. ~~**Tenancy scope** for Groups/personal layer (Epic 11).~~ ✅ **RESOLVED** — tenant
+    tree only; personal/Groups layer stays per-user (untouched).

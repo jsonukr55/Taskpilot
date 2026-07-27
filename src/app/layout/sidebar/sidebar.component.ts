@@ -1,4 +1,4 @@
-import { Component, input, output, inject, computed } from '@angular/core';
+import { Component, input, output, inject, computed, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
@@ -53,6 +53,28 @@ export class SidebarComponent {
     { label: 'Groups',       route: '/groups',     icon: 'users' },
     { label: 'Daily Report', route: '/daily',      icon: 'check-circle' },
   ];
+
+  // ---- Accordion sections (Personal / Organization) ----
+  private readonly STORE_KEY = 'sidebar-sections';
+  readonly expanded = signal<Record<string, boolean>>(this.loadExpanded());
+
+  private loadExpanded(): Record<string, boolean> {
+    try {
+      const raw = localStorage.getItem(this.STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return { personal: true, org: true };
+  }
+
+  isExpanded = (key: string): boolean => this.expanded()[key] !== false;
+
+  toggleSection(key: string): void {
+    this.expanded.update(s => {
+      const next = { ...s, [key]: !this.isExpanded(key) };
+      try { localStorage.setItem(this.STORE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   readonly topCategories = computed(() =>
     this.categories.rootCategories().slice(0, 5)

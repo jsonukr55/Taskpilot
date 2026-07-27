@@ -25,33 +25,65 @@
 
   <!-- Main Nav -->
   <nav class="sidebar__nav">
-    <!-- Personal view -->
-    @if (!collapsed()) { <span class="sidebar__nav-heading">Personal</span> }
-    <ul class="sidebar__nav-list">
-      @for (item of personalNav; track item.route) {
-        <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
-      }
-    </ul>
+    @if (collapsed()) {
+      <!-- Collapsed: flat icons, both groups, divided -->
+      <ul class="sidebar__nav-list">
+        @for (item of personalNav; track item.route) {
+          <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+        }
+      </ul>
+      <div class="sidebar__nav-divider"></div>
+      <ul class="sidebar__nav-list">
+        @for (item of orgNav; track item.route) {
+          <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+        }
+        @if (auth.isAdmin()) {
+          <li class="sidebar__nav-item">
+            <a routerLink="/admin" routerLinkActive="active" class="sidebar__nav-link" data-tooltip data-tooltip="Admin">
+              <tp-icon name="shield" [size]="18" />
+            </a>
+          </li>
+        }
+      </ul>
+    } @else {
+      <!-- Expanded: two accordion parents -->
 
-    <!-- Organization view -->
-    <div class="sidebar__nav-divider"></div>
-    @if (!collapsed()) { <span class="sidebar__nav-heading">Organization</span> }
-    <ul class="sidebar__nav-list">
-      @for (item of orgNav; track item.route) {
-        <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+      <!-- Personal -->
+      <button class="sidebar__group" (click)="toggleSection('personal')" [class.expanded]="isExpanded('personal')">
+        <tp-icon name="user" [size]="18" />
+        <span class="sidebar__group-label">Personal</span>
+        <tp-icon [name]="isExpanded('personal') ? 'chevron-down' : 'chevron-right'" [size]="16" />
+      </button>
+      @if (isExpanded('personal')) {
+        <ul class="sidebar__nav-list sidebar__nav-list--nested">
+          @for (item of personalNav; track item.route) {
+            <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+          }
+        </ul>
       }
 
-      <!-- Admin panel — platform admins only -->
-      @if (auth.isAdmin()) {
-        <li class="sidebar__nav-item">
-          <a routerLink="/admin" routerLinkActive="active" class="sidebar__nav-link"
-             data-tooltip [attr.data-tooltip]="collapsed() ? 'Admin' : null">
-            <tp-icon name="shield" [size]="18" />
-            @if (!collapsed()) { <span class="sidebar__nav-label">Admin</span> }
-          </a>
-        </li>
+      <!-- Organization -->
+      <button class="sidebar__group" (click)="toggleSection('org')" [class.expanded]="isExpanded('org')">
+        <tp-icon name="briefcase" [size]="18" />
+        <span class="sidebar__group-label">Organization</span>
+        <tp-icon [name]="isExpanded('org') ? 'chevron-down' : 'chevron-right'" [size]="16" />
+      </button>
+      @if (isExpanded('org')) {
+        <ul class="sidebar__nav-list sidebar__nav-list--nested">
+          @for (item of orgNav; track item.route) {
+            <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+          }
+          @if (auth.isAdmin()) {
+            <li class="sidebar__nav-item">
+              <a routerLink="/admin" routerLinkActive="active" class="sidebar__nav-link">
+                <tp-icon name="shield" [size]="18" />
+                <span class="sidebar__nav-label">Admin</span>
+              </a>
+            </li>
+          }
+        </ul>
       }
-    </ul>
+    }
   </nav>
 
   <!-- Reusable nav link (used by both sections) -->

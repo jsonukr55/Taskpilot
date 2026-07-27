@@ -85,15 +85,34 @@
     gap: 2px;
   }
 
-  &__nav-heading {
-    display: block;
-    padding: $space-2 $space-3 $space-1;
+  // Accordion parent (Personal / Organization)
+  &__group {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    width: 100%;
+    padding: $space-2 $space-3;
+    margin-top: $space-1;
+    background: transparent;
+    border: 0;
+    border-radius: $radius-md;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-family: $font-sans;
     font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
-    color: var(--text-tertiary);
+    font-weight: $font-weight-bold;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
+    transition: background $transition-fast, color $transition-fast;
+
+    &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+    &.expanded { color: var(--text-primary); }
+
+    tp-icon:last-child { margin-left: auto; color: var(--text-tertiary); }
   }
+  &__group-label { flex: 1; text-align: left; }
+
+  &__nav-list--nested { padding-left: $space-2; margin-bottom: $space-1; }
 
   &__nav-divider {
     height: 1px;

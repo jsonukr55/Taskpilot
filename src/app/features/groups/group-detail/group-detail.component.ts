@@ -6,6 +6,7 @@ import { NoteService } from '@core/services/note.service';
 import { TaskService } from '@core/services/task.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { ActivityService } from '@core/services/activity.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
@@ -35,6 +36,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   readonly tasks  = inject(TaskService);
   readonly auth   = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(DialogService);
   private readonly activity = inject(ActivityService);
   private readonly router = inject(Router);
 
@@ -117,7 +119,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   }
   async deleteNote(ev: Event, noteId: string): Promise<void> {
     ev.stopPropagation();
-    if (!confirm('Delete this note?')) return;
+    if (!(await this.dialog.confirm({ title: 'Delete note', message: 'Delete this note?', confirmText: 'Delete', danger: true }))) return;
     await this.notes.deleteNote(this.groupId(), noteId);
   }
 
@@ -132,7 +134,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     this.tasks.updateStatus(t.id, t.status === 'completed' ? 'todo' : 'completed');
   }
   async deleteTask(t: Task): Promise<void> {
-    if (!confirm('Delete this task?')) return;
+    if (!(await this.dialog.confirm({ title: 'Delete task', message: 'Delete this task?', confirmText: 'Delete', danger: true }))) return;
     await this.tasks.deleteTask(t.id);
   }
   isAssigned = (t: Task, uid: string): boolean => (t.assigneeIds ?? []).includes(uid);
@@ -178,11 +180,11 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
 
   // ---- Members (owner) ----
   changeRole(uid: string, role: string): void {
-    this.groups.changeRole(this.groupId(), uid, role as GroupRole).catch(e => alert(e.message));
+    this.groups.changeRole(this.groupId(), uid, role as GroupRole).catch(e => this.toast.error(e.message));
   }
-  removeMember(uid: string): void {
-    if (!confirm(`Remove ${this.memberName(uid)} from the group?`)) return;
-    this.groups.removeMember(this.groupId(), uid).catch(e => alert(e.message));
+  async removeMember(uid: string): Promise<void> {
+    if (!(await this.dialog.confirm({ title: 'Remove member', message: `Remove ${this.memberName(uid)} from the group?`, confirmText: 'Remove', danger: true }))) return;
+    this.groups.removeMember(this.groupId(), uid).catch(e => this.toast.error(e.message));
   }
 
   // ---- Settings (owner) ----
@@ -214,7 +216,8 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   }
   async deleteGroup(): Promise<void> {
     const g = this.group();
-    if (!g || !confirm(`Delete "${g.name}"? This removes the group and its notes for everyone.`)) return;
+    if (!g) return;
+    if (!(await this.dialog.confirm({ title: 'Delete group', message: `Delete "${g.name}"? This removes the group and its notes for everyone.`, confirmText: 'Delete', danger: true }))) return;
     await this.groups.deleteGroup(g.id);
     await this.router.navigate(['/groups']);
   }

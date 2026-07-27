@@ -2,6 +2,7 @@ import { Component, inject, computed, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { NoteService } from '@core/services/note.service';
 import { NoteAccessService } from '@core/services/note-access.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { Note, NoteQuickRef } from '@shared/models/note.model';
@@ -17,6 +18,7 @@ export class NotesComponent implements OnInit, OnDestroy {
   readonly notes  = inject(NoteService);
   readonly access = inject(NoteAccessService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(DialogService);
 
   ngOnInit(): void { this.notes.openPersonalNotes(); }
   ngOnDestroy(): void { this.notes.closeGroupNotes(); }
@@ -81,7 +83,7 @@ export class NotesComponent implements OnInit, OnDestroy {
   }
   async remove(ev: Event, id: string): Promise<void> {
     ev.stopPropagation();
-    if (!confirm('Delete this note?')) return;
+    if (!(await this.dialog.confirm({ title: 'Delete note', message: 'Delete this note?', confirmText: 'Delete', danger: true }))) return;
     await this.notes.deleteNote(null, id);
   }
 
@@ -94,7 +96,7 @@ export class NotesComponent implements OnInit, OnDestroy {
     ];
   }
   async removeNote(id: string): Promise<void> {
-    if (!confirm('Delete this note?')) return;
+    if (!(await this.dialog.confirm({ title: 'Delete note', message: 'Delete this note?', confirmText: 'Delete', danger: true }))) return;
     await this.notes.deleteNote(null, id);
   }
 }

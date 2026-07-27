@@ -5,6 +5,7 @@ import { OrganizationService } from '@core/services/organization.service';
 import { SpaceService } from '@core/services/space.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { orgMembers, OrgInvite, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
@@ -27,6 +28,7 @@ export class OrgDetailComponent {
   readonly spaces = inject(SpaceService);
   readonly auth   = inject(AuthService);
   private readonly toast  = inject(ToastService);
+  private readonly dialog = inject(DialogService);
   private readonly router = inject(Router);
 
   readonly SPACE_ICONS = SPACE_ICONS;
@@ -61,7 +63,7 @@ export class OrgDetailComponent {
   }
 
   async removeMember(uid: string): Promise<void> {
-    if (!confirm('Remove this member from the organization?')) return;
+    if (!(await this.dialog.confirm({ title: 'Remove member', message: 'Remove this member from the organization?', confirmText: 'Remove', danger: true }))) return;
     try { await this.orgs.removeMember(this.orgId(), uid); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not remove the member'); }
   }
@@ -155,7 +157,7 @@ export class OrgDetailComponent {
   }
 
   async deleteSpace(s: Space): Promise<void> {
-    if (!confirm(`Delete space "${s.name}"? This removes its tasks.`)) return;
+    if (!(await this.dialog.confirm({ title: 'Delete space', message: `Delete space "${s.name}"? This removes its tasks.`, confirmText: 'Delete', danger: true }))) return;
     try { await this.spaces.deleteSpace(s.id); this.toast.success('Space deleted'); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the space'); }
   }
@@ -189,7 +191,8 @@ export class OrgDetailComponent {
   }
   async deleteOrg(): Promise<void> {
     const o = this.org();
-    if (!o || !confirm(`Delete "${o.name}"? This removes the organization, its spaces and their tasks for everyone.`)) return;
+    if (!o) return;
+    if (!(await this.dialog.confirm({ title: 'Delete organization', message: `Delete "${o.name}"? This removes the organization, its spaces and their tasks for everyone.`, confirmText: 'Delete', danger: true }))) return;
     try {
       await this.orgs.deleteOrganization(o.id);
       await this.router.navigate(['/organizations']);

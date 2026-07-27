@@ -5,6 +5,7 @@ import { OrganizationService } from '@core/services/organization.service';
 import { ClientService } from '@core/services/client.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { Organization } from '@shared/models/organization.model';
@@ -24,6 +25,7 @@ export class OrganizationsComponent implements OnInit {
   readonly clients = inject(ClientService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(DialogService);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -41,7 +43,7 @@ export class OrganizationsComponent implements OnInit {
   }
 
   async deleteOrg(o: Organization): Promise<void> {
-    if (!confirm(`Delete "${o.name}"? This removes its spaces and their tasks for everyone.`)) return;
+    if (!(await this.dialog.confirm({ title: 'Delete organization', message: `Delete "${o.name}"? This removes its spaces and their tasks for everyone.`, confirmText: 'Delete', danger: true }))) return;
     try { await this.orgs.deleteOrganization(o.id); this.toast.success('Organization deleted'); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the organization'); }
   }

@@ -6,6 +6,7 @@ import { TaskService, TaskFilter, TaskSortOption } from '@core/services/task.ser
 import { CategoryService } from '@core/services/category.service';
 import { GroupService } from '@core/services/group.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { SmartFilterService } from '@core/services/smart-filter.service';
 import { FilterPreset } from '@shared/models/filter-preset.model';
@@ -31,6 +32,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly categories    = inject(CategoryService);
   private readonly groups = inject(GroupService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(DialogService);
   private readonly kb    = inject(KeyboardShortcutService);
   readonly smart = inject(SmartFilterService);
   private readonly route = inject(ActivatedRoute);
@@ -271,11 +273,10 @@ export class TasksComponent implements OnInit, OnDestroy {
     return this.runBulk(ids => this.taskService.bulkComplete(ids), 'Completed');
   }
 
-  bulkDelete(): Promise<void> {
+  async bulkDelete(): Promise<void> {
     const n = this.selectedIds().size;
-    if (!n || !confirm(`Delete ${n} task${n === 1 ? '' : 's'}? This cannot be undone.`)) {
-      return Promise.resolve();
-    }
+    if (!n) return;
+    if (!(await this.dialog.confirm({ title: 'Delete tasks', message: `Delete ${n} task${n === 1 ? '' : 's'}? This cannot be undone.`, confirmText: 'Delete', danger: true }))) return;
     return this.runBulk(ids => this.taskService.bulkDelete(ids), 'Deleted');
   }
 
@@ -342,8 +343,8 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.smart.apply(preset);
   }
 
-  saveCurrentFilter(): void {
-    const name = prompt('Name this filter:');
+  async saveCurrentFilter(): Promise<void> {
+    const name = await this.dialog.prompt({ message: 'Name this filter:' });
     if (name?.trim()) {
       this.smart.saveCurrent(name.trim());
       this.toast.success('Filter saved');

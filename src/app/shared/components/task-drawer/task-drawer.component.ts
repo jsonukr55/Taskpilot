@@ -4,6 +4,7 @@ import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
 import { GroupService } from '@core/services/group.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '../icon/icon.component';
 import { TaskCommentsComponent } from '../task-comments/task-comments.component';
 import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
@@ -33,6 +34,7 @@ export class TaskDrawerComponent implements OnDestroy {
   readonly categories = inject(CategoryService);
   private readonly groups = inject(GroupService);
   private readonly kb = inject(KeyboardShortcutService);
+  private readonly dialog = inject(DialogService);
   private readonly disposeShortcuts = this.kb.register({
     keys: 'mod+s', description: 'Save task', group: 'Task editor', allowInInput: true,
     handler: () => this.saveNow(),
@@ -217,7 +219,7 @@ export class TaskDrawerComponent implements OnDestroy {
   async deleteTask(): Promise<void> {
     const active = this.live();
     const isDrilled = active.id !== this.task().id;
-    if (!confirm(isDrilled ? 'Delete this subtask?' : 'Delete this task?')) return;
+    if (!(await this.dialog.confirm({ title: isDrilled ? 'Delete subtask' : 'Delete task', message: isDrilled ? 'Delete this subtask?' : 'Delete this task?', confirmText: 'Delete', danger: true }))) return;
     const parent = active.parentId ?? null;
     await this.taskService.deleteTask(active.id);
     // When deleting a drilled-in subtask, pop back to its parent instead of closing.

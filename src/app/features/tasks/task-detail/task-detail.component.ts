@@ -6,6 +6,7 @@ import { TaskService } from '@core/services/task.service';
 import { CategoryService } from '@core/services/category.service';
 import { SchedulingService } from '@core/services/scheduling.service';
 import { AuthService } from '@core/services/auth.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
@@ -26,6 +27,7 @@ export class TaskDetailComponent implements OnInit {
   private readonly categories   = inject(CategoryService);
   private readonly scheduling   = inject(SchedulingService);
   private readonly auth         = inject(AuthService);
+  private readonly dialog       = inject(DialogService);
   private readonly router       = inject(Router);
   private readonly fb           = inject(FormBuilder);
 
@@ -124,7 +126,7 @@ export class TaskDetailComponent implements OnInit {
   }
 
   async deleteTask(): Promise<void> {
-    if (!confirm('Delete this task?')) return;
+    if (!(await this.dialog.confirm({ title: 'Delete task', message: 'Delete this task?', confirmText: 'Delete', danger: true }))) return;
     await this.taskService.deleteTask(this.id());
     this.router.navigate(['/tasks']);
   }

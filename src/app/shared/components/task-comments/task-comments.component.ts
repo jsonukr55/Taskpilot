@@ -5,6 +5,7 @@ import { TaskCommentService } from '@core/services/task-comment.service';
 import { TaskActivityService } from '@core/services/task-activity.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '../icon/icon.component';
 import { TaskComment, threadComments } from '@shared/models/task-comment.model';
 import { TaskActivity } from '@shared/models/task-activity.model';
@@ -24,6 +25,7 @@ export class TaskCommentsComponent implements OnDestroy {
   private readonly act   = inject(TaskActivityService);
   readonly auth          = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(DialogService);
 
   readonly tab = signal<'comments' | 'activity'>('comments');
 
@@ -100,7 +102,7 @@ export class TaskCommentsComponent implements OnDestroy {
   }
 
   async remove(c: TaskComment): Promise<void> {
-    if (!confirm('Delete this comment?')) return;
+    if (!(await this.dialog.confirm({ title: 'Delete comment', message: 'Delete this comment?', confirmText: 'Delete', danger: true }))) return;
     try { await this.svc.remove(c.id); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the comment'); }
   }

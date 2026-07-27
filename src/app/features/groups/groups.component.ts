@@ -3,6 +3,7 @@ import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { GroupService } from '@core/services/group.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { Group, ROLE_LABELS, GroupRole } from '@shared/models/group.model';
@@ -23,6 +24,7 @@ export class GroupsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(DialogService);
 
   open(id: string): void { void this.router.navigate(['/groups', id]); }
 
@@ -35,7 +37,7 @@ export class GroupsComponent implements OnInit {
   }
 
   async deleteGroup(g: Group): Promise<void> {
-    if (!confirm(`Delete group "${g.name}"? This removes its shared notes and tasks.`)) return;
+    if (!(await this.dialog.confirm({ title: 'Delete group', message: `Delete group "${g.name}"? This removes its shared notes and tasks.`, confirmText: 'Delete', danger: true }))) return;
     try { await this.groups.deleteGroup(g.id); this.toast.success('Group deleted'); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the group'); }
   }

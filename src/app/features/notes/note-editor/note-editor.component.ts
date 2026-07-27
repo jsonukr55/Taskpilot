@@ -9,6 +9,8 @@ import { NoteService } from '@core/services/note.service';
 import { NoteAccessService } from '@core/services/note-access.service';
 import { AuthService } from '@core/services/auth.service';
 import { AiService } from '@core/services/ai.service';
+import { DialogService } from '@core/services/dialog.service';
+import { ToastService } from '@core/services/toast.service';
 import { environment } from '@env/environment';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { EditableBlockDirective } from './editable-block.directive';
@@ -46,6 +48,8 @@ export class NoteEditorComponent implements OnDestroy {
   readonly access = inject(NoteAccessService);
   private readonly auth = inject(AuthService);
   private readonly ai   = inject(AiService);
+  private readonly dialog = inject(DialogService);
+  private readonly toast  = inject(ToastService);
 
   // Open/re-open the note whenever the route params change. An effect (not
   // ngOnInit) because /notes/A → /notes/B reuses this component — only the
@@ -458,8 +462,8 @@ export class NoteEditorComponent implements OnDestroy {
     document.execCommand('insertHTML', false, `<code>${escapeHtml(text)}</code>`);
     this.syncFocused();
   }
-  addLink(): void {
-    const url = prompt('Link URL');
+  async addLink(): Promise<void> {
+    const url = await this.dialog.prompt({ message: 'Link URL' });
     if (url) document.execCommand('createLink', false, url);
     this.syncFocused();
     this.bubble.set(null);
@@ -503,7 +507,7 @@ export class NoteEditorComponent implements OnDestroy {
     // Translate needs a target language chosen at run time.
     let instruction = action.instruction;
     if (action.key === 'translate') {
-      const lang = prompt('Translate to which language?', 'Spanish');
+      const lang = await this.dialog.prompt({ message: 'Translate to which language?', value: 'Spanish' });
       if (!lang?.trim()) { this.bubble.set(null); return; }
       instruction = `Translate this text into ${lang.trim()}. Output only the translation, preserving meaning, tone and any list structure.`;
     }
@@ -521,7 +525,7 @@ export class NoteEditorComponent implements OnDestroy {
         this.insertResultBlocks(id, result, action.insertAs ?? 'callout');
       }
     } catch {
-      alert('AI request failed. Check your connection and try again.');
+      this.toast.error('AI request failed. Check your connection and try again.');
     } finally {
       this.aiBusy.set(null);
       this.bubble.set(null);
@@ -584,7 +588,7 @@ export class NoteEditorComponent implements OnDestroy {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 1800);
     } catch {
-      alert('Copy failed — your browser blocked clipboard access.');
+      this.toast.error('Copy failed — your browser blocked clipboard access.');
     }
   }
 

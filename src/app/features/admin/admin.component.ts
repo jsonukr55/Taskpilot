@@ -6,6 +6,7 @@ import { AdminService } from '@core/services/admin.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { ClientService } from '@core/services/client.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { Client } from '@shared/models/client.model';
 
@@ -31,6 +32,7 @@ export class AdminComponent {
   readonly clients = inject(ClientService);
   private readonly admin = inject(AdminService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(DialogService);
 
   readonly CLIENT_ICONS  = CLIENT_ICONS;
   readonly CLIENT_COLORS = CLIENT_COLORS;
@@ -81,7 +83,7 @@ export class AdminComponent {
     const warning = orgs > 0
       ? `Delete "${c.name}"? This also deletes its ${orgs} organization${orgs === 1 ? '' : 's'} and all their spaces and tasks.`
       : `Delete "${c.name}"?`;
-    if (!confirm(warning)) return;
+    if (!(await this.dialog.confirm({ title: 'Delete client', message: warning, confirmText: 'Delete', danger: true }))) return;
     try {
       await this.clients.deleteClient(c.id);
       this.toast.success('Client deleted');
@@ -126,7 +128,7 @@ export class AdminComponent {
   async demote(): Promise<void> {
     const email = this.demoteEmail().trim();
     if (!email) return;
-    if (!confirm(`Remove admin access from ${email}?`)) return;
+    if (!(await this.dialog.confirm({ title: 'Remove admin access', message: `Remove admin access from ${email}?`, confirmText: 'Remove', danger: true }))) return;
     this.working.set(true);
     try {
       await this.admin.setGlobalRole(email, null);

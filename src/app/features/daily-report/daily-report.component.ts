@@ -6,6 +6,7 @@ import { DailyReportService } from '@core/services/daily-report.service';
 import { WorkingCalendarService } from '@core/services/working-calendar.service';
 import { TaskService } from '@core/services/task.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { AuthService } from '@core/services/auth.service';
 import { NoteService } from '@core/services/note.service';
 import { ReportSummaryService, ReportSummaryKind } from '@core/services/report-summary.service';
@@ -48,6 +49,7 @@ export class DailyReportComponent implements OnDestroy {
   readonly calendar = inject(WorkingCalendarService);
   readonly tasks    = inject(TaskService);
   private readonly toast  = inject(ToastService);
+  private readonly dialog = inject(DialogService);
   private readonly auth   = inject(AuthService);
   private readonly notes  = inject(NoteService);
   private readonly summaries = inject(ReportSummaryService);
@@ -556,7 +558,7 @@ export class DailyReportComponent implements OnDestroy {
 
   async lock(): Promise<void> {
     if (!this.isManager()) return;
-    if (!confirm('Lock this report? Nobody will be able to edit it afterwards.')) return;
+    if (!(await this.dialog.confirm({ title: 'Lock report', message: 'Lock this report? Nobody will be able to edit it afterwards.', confirmText: 'Lock' }))) return;
     try {
       await this.daily.lock();
       this.toast.success('Report locked');

@@ -3,6 +3,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { DecimalPipe } from '@angular/common';
 import { CategoryService } from '@core/services/category.service';
 import { TaskService } from '@core/services/task.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
@@ -23,6 +24,7 @@ export class CategoriesComponent {
   readonly categories  = inject(CategoryService);
   readonly taskService = inject(TaskService);
   private readonly fb  = inject(FormBuilder);
+  private readonly dialog = inject(DialogService);
 
   readonly showForm    = signal(false);
   readonly editingId   = signal<string | null>(null);
@@ -129,7 +131,7 @@ export class CategoriesComponent {
   }
 
   async deleteCategory(id: string, name: string): Promise<void> {
-    if (!confirm(`Delete "${name}"? Tasks in this category will be uncategorized.`)) return;
+    if (!(await this.dialog.confirm({ title: 'Delete category', message: `Delete "${name}"? Tasks in this category will be uncategorized.`, confirmText: 'Delete', danger: true }))) return;
     await this.categories.delete(id);
   }
 }

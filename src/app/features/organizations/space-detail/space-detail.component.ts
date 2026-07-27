@@ -11,6 +11,7 @@ import { OrganizationService } from '@core/services/organization.service';
 import { TaskService } from '@core/services/task.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
+import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
@@ -52,6 +53,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly tasks       = inject(TaskService);
   readonly auth        = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(DialogService);
 
   readonly space    = computed(() => this.spaces.getSpaceById(this.spaceId()));
   readonly notFound = computed(() => !this.spaces.isLoading() && !this.space());
@@ -364,7 +366,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   }
 
   async deleteColumn(c: SpaceColumn): Promise<void> {
-    if (!confirm(`Delete column "${c.name}"? Its values are removed from the board.`)) return;
+    if (!(await this.dialog.confirm({ title: 'Delete column', message: `Delete column "${c.name}"? Its values are removed from the board.`, confirmText: 'Delete', danger: true }))) return;
     try { await this.spaceColumns.remove(c.id); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the column'); }
   }
@@ -409,7 +411,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   }
 
   async deleteGroup(g: SpaceGroup): Promise<void> {
-    if (!confirm(`Delete section "${g.name}"? Its tasks stay in the space but become ungrouped.`)) return;
+    if (!(await this.dialog.confirm({ title: 'Delete section', message: `Delete section "${g.name}"? Its tasks stay in the space but become ungrouped.`, confirmText: 'Delete', danger: true }))) return;
     try { await this.spaceGroups.remove(g.id); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the section'); }
   }
@@ -571,7 +573,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   }
 
   async removeMember(uid: string): Promise<void> {
-    if (!confirm('Remove this member from the space?')) return;
+    if (!(await this.dialog.confirm({ title: 'Remove member', message: 'Remove this member from the space?', confirmText: 'Remove', danger: true }))) return;
     try { await this.spaces.removeMember(this.spaceId(), uid); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not remove the member'); }
   }

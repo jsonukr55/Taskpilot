@@ -23,7 +23,9 @@
     <section class="card od-section">
       <div class="od-section__head">
         <h2><tp-icon name="briefcase" [size]="16" /> Spaces ({{ orgSpaces().length }})</h2>
-        <button class="btn-sm btn-primary" (click)="openCreateSpace()"><tp-icon name="plus" [size]="14" /> New space</button>
+        @if (canCreateSpace()) {
+          <button class="btn-sm btn-primary" (click)="openCreateSpace()"><tp-icon name="plus" [size]="14" /> New space</button>
+        }
       </div>
       @if (spaces.isLoading()) {
         <div class="skeleton skeleton-text" style="height:44px;"></div>

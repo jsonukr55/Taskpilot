@@ -13,7 +13,7 @@ import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
-import { spaceMembers } from '@shared/models/space.model';
+import { spaceMembers, SpaceRole, ASSIGNABLE_SPACE_ROLES, SPACE_ROLE_LABELS } from '@shared/models/space.model';
 import { SpaceGroup } from '@shared/models/space-group.model';
 import { SpaceColumn, SpaceColumnType, SPACE_COLUMN_TYPES } from '@shared/models/space-column.model';
 import { Task, TaskPriority, TaskStage, TASK_STAGES, TASK_STAGE_LABELS } from '@shared/models/task.model';
@@ -56,6 +56,11 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly members  = computed(() => { const s = this.space(); return s ? spaceMembers(s) : []; });
   readonly canEdit  = computed(() => this.spaces.canEditSpace(this.space()));
   readonly isOwner  = computed(() => this.spaces.isSpaceOwner(this.space()));
+
+  /** Space owner OR an org manager (owner/admin/global admin) may add,
+   *  re-role and remove space members. Mirrors the space_members RLS. */
+  readonly canManageMembers = computed(() =>
+    this.isOwner() || this.orgs.canManageOrg(this.orgs.getOrgById(this.orgId())));
 
   /** Root tasks in this space (subtasks render inside the drawer). */
   readonly rootTasks = computed(() =>
@@ -126,7 +131,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
       .map(uid => ({ uid, profile: org.memberProfiles[uid] ?? { displayName: 'Member', photoURL: null } }));
   });
 
-  readonly showAddMember = signal(false);
+  readonly showMembers = signal(false);
 
   ngOnInit(): void {
     this.tasks.openSpaceTasks(this.spaceId());
@@ -294,13 +299,25 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   }
 
   // ---- Members ----
+  readonly ASSIGNABLE_SPACE_ROLES = ASSIGNABLE_SPACE_ROLES;
+  readonly addRole = signal<Exclude<SpaceRole, 'owner'>>('editor');
+  spaceRoleLabel = (r: SpaceRole): string => SPACE_ROLE_LABELS[r] ?? r;
 
   async addMember(uid: string, profile: { displayName: string; photoURL: string | null }): Promise<void> {
     try {
-      await this.spaces.addMember(this.spaceId(), { uid, profile }, 'editor');
+      await this.spaces.addMember(this.spaceId(), { uid, profile }, this.addRole());
       this.toast.success(`${profile.displayName} added to the space`);
     } catch (e: any) {
       this.toast.error(e?.message ?? 'Could not add the member');
+    }
+  }
+
+  async changeRole(uid: string, role: string): Promise<void> {
+    try {
+      await this.spaces.changeRole(this.spaceId(), uid, role as SpaceRole);
+      this.toast.success('Role updated');
+    } catch (e: any) {
+      this.toast.error(e?.message ?? 'Could not update the role');
     }
   }
 

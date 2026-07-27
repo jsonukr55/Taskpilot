@@ -36,6 +36,7 @@ export class OrgDetailComponent {
   readonly notFound = computed(() => !this.orgs.isLoading() && !this.org());
   readonly members  = computed(() => { const o = this.org(); return o ? orgMembers(o) : []; });
   readonly canManage = computed(() => this.orgs.canManageOrg(this.org()));
+  readonly canCreateSpace = computed(() => this.orgs.canEditOrg(this.org()));
   readonly isOwner   = computed(() => this.orgs.isOrgOwner(this.org()));
   readonly orgSpaces = computed(() => this.spaces.spacesInOrg(this.orgId())
     .sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0)));

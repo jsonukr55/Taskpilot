@@ -89,6 +89,13 @@ export class OrganizationService {
     return this.isOrgOwner(org) || this.auth.isAdmin() || this.myOrgRole(org) === 'admin';
   }
 
+  /** Any non-viewer org role (or platform admin) — can create spaces etc.
+   *  Mirrors the `can_edit_org` RLS check so the UI matches enforcement. */
+  canEditOrg(org: Organization | undefined): boolean {
+    const role = this.myOrgRole(org);
+    return this.auth.isAdmin() || role === 'owner' || role === 'admin' || role === 'member';
+  }
+
   // ---- Org CRUD (create requires admin, enforced by RLS) ----
 
   async createOrganization(data: { name: string; description?: string; icon: string; color: string; clientId?: string | null }): Promise<string> {

@@ -48,6 +48,9 @@ export const SPACE_ROLE_LABELS: Record<SpaceRole, string> = {
   viewer: 'Viewer',
 };
 
+/** Roles a manager can assign to a member (owner is the special creator role). */
+export const ASSIGNABLE_SPACE_ROLES: Exclude<SpaceRole, 'owner'>[] = ['editor', 'viewer'];
+
 /** Can this role create/modify tasks in the space? */
 export function canEditSpace(role: SpaceRole | undefined | null): boolean {
   return role === 'owner' || role === 'editor';

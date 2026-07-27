@@ -70,7 +70,7 @@ rename of existing entities.
 | 6 | File & Media uploads (storage, types, size, preview) | P1 | Todo |
 | 7 | Activity log & debounced Mailer (Redis) | P1 | Todo |
 | 8 | Notifications | P2 | Todo |
-| 9 | Roles & Permissions (admin / member / viewer) | P0 | Todo |
+| 9 | Roles & Permissions (admin / member / viewer) | P0 | Done |
 | 10 | Admin panel (users, tasks, files, retention) | P1 | Todo |
 | 11 | Multi-tenancy (`client_id` on tenant tree) | P0 | Done |
 | 12 | Startup screen & user preferences | P2 | Todo |
@@ -298,16 +298,30 @@ using **Redis keyed by task id**.
 **Goal:** Three roles — **admin, member, viewer** — governing access.
 
 **Tasks**
-- [ ] Define role set: `admin`, `member`, `viewer`.
-- [ ] Enforce permissions across boards/spaces/tasks/comments/files (viewer = read-only).
-- [ ] Wire roles into RLS / access checks.
+- [x] Define role set — two-tier: **org** (owner/admin/member/viewer) + **space**
+  (owner/editor/viewer), independent. *(shipped earlier: 0006 + space roles)*
+- [x] Enforce permissions across spaces/tasks/sections/columns (viewer = read-only).
+  Content writes gated by `can_edit_space` (owner/editor); viewers read-only. *(0002/0007/0010)*
+- [x] Org viewers are read-only → **cannot create spaces** (`can_edit_org` gate). *(0012)*
+- [x] Org **managers** (owner/admin/global admin) can see and manage membership of every
+  space in their org — even spaces they didn't join. *(0012: spaces_select/update/delete +
+  space_members policies)*
+- [x] **Space role-management UI** — members dialog on the board: add member (with role),
+  change role (editor/viewer; owner locked), remove. Gated to space owner + org managers;
+  viewers see a read-only member list. *(space-detail)*
+- [x] Client-side gates mirror RLS: "New space" hidden from org viewers (`canEditOrg`);
+  member controls shown only to `canManageMembers`.
 
 **Acceptance criteria**
-- Viewers cannot edit; members can edit within scope; admins manage.
+- ✅ Viewers cannot edit; members/editors can edit within scope; owners + admins manage.
+- ✅ Board membership is manageable from the Space UI with per-member roles.
 
 **Open questions**
-- Scope of each role (per space, per project, per company?).
-- Relationship to existing global super-admin + space/group roles already in the app.
+- ~~Scope of each role~~ ✅ **RESOLVED** — org role governs org-level actions (create
+  spaces, manage members); space role governs board content. The two are independent
+  (an org member can be a viewer on a given space). Global super-admin overrides.
+- Note: threaded comments / file uploads (Epics 5–6) will reuse `can_edit_space` /
+  membership when those tables land — no new role concepts needed.
 
 ---
 

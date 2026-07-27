@@ -56,27 +56,54 @@
 
 .od-empty { color: var(--text-tertiary); font-size: $font-size-sm; }
 
-.sd-addmember {
+// Modal backdrop (shared by the members + add-column dialogs in this view).
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  @include glass(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: $space-4;
-  margin-bottom: $space-5;
+  z-index: $z-modal;
+  animation: fade-in $transition-fast both;
+}
 
-  &__label { font-size: $font-size-sm; font-weight: $font-weight-medium; margin-bottom: $space-3; }
-  &__list { display: flex; flex-direction: column; gap: $space-1; }
-  &__item {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
-    padding: $space-2;
-    border: none;
-    background: none;
-    border-radius: $radius-md;
-    cursor: pointer;
-    text-align: left;
-    color: var(--text-primary);
-    font-size: $font-size-sm;
-    &:hover { background: var(--bg-tertiary); }
-    span:nth-child(2) { flex: 1; }
+// ---- Member management (mirrors org-detail's member list) ----
+.member-list { display: flex; flex-direction: column; gap: $space-1; }
+.sd-addable { max-height: 220px; overflow-y: auto; @include custom-scrollbar; }
+.sd-add-row { margin-bottom: $space-2; }
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-2;
+  border-radius: $radius-md;
+  &:hover { background: var(--bg-tertiary); }
+
+  &__info { flex: 1; min-width: 0; }
+  &__name { font-size: $font-size-sm; color: var(--text-primary); }
+  &__you {
+    font-size: 10px; margin-left: $space-1; padding: 1px 6px;
+    background: var(--surface-brand); color: var(--text-brand); border-radius: $radius-full;
   }
+  &__badge { background: var(--bg-tertiary); color: var(--text-secondary); }
+}
+
+.role-select {
+  padding: $space-1 $space-2;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: border-color $transition-fast;
+  &:hover  { border-color: var(--border-strong); }
+  &:focus  { outline: none; border-color: var(--input-focus); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
 }
 
 .od-missing {

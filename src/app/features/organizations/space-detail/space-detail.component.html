@@ -92,7 +92,7 @@
                 <div cdkDropList [cdkDropListData]="col.tasks" (cdkDropListDropped)="drop($event, col)">
                   @for (t of col.tasks; track t.id) {
                     <div class="tbl__row" [style.grid-template-columns]="gridTemplate()" cdkDrag [cdkDragData]="t" [cdkDragDisabled]="!canEdit()">
-                      <ng-container *ngTemplateOutlet="cells; context: { $implicit: t, depth: 0, drag: true, cols: itemCols() }"></ng-container>
+                      <ng-container *ngTemplateOutlet="cells; context: { $implicit: t, depth: 0, drag: true, parentId: null }"></ng-container>
                       <div class="drag-preview" *cdkDragPreview><tp-icon name="drag" [size]="14" /> {{ t.title }}</div>
                     </div>
                     <ng-container *ngTemplateOutlet="childRows; context: { parentId: t.id, depth: 1 }"></ng-container>
@@ -124,18 +124,35 @@
       }
     </div>
 
-    <!-- Recursive nested subtask rows — rendered under the PARENT (item) header,
-         same columns/widths/positions; only indented. No separate sub-header. -->
+    <!-- Recursive nested subtask rows — each parent has its OWN slim header
+         whose columns can be sized/ordered just for this task's subtasks. -->
     <ng-template #childRows let-parentId="parentId" let-depth="depth">
       @if (isRowOpen(parentId)) {
+        <div class="tbl__row tbl__row--head tbl__row--subhead" [style.grid-template-columns]="subGridTemplateFor(parentId)">
+          <div class="c c--head-cell" [style.padding-left.px]="depth * 18">
+            <span class="ch-name">Subitem</span>
+            <span class="colresize" (pointerdown)="startResize('sub:' + parentId + ':task', 260, 160, $event)"></span>
+          </div>
+          @for (col of subColsFor(parentId); track col.key) {
+            <div class="c c--head-cell" [class.c--dragover]="dragCol() && dragCol() !== col.key"
+                 (dragover)="$event.preventDefault()" (drop)="subColDrop(parentId, col.key, $event)">
+              <span class="ch-name" [attr.draggable]="canEdit() ? true : null"
+                    (dragstart)="colDragStart(col.key, $event)" (dragend)="dragCol.set(null)"
+                    [attr.data-tooltip]="canEdit() ? 'Drag to reorder (this task only)' : null">{{ col.label }}</span>
+              <span class="colresize" (pointerdown)="startResize(col.wkey, col.def, col.min, $event)"></span>
+            </div>
+          }
+          <div class="c c--addcol"></div>
+        </div>
+
         @for (s of subtasksOf(parentId); track s.id) {
-          <div class="tbl__row tbl__row--sub" [style.grid-template-columns]="gridTemplate()">
-            <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: depth, drag: false, cols: itemCols() }"></ng-container>
+          <div class="tbl__row tbl__row--sub" [style.grid-template-columns]="subGridTemplateFor(parentId)">
+            <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: depth, drag: false, parentId: parentId }"></ng-container>
           </div>
           <ng-container *ngTemplateOutlet="childRows; context: { parentId: s.id, depth: depth + 1 }"></ng-container>
         }
         @if (canEdit()) {
-          <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="gridTemplate()">
+          <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="subGridTemplateFor(parentId)">
             <div class="c c--task" [style.padding-left.px]="depth * 18 + 10">
               <input #si class="addrow addrow--sub" placeholder="+ Add subtask" (keydown.enter)="addSubtaskInline(parentId, si)">
             </div>
@@ -144,8 +161,9 @@
       }
     </ng-template>
 
-    <!-- Reusable task-row cells (task + the given column set), shared by root and sub rows -->
-    <ng-template #cells let-t let-depth="depth" let-drag="drag" let-cols="cols">
+    <!-- Reusable task-row cells. Root rows (parentId=null) use item columns;
+         subtask rows use their block parent's own column set. -->
+    <ng-template #cells let-t let-depth="depth" let-drag="drag" let-parentId="parentId">
         <!-- Task (pinned, frozen) -->
         <div class="c c--task" [style.padding-left.px]="depth * 18">
           @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
@@ -157,7 +175,7 @@
           @if (childCountOf(t.id)) { <span class="tw-count">{{ childCountOf(t.id) }}</span> }
         </div>
 
-        @for (col of cols; track col.key) {
+        @for (col of (parentId ? subColsFor(parentId) : itemCols()); track col.key) {
           @if (col.kind === 'custom') {
             <div class="c c--custom" [class.c--member]="col.custom!.type === 'member'">
               @if (col.custom!.type === 'member') {

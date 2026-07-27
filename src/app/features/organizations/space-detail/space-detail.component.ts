@@ -202,10 +202,12 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   private readonly FIELD_MAP = new Map(this.FIELDS.map(f => [f.key, f]));
 
   readonly colWidths = signal<Record<string, number>>({});   // keyed by wkey (unique)
-  readonly colOrder  = signal<string[]>([]);                 // column order (excl. 'task')
+  readonly colOrder  = signal<string[]>([]);                 // item column order (excl. 'task')
+  readonly subOrders = signal<Record<string, string[]>>({}); // per-parent subtask column order
 
-  private widthsKey(): string { return 'space-cols:' + this.spaceId(); }
-  private orderKey():  string { return 'space-colorder:' + this.spaceId(); }
+  private widthsKey():    string { return 'space-cols:' + this.spaceId(); }
+  private orderKey():     string { return 'space-colorder:' + this.spaceId(); }
+  private subOrdersKey(): string { return 'space-suborders:' + this.spaceId(); }
 
   private loadWidths(): void {
     const read = (k: string, fb: any) => {
@@ -213,6 +215,7 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     };
     this.colWidths.set(read(this.widthsKey(), {}));
     this.colOrder.set(read(this.orderKey(), []));
+    this.subOrders.set(read(this.subOrdersKey(), {}));
   }
   widthOf = (wkey: string, fallback: number): number => this.colWidths()[wkey] ?? fallback;
 
@@ -242,6 +245,40 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     const rest = this.itemCols().map(c => this.widthOf(c.wkey, c.def) + 'px');
     return [task, ...rest, '44px'].join(' ');
   });
+
+  /** Per-parent subtask columns — same column set as items, but each parent
+   *  keeps its OWN order and widths (namespaced by parent id). */
+  subColsFor(parentId: string) {
+    const customs = this.spaceColumns.columns();
+    const valid = [
+      ...this.FIELDS.filter(f => f.key !== 'task').map(f => f.key),
+      ...customs.map(cc => 'cc:' + cc.id),
+    ];
+    const order = this.subOrders()[parentId] ?? [];
+    const stored = order.filter(k => valid.includes(k));
+    const ordered = [...stored, ...valid.filter(k => !stored.includes(k))];
+    return ordered.map(key => {
+      if (key.startsWith('cc:')) {
+        const cc = customs.find(c => 'cc:' + c.id === key)!;
+        return { key, wkey: `sub:${parentId}:${key}`, kind: 'custom' as const, label: cc.name, min: SpaceDetailComponent.CUSTOM_MIN, def: SpaceDetailComponent.CUSTOM_DEFAULT, custom: cc as SpaceColumn | undefined };
+      }
+      const f = this.FIELD_MAP.get(key)!;
+      return { key, wkey: `sub:${parentId}:${key}`, kind: 'field' as const, label: f.label, min: f.min, def: f.def, custom: undefined as SpaceColumn | undefined };
+    });
+  }
+  subGridTemplateFor(parentId: string): string {
+    const task = this.widthOf(`sub:${parentId}:task`, 260) + 'px';
+    const rest = this.subColsFor(parentId).map(c => this.widthOf(c.wkey, c.def) + 'px');
+    return [task, ...rest, '44px'].join(' ');
+  }
+  subColDrop(parentId: string, targetKey: string, ev: DragEvent): void {
+    ev.preventDefault();
+    const from = this.dragCol(); this.dragCol.set(null);
+    if (!from || from === targetKey) return;
+    const next = this.reorder(this.subColsFor(parentId).map(c => c.key), from, targetKey);
+    this.subOrders.update(m => ({ ...m, [parentId]: next }));
+    try { localStorage.setItem(this.subOrdersKey(), JSON.stringify(this.subOrders())); } catch { /* ignore */ }
+  }
 
   // ---- Column reordering (native drag on header labels) ----
   readonly dragCol = signal<string | null>(null);

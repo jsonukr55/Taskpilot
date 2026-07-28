@@ -320,6 +320,16 @@
   }
   // The task cell isn't sticky inside the inset table (it scrolls with it).
   .c--task { position: static; background: transparent; }
+
+  // ├ tick branch from the rail to each subtask row.
+  &__row { position: relative; }
+  &__row:not(.subtable__add)::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    width: 14px; height: 2px;
+    background: var(--gc, var(--accent-500));
+  }
 }
 
 .tname {

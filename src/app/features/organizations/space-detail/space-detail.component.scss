@@ -294,61 +294,32 @@
 // Task currently being customized + the header while editing it
 .tbl__row--selected .c--task { box-shadow: inset 3px 0 0 var(--accent-500); }
 .tbl__row--head.tbl__row--editing { outline: 1px dashed var(--accent-500); outline-offset: -1px; }
-.tbl__row--sub {
+.addrow--sub { font-size: $font-size-xs; color: var(--text-tertiary); }
+
+// ---- Subtasks as a real inset sub-table (Monday sub-board) ----
+.subtable {
+  margin: 6px 0 8px 22px;               // inset from the parent; nesting compounds
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--gc, var(--accent-500));   // the coloured rail
+  border-radius: $radius-md;
+  overflow: hidden;
+  min-width: max-content;
   background: var(--bg-secondary);
-  .c--task { background-color: var(--bg-secondary); }
-  &:hover { background: var(--bg-tertiary); }
-  &:hover .c--task { background-color: var(--bg-tertiary); }
-}
-.tbl__row--subadd .addrow--sub {
-  font-size: $font-size-xs;
-  color: var(--text-tertiary);
-}
 
-// Monday-style connector: a fat group-colored trunk down the left of a task's
-// subtasks, with a tight curved branch (╰) into each row. The trunk is formed
-// by each nested cell's full-height segment; the last row (+ Add) caps it.
-// Trunk sits just inside the group's outer rail (so they read as one bar);
-// big sweeping curved branches hook into each subtask row.
-// Subtask connector drawn with SVG (immune to grid/overflow/sticky-bg quirks):
-// a continuous vertical trunk + a clean rounded branch into each row. One SVG
-// per nested cell, sized to the cell, stacks seamlessly into one bracket.
-.subcx {
-  position: absolute;
-  left: calc(var(--ind, 0px) - 14px);
-  top: 0; width: 42px; height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-.subcx line, .subcx path {
-  stroke: var(--gc, var(--border-strong));
-  stroke-width: 3;
-  fill: none;
-  stroke-linecap: round;
-}
-
-.tbl__row--sublabel {
-  display: block;
-  position: relative;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.sublabel {
-  display: inline-block;
-  padding-top: $space-2; padding-bottom: $space-2;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-// Subitem column header — a distinct, non-sticky header for the sub level.
-.tbl__row--subhead {
-  position: static;
-  top: auto;
-  border-top: 2px solid var(--border-subtle);
-  .c--head-cell:first-child { z-index: 3; }   // below the main frozen header
+  &__row {
+    display: grid;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border-subtle);
+    &:last-child { border-bottom: 0; }
+    &:not(.subtable__head):not(.subtable__add):hover { background: var(--bg-tertiary); }
+  }
+  &__head .c {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: var(--text-tertiary);
+  }
+  // The task cell isn't sticky inside the inset table (it scrolls with it).
+  .c--task { position: static; background: transparent; }
 }
 
 .tname {

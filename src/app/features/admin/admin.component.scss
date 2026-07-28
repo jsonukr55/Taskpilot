@@ -173,6 +173,7 @@
     width: 100%; text-align: left;
     padding: $space-2 $space-3; border-radius: $radius-sm;
     font-size: $font-size-sm; color: var(--text-primary);
+    background: transparent; border: none;
     cursor: pointer;
     &:hover:not([disabled]) { background: var(--bg-tertiary); }
     &[disabled] { opacity: 0.5; cursor: not-allowed; }

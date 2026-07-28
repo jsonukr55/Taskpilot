@@ -139,11 +139,6 @@
     <ng-template #childRows let-parentId="parentId" let-depth="depth" let-rootId="rootId">
       @if (isRowOpen(parentId)) {
         <div class="subtable">
-          <div class="subtable__row subtable__head" [style.grid-template-columns]="gridTemplate()">
-            <div class="c c--task">Subitem</div>
-            @for (col of itemCols(); track col.key) { <div class="c">{{ col.label }}</div> }
-            <div class="c c--addcol"></div>
-          </div>
           @for (s of subtasksOf(parentId); track s.id) {
             <div class="subtable__row" [style.grid-template-columns]="gridTemplate()">
               <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: 0, drag: false, rootId: null }"></ng-container>

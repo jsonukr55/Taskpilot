@@ -203,9 +203,15 @@
     <div class="drawer__divider"></div>
 
     <!-- Description -->
-    <textarea class="drawer__textarea" rows="4" placeholder="Add a description…"
-      [value]="editDesc()"
-      (input)="editDesc.set($any($event.target).value); scheduleAutoSave()"></textarea>
+    <div class="drawer__desc-section">
+      <div class="drawer__section-title">
+        <tp-icon name="file-text" [size]="13" />
+        Description
+      </div>
+      <textarea class="drawer__textarea" rows="5" placeholder="Add a description…"
+        [value]="editDesc()"
+        (input)="editDesc.set($any($event.target).value); scheduleAutoSave()"></textarea>
+    </div>
 
     <!-- Checklist -->
     <div class="drawer__checklist-section">

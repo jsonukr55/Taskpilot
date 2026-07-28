@@ -156,21 +156,37 @@
   }
 }
 
+.drawer__desc-section {
+  flex-shrink: 0;
+  margin-bottom: $space-4;
+}
+
 .drawer__textarea {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  // The body is a flex column: without this the textarea is the one child
+  // that shrinks (its auto min-height resolves to 0) and collapses to a
+  // single clipped line as soon as the drawer content overflows.
+  flex-shrink: 0;
   padding: $space-3;
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--input-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: $radius-md;
   color: var(--text-primary);
   font-size: $font-size-sm;
-  resize: none;
-  width: 100%;
   font-family: inherit;
   line-height: $line-height-relaxed;
-  transition: border-color $transition-fast;
-  margin-bottom: $space-4;
+  resize: vertical;
+  overflow-y: auto;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
 
-  &:focus { outline: none; border-color: var(--border-brand); background: var(--bg-tertiary); }
+  &:hover { border-color: var(--border-default); }
+  &:focus {
+    outline: none;
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+  }
   &::placeholder { color: var(--text-tertiary); }
 }
 

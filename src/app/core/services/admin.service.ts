@@ -31,17 +31,19 @@ export class AdminService {
   // ---- Platform-wide reads (RLS-gated to global admins) ----
 
   async allUsers(): Promise<AdminUser[]> {
-    const { data } = await this.supa.db('profiles')
+    const { data, error } = await this.supa.db('profiles')
       .select('id,email,display_name,photo_url,global_role').order('display_name');
+    if (error) throw error;
     return (data ?? []).map((r: any) => ({
       id: r.id, email: r.email, displayName: r.display_name, photoURL: r.photo_url ?? null, globalRole: r.global_role ?? null,
     }));
   }
 
   async allTasks(): Promise<TaskLite[]> {
-    const { data } = await this.supa.db('tasks')
+    const { data, error } = await this.supa.db('tasks')
       .select('id,title,status,stage,parent_id,space_id,org_id,client_id,updated_at')
       .order('updated_at', { ascending: false });
+    if (error) throw error;
     return (data ?? []).map((r: any) => ({
       id: r.id, title: r.title, status: r.status, stage: r.stage, parentId: r.parent_id ?? null,
       spaceId: r.space_id ?? null, orgId: r.org_id ?? null, clientId: r.client_id ?? null, updatedAt: r.updated_at ?? null,
@@ -49,8 +51,15 @@ export class AdminService {
   }
 
   async allSpaces(): Promise<SpaceLite[]> {
-    const { data } = await this.supa.db('spaces').select('id,client_id,org_id');
+    const { data, error } = await this.supa.db('spaces').select('id,client_id,org_id');
+    if (error) throw error;
     return (data ?? []).map((r: any) => ({ id: r.id, clientId: r.client_id ?? null, orgId: r.org_id }));
+  }
+
+  async allAttachments(): Promise<{ clientId: string | null; size: number }[]> {
+    const { data, error } = await this.supa.db('task_attachments').select('client_id,size');
+    if (error) throw error;
+    return (data ?? []).map((r: any) => ({ clientId: r.client_id ?? null, size: Number(r.size ?? 0) }));
   }
 
   /** Promote (role='admin') or demote (role=null) a user by email. */

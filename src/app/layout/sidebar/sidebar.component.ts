@@ -6,7 +6,6 @@ import { TaskService } from '@core/services/task.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { SpaceService } from '@core/services/space.service';
 import { ThemeService, Theme } from '@core/services/theme.service';
-import { CategoryService } from '@core/services/category.service';
 import { ReleaseNotesService } from '@core/services/release-notes.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
@@ -36,7 +35,6 @@ export class SidebarComponent {
   readonly orgs       = inject(OrganizationService);
   readonly spaces     = inject(SpaceService);
   readonly theme      = inject(ThemeService);
-  readonly categories = inject(CategoryService);
   readonly release    = inject(ReleaseNotesService);
 
   // Personal view — the individual's own productivity space.
@@ -52,8 +50,8 @@ export class SidebarComponent {
   ];
 
   // Organization view — shared / collaborative workspaces.
+  // (Organizations themselves are listed by name directly under the accordion.)
   readonly orgNav: NavItem[] = [
-    { label: 'Organizations',route: '/organizations', icon: 'briefcase' },
     { label: 'Groups',       route: '/groups',     icon: 'users' },
     { label: 'Daily Report', route: '/daily',      icon: 'check-circle' },
   ];
@@ -72,6 +70,13 @@ export class SidebarComponent {
 
   isExpanded = (key: string): boolean => this.expanded()[key] !== false;
 
+  /** Admin entry is visible to platform admins and to anyone who owns/admins an org. */
+  readonly showAdmin = computed(() => {
+    if (this.auth.isAdmin()) return true;
+    const uid = this.auth.userId() ?? '';
+    return this.orgs.organizations().some(o => o.ownerId === uid || o.roles[uid] === 'admin');
+  });
+
   toggleSection(key: string): void {
     this.expanded.update(s => {
       const next = { ...s, [key]: !this.isExpanded(key) };
@@ -79,10 +84,6 @@ export class SidebarComponent {
       return next;
     });
   }
-
-  readonly topCategories = computed(() =>
-    this.categories.rootCategories().slice(0, 5)
-  );
 
   // ---- Appearance popover (state shared via ThemeService) --------
   readonly appearanceOpen = this.theme.appearanceOpen;

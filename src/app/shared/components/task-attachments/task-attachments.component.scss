@@ -1,0 +1,89 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.ta {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__title {
+    @include flex-start;
+    gap: $space-2;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: var(--text-secondary);
+  }
+  &__count {
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    border-radius: $radius-full;
+    padding: 1px $space-2;
+  }
+
+  &__drop {
+    @include flex-center;
+    gap: $space-2;
+    padding: $space-3;
+    border: 1px dashed var(--border-default);
+    border-radius: $radius-md;
+    color: var(--text-secondary);
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: border-color $transition-fast, color $transition-fast;
+    &:hover { border-color: var(--input-focus); color: var(--text-primary); }
+  }
+
+  &__list { display: flex; flex-direction: column; gap: $space-1; }
+  &__empty { color: var(--text-tertiary); font-size: $font-size-sm; }
+}
+
+.ta-file {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2;
+  border-radius: $radius-md;
+  &:hover { background: var(--bg-tertiary); }
+
+  &__icon { color: var(--text-tertiary); flex-shrink: 0; display: inline-flex; }
+  &__name {
+    flex: 1; min-width: 0;
+    background: transparent; border: 0; cursor: pointer;
+    text-align: left; font-family: $font-sans;
+    font-size: $font-size-sm; color: var(--text-primary);
+    @include text-truncate;
+    &:hover { color: var(--text-brand); }
+  }
+  &__size { flex-shrink: 0; font-size: $font-size-xs; color: var(--text-tertiary); }
+}
+
+// Small media preview dialog
+.ta-preview {
+  width: 100%;
+  max-width: 720px;
+  max-height: 84vh;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-xl;
+  box-shadow: $shadow-xl;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &__bar {
+    @include flex-between;
+    gap: $space-3;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  &__name { @include text-truncate; font-size: $font-size-sm; font-weight: $font-weight-medium; }
+  &__media {
+    display: block;
+    max-width: 100%;
+    max-height: calc(84vh - 52px);
+    margin: 0 auto;
+    object-fit: contain;
+    background: #000;
+  }
+}

@@ -67,7 +67,7 @@ rename of existing entities.
 | 3 | Views system (Task / Sprint / custom) | P1 | Done |
 | 4 | Task Status & Sprint Status | P1 | Done |
 | 5 | Threaded Comments | P1 | Done (text); images w/ Epic 6 |
-| 6 | File & Media uploads (storage, types, size, preview) | P1 | Todo |
+| 6 | File & Media uploads (storage, types, size, preview) | P1 | Done (task files); comment images TBD |
 | 7 | Activity log & debounced Mailer (Redis) | P1 | Todo |
 | 8 | Notifications (in-app) | P2 | Done (in-app); email later |
 | 9 | Roles & Permissions (admin / member / viewer) | P0 | Done |

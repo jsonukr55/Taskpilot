@@ -84,3 +84,111 @@
 
 // Delete (trash) action turns red on hover
 .admin-danger:hover { color: #ef4444; }
+
+// ---- Tasks overview: stat blocks + stage chips ----
+.admin-stats { display: flex; gap: $space-3; margin-bottom: $space-3; }
+.admin-stat {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: $space-3;
+  background: var(--bg-tertiary);
+  border-radius: $radius-lg;
+  &__n { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: var(--text-primary); }
+  &__l { font-size: $font-size-xs; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+}
+.admin-chips { display: flex; flex-wrap: wrap; gap: $space-2; }
+.admin-chip {
+  font-size: $font-size-xs;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 2px $space-3;
+  border-radius: $radius-full;
+}
+
+// ---- Users section (client-scoped) ----
+// Full-width card in the 2-col grid.
+.admin-card--wide { grid-column: 1 / -1; }
+
+// Client selector tabs
+.admin-tabs { display: flex; flex-wrap: wrap; gap: $space-2; }
+.admin-tab {
+  @include flex-start;
+  gap: $space-2;
+  padding: $space-1 $space-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid transparent;
+  cursor: pointer;
+  &:hover { color: var(--text-primary); }
+  &.active { color: var(--text-brand); border-color: var(--accent-500); background: var(--bg-elevated); }
+  &__dot { width: 8px; height: 8px; border-radius: $radius-full; flex-shrink: 0; }
+}
+
+// Add-user row
+.admin-add {
+  display: flex; gap: $space-2; margin-bottom: $space-3;
+  .form-input { flex: 1; }
+  &__org { flex: 0 0 auto; max-width: 200px; }
+  @media (max-width: 640px) { flex-wrap: wrap; &__org { max-width: none; flex: 1; } }
+}
+
+// User rows
+.admin-user { position: relative; border-radius: $radius-md; &:hover { background: var(--bg-tertiary); } }
+.admin-user__row { display: flex; align-items: center; gap: $space-3; padding: $space-2; }
+.admin-user__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.admin-user__name {
+  @include flex-start; gap: $space-2; flex-wrap: wrap;
+  font-size: $font-size-sm; font-weight: $font-weight-medium; color: var(--text-primary);
+}
+.admin-user__sub { font-size: $font-size-xs; color: var(--text-tertiary); display: flex; flex-wrap: wrap; gap: $space-1; align-items: center; }
+.admin-user__chip {
+  font-size: $font-size-xs; color: var(--text-secondary);
+  background: var(--bg-elevated); padding: 0 $space-2; border-radius: $radius-full;
+}
+.admin-user__you { font-size: $font-size-xs; color: var(--text-brand); }
+.admin-user__menu-btn { flex-shrink: 0; }
+
+.badge--admin {
+  font-size: $font-size-xs; font-weight: $font-weight-medium;
+  color: #fff; background: var(--accent-500);
+  padding: 0 $space-2; border-radius: $radius-full;
+}
+
+// Row action menu
+.admin-menu-overlay { position: fixed; inset: 0; z-index: 40; }
+.admin-menu {
+  position: absolute; right: $space-2; top: calc(100% - #{$space-1}); z-index: 50;
+  min-width: 210px;
+  display: flex; flex-direction: column;
+  padding: $space-1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  &__item {
+    @include flex-start; gap: $space-2;
+    width: 100%; text-align: left;
+    padding: $space-2 $space-3; border-radius: $radius-sm;
+    font-size: $font-size-sm; color: var(--text-primary);
+    background: transparent; border: none;
+    cursor: pointer;
+    &:hover:not([disabled]) { background: var(--bg-tertiary); }
+    &[disabled] { opacity: 0.5; cursor: not-allowed; }
+  }
+}
+
+// Manage-org-access panel
+.admin-access {
+  margin: 0 $space-2 $space-2;
+  padding: $space-2 $space-3;
+  background: var(--bg-tertiary);
+  border-radius: $radius-md;
+  display: flex; flex-direction: column; gap: $space-1;
+  &__row { @include flex-between; gap: $space-2; padding: $space-1 0; }
+  &__name { @include flex-start; gap: $space-2; font-size: $font-size-sm; color: var(--text-primary); flex: 1; min-width: 0; }
+  &__emoji { flex-shrink: 0; }
+  &__role { flex: 0 0 auto; max-width: 130px; padding: 2px $space-2; font-size: $font-size-xs; }
+}

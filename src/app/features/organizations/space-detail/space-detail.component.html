@@ -37,9 +37,17 @@
             </button>
           }
         </div>
-        @if (canEdit() && view() === 'section') {
-          <button class="btn-secondary btn-sm" (click)="addGroup()"><tp-icon name="plus" [size]="14" /> New section</button>
-        }
+        <div class="board__bar-actions">
+          @if (canEdit()) {
+            <button class="btn-ghost btn-sm" (click)="resetColumnWidths()"
+                    [attr.data-tooltip]="selectedRow() ? 'Reset this task\'s column widths' : 'Reset column widths'" data-tooltip>
+              <tp-icon name="rotate-ccw" [size]="14" /> Reset columns
+            </button>
+          }
+          @if (canEdit() && view() === 'section') {
+            <button class="btn-secondary btn-sm" (click)="addGroup()"><tp-icon name="plus" [size]="14" /> New section</button>
+          }
+        </div>
       </div>
 
       <!-- Columns for the current view -->
@@ -56,7 +64,10 @@
             } @else {
               <span class="grp__name-static" [style.color]="col.color">{{ col.name }}</span>
             }
-            <span class="grp__count">{{ col.tasks.length }}</span>
+            <span class="grp__count">
+              {{ col.tasks.length }} {{ col.tasks.length === 1 ? 'item' : 'items' }}
+              @if (subtaskTotal(col.tasks); as st) { <span class="grp__count-sub">/ {{ st }} {{ st === 1 ? 'subitem' : 'subitems' }}</span> }
+            </span>
             @if (col.canManage && col.group) {
               <button class="btn-icon grp__del" (click)="deleteGroup(col.group)" data-tooltip="Delete section"><tp-icon name="trash-2" [size]="14" /></button>
             }
@@ -124,31 +135,30 @@
       }
     </div>
 
-    <!-- Recursive nested subtask rows — rendered under the PARENT (item)
-         header: same columns/widths/positions, just indented. No sub-header. -->
+    <!-- Subtasks as a real inset sub-table (own container, gold rail, header) -->
     <ng-template #childRows let-parentId="parentId" let-depth="depth" let-rootId="rootId">
       @if (isRowOpen(parentId)) {
-        @for (s of subtasksOf(parentId); track s.id) {
-          <div class="tbl__row tbl__row--sub" [style.grid-template-columns]="gridTemplateForTask(rootId)">
-            <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: depth, drag: false, rootId: rootId }"></ng-container>
-          </div>
-          <ng-container *ngTemplateOutlet="childRows; context: { parentId: s.id, depth: depth + 1, rootId: rootId }"></ng-container>
-        }
-        @if (canEdit()) {
-          <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="gridTemplateForTask(rootId)">
-            <div class="c c--task" [style.padding-left.px]="depth * 18 + 10">
-              <input #si class="addrow addrow--sub" placeholder="+ Add subtask" (keydown.enter)="addSubtaskInline(parentId, si)">
+        <div class="subtable">
+          @for (s of subtasksOf(parentId); track s.id) {
+            <div class="subtable__row" [style.grid-template-columns]="gridTemplate()">
+              <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: 0, drag: false, rootId: null }"></ng-container>
             </div>
-          </div>
-        }
+            <ng-container *ngTemplateOutlet="childRows; context: { parentId: s.id, depth: depth + 1, rootId: rootId }"></ng-container>
+          }
+          @if (canEdit()) {
+            <div class="subtable__row subtable__add" [style.grid-template-columns]="gridTemplate()">
+              <div class="c c--task"><input #si class="addrow addrow--sub" placeholder="+ Add subtask" (keydown.enter)="addSubtaskInline(parentId, si)"></div>
+            </div>
+          }
+        </div>
       }
     </ng-template>
 
     <!-- Reusable task-row cells. Root rows (parentId=null) use item columns;
          subtask rows use their block parent's own column set. -->
     <ng-template #cells let-t let-depth="depth" let-drag="drag" let-rootId="rootId">
-        <!-- Task (pinned, frozen) -->
-        <div class="c c--task" [style.padding-left.px]="depth * 18">
+        <!-- Task cell -->
+        <div class="c c--task">
           @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
           <button class="tw-expand" [class.tw-expand--on]="isRowOpen(t.id)" (click)="toggleRow(t.id)"
                   [attr.data-tooltip]="childCountOf(t.id) ? childCountOf(t.id) + ' subtasks' : 'Subtasks'">

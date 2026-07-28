@@ -138,6 +138,7 @@
     border-bottom: 1px solid var(--border-subtle);
   }
   &__views { display: flex; gap: $space-1; }
+  &__bar-actions { display: flex; align-items: center; gap: $space-2; }
 
   &__empty {
     text-align: center;
@@ -197,11 +198,12 @@
   }
   &__count {
     font-size: $font-size-xs;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     background: var(--bg-tertiary);
     border-radius: $radius-full;
-    padding: 1px $space-2;
+    padding: 2px $space-3;
   }
+  &__count-sub { color: var(--text-tertiary); }
   &__del { margin-left: $space-1; opacity: 0; transition: opacity $transition-fast; }
   &:hover &__del { opacity: 1; }
 }
@@ -209,7 +211,7 @@
 // ---- Table ----
 .tblwrap {
   overflow-x: auto;                 // never break the page layout on narrow screens
-  border-left: 3px solid var(--gc); // Monday's colored group bar
+  border-left: 3px solid var(--gc); // group colour bar
   border-radius: 0 $radius-lg $radius-lg 0;
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
@@ -242,7 +244,7 @@
   display: flex;
   align-items: center;
   padding: 0 $space-3;
-  min-height: 42px;
+  min-height: 46px;
   border-right: 1px solid var(--border-subtle);
   font-size: $font-size-sm;
   color: var(--text-primary);
@@ -292,23 +294,26 @@
 // Task currently being customized + the header while editing it
 .tbl__row--selected .c--task { box-shadow: inset 3px 0 0 var(--accent-500); }
 .tbl__row--head.tbl__row--editing { outline: 1px dashed var(--accent-500); outline-offset: -1px; }
-.tbl__row--sub {
-  background: var(--bg-secondary);
-  .c--task { background: var(--bg-secondary); }
-  &:hover { background: var(--bg-tertiary); }
-  &:hover .c--task { background: var(--bg-tertiary); }
-}
-.tbl__row--subadd .addrow--sub {
-  font-size: $font-size-xs;
-  color: var(--text-tertiary);
-}
+.addrow--sub { font-size: $font-size-xs; color: var(--text-tertiary); }
 
-// Subitem column header — a distinct, non-sticky header for the sub level.
-.tbl__row--subhead {
-  position: static;
-  top: auto;
-  border-top: 2px solid var(--border-subtle);
-  .c--head-cell:first-child { z-index: 3; }   // below the main frozen header
+// ---- Subtasks as a simple inset block (indented, no rails/curves) ----
+.subtable {
+  margin: 4px 0 8px 22px;               // inset from the parent; nesting compounds
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-md;
+  overflow: hidden;
+  min-width: max-content;
+  background: var(--bg-secondary);
+
+  &__row {
+    display: grid;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border-subtle);
+    &:last-child { border-bottom: 0; }
+    &:not(.subtable__add):hover { background: var(--bg-tertiary); }
+  }
+  // The task cell isn't sticky inside the inset block (it scrolls with it).
+  .c--task { position: static; background: transparent; }
 }
 
 .tname {
@@ -526,9 +531,9 @@
   position: sticky;
   left: 0;
   z-index: 2;
-  background: var(--card-bg);
+  background-color: var(--card-bg);
 }
-.tbl__row:hover .c--task { background: var(--bg-tertiary); }
+.tbl__row:hover .c--task { background-color: var(--bg-tertiary); }
 .tbl__row--head .c--head-cell:first-child {
   position: sticky;
   left: 0;

@@ -7,6 +7,7 @@ import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.servic
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '../icon/icon.component';
 import { TaskCommentsComponent } from '../task-comments/task-comments.component';
+import { TaskAttachmentsComponent } from '../task-attachments/task-attachments.component';
 import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
 import { Task, TaskStatus, TaskPriority, ChecklistItem } from '@shared/models/task.model';
 import { AssignablePerson } from '@shared/models/group.model';
@@ -15,7 +16,7 @@ import { Timestamp } from '@angular/fire/firestore';
 @Component({
   selector: 'tp-task-drawer',
   standalone: true,
-  imports: [FormsModule, IconComponent, TaskCommentsComponent, ShowPickerDirective],
+  imports: [FormsModule, IconComponent, TaskCommentsComponent, TaskAttachmentsComponent, ShowPickerDirective],
   templateUrl: './task-drawer.component.html',
   styleUrl: './task-drawer.component.scss',
   host: {

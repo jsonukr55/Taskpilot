@@ -34,10 +34,15 @@
       </ul>
       <div class="sidebar__nav-divider"></div>
       <ul class="sidebar__nav-list">
+        <li class="sidebar__nav-item">
+          <a routerLink="/organizations" routerLinkActive="active" class="sidebar__nav-link" data-tooltip data-tooltip="Organizations">
+            <tp-icon name="briefcase" [size]="18" />
+          </a>
+        </li>
         @for (item of orgNav; track item.route) {
           <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
         }
-        @if (auth.isAdmin()) {
+        @if (showAdmin()) {
           <li class="sidebar__nav-item">
             <a routerLink="/admin" routerLinkActive="active" class="sidebar__nav-link" data-tooltip data-tooltip="Admin">
               <tp-icon name="shield" [size]="18" />
@@ -62,41 +67,41 @@
         </ul>
       }
 
-      <!-- Organization -->
+      <!-- Organizations -->
       <button class="sidebar__group" (click)="toggleSection('org')" [class.expanded]="isExpanded('org')">
         <tp-icon name="briefcase" [size]="18" />
-        <span class="sidebar__group-label">Organization</span>
+        <span class="sidebar__group-label">Organizations</span>
         <tp-icon [name]="isExpanded('org') ? 'chevron-down' : 'chevron-right'" [size]="16" />
       </button>
       @if (isExpanded('org')) {
         <ul class="sidebar__nav-list sidebar__nav-list--nested">
-          @for (item of orgNav; track item.route) {
-            <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
 
-            <!-- List the actual organizations by name under the Organizations link -->
-            @if (item.route === '/organizations') {
-              @for (o of orgs.organizations(); track o.id) {
-                <li class="sidebar__nav-item">
-                  <a [routerLink]="['/organizations', o.id]" routerLinkActive="active"
-                     class="sidebar__nav-link sidebar__nav-link--org">
-                    <span class="sidebar__org-emoji" [style.color]="o.color">{{ o.icon }}</span>
-                    <span class="sidebar__nav-label">{{ o.name }}</span>
-                  </a>
-                </li>
-                <!-- Spaces (boards) the user can access within this org -->
-                @for (s of spaces.spacesInOrg(o.id); track s.id) {
-                  <li class="sidebar__nav-item">
-                    <a [routerLink]="['/organizations', o.id, 'spaces', s.id]" routerLinkActive="active"
-                       class="sidebar__nav-link sidebar__nav-link--space">
-                      <span class="sidebar__org-emoji" [style.color]="s.color">{{ s.icon }}</span>
-                      <span class="sidebar__nav-label">{{ s.name }}</span>
-                    </a>
-                  </li>
-                }
-              }
+          <!-- Organizations (by name) and the spaces the user can access within each -->
+          @for (o of orgs.organizations(); track o.id) {
+            <li class="sidebar__nav-item">
+              <a [routerLink]="['/organizations', o.id]" routerLinkActive="active"
+                 class="sidebar__nav-link sidebar__nav-link--org">
+                <span class="sidebar__org-emoji" [style.color]="o.color">{{ o.icon }}</span>
+                <span class="sidebar__nav-label">{{ o.name }}</span>
+              </a>
+            </li>
+            @for (s of spaces.spacesInOrg(o.id); track s.id) {
+              <li class="sidebar__nav-item">
+                <a [routerLink]="['/organizations', o.id, 'spaces', s.id]" routerLinkActive="active"
+                   class="sidebar__nav-link sidebar__nav-link--space">
+                  <span class="sidebar__org-emoji" [style.color]="s.color">{{ s.icon }}</span>
+                  <span class="sidebar__nav-label">{{ s.name }}</span>
+                </a>
+              </li>
             }
           }
-          @if (auth.isAdmin()) {
+
+          <!-- Groups, Daily Report -->
+          @for (item of orgNav; track item.route) {
+            <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
+          }
+
+          @if (showAdmin()) {
             <li class="sidebar__nav-item">
               <a routerLink="/admin" routerLinkActive="active" class="sidebar__nav-link">
                 <tp-icon name="shield" [size]="18" />
@@ -145,33 +150,6 @@
       }
     </li>
   </ng-template>
-
-  <!-- Categories -->
-  @if (!collapsed()) {
-    <div class="sidebar__section">
-      <div class="sidebar__section-header">
-        <span class="sidebar__section-title">Categories</span>
-        <a routerLink="/categories" class="sidebar__section-action btn-icon" data-tooltip="Manage">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-        </a>
-      </div>
-      <ul class="sidebar__categories">
-        @for (cat of topCategories(); track cat.id) {
-          <li>
-            <a [routerLink]="['/tasks']" [queryParams]="{category: cat.id}" class="sidebar__category-link">
-              <span class="sidebar__category-dot" [style.background]="cat.color"></span>
-              <span class="sidebar__category-name">{{ cat.name }}</span>
-              <span class="sidebar__category-count">
-                {{ tasks.getTasksByCategory(cat.id).length }}
-              </span>
-            </a>
-          </li>
-        }
-      </ul>
-    </div>
-  }
 
   <!-- Footer -->
   <div class="sidebar__footer">

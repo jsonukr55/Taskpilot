@@ -84,6 +84,15 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   subtasksOf   = (id: string): Task[] => this.subByParent().get(id) ?? [];
   childCountOf = (id: string): number => this.subtasksOf(id).length;
 
+  /** Total descendants (all nested subtasks) under a task. */
+  private descCount(id: string): number {
+    let n = 0;
+    for (const s of this.subtasksOf(id)) n += 1 + this.descCount(s.id);
+    return n;
+  }
+  /** Total subtasks across a column's root tasks — for the group header summary. */
+  subtaskTotal = (tasks: Task[]): number => tasks.reduce((sum, t) => sum + this.descCount(t.id), 0);
+
   // Inline subtask expand/collapse per row.
   readonly expandedRows = signal<Set<string>>(new Set());
   isRowOpen = (id: string): boolean => this.expandedRows().has(id);
@@ -229,6 +238,24 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     this.taskWidths()[rootId]?.[wkey] ?? this.colWidths()[wkey] ?? fallback;
 
   toggleSelectRow(id: string): void { this.selectedRow.update(v => v === id ? null : id); }
+
+  /** Reset column widths. With a task selected → reset just that task's
+   *  overrides. With nothing selected → reset the board default AND every
+   *  task's overrides, so all tasks return to default widths. */
+  resetColumnWidths(): void {
+    const sel = this.selectedRow();
+    if (sel) {
+      this.taskWidths.update(m => { const n = { ...m }; delete n[sel]; return n; });
+      try { localStorage.setItem(this.taskColsKey(), JSON.stringify(this.taskWidths())); } catch { /* ignore */ }
+    } else {
+      this.colWidths.set({});
+      this.taskWidths.set({});
+      try {
+        localStorage.removeItem(this.widthsKey());
+        localStorage.removeItem(this.taskColsKey());
+      } catch { /* ignore */ }
+    }
+  }
 
   /** Columns for a task's block: built-in fields + board-wide custom columns
    *  + (for a specific task) that task's own custom columns. `rootId` null =

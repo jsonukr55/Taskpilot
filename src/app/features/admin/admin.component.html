@@ -3,22 +3,27 @@
   <header class="admin-page__header">
     <div>
       <h1 class="admin-page__title"><tp-icon name="shield" [size]="22" /> Admin</h1>
-      <p class="admin-page__subtitle">Platform administration — organizations and admins.</p>
+      <p class="admin-page__subtitle">
+        @if (auth.isAdmin()) { Platform administration — clients, organizations, and users. }
+        @else { Organization administration — manage the members of organizations you run. }
+      </p>
     </div>
   </header>
 
-  @if (!auth.isAdmin()) {
-    <!-- Non-admins: bootstrap claim / access denied -->
+  @if (!auth.isAdmin() && !canOrgAdmin()) {
+    <!-- No admin rights anywhere: bootstrap claim / access denied -->
     <div class="admin-card card">
       <div class="admin-card__icon"><tp-icon name="shield" [size]="40" /></div>
       <h2>Admin access required</h2>
-      <p>This area is for platform administrators. If you're the account owner setting up
+      <p>This area is for administrators. If you're the account owner setting up
          TaskPilot for the first time, you can claim admin access below.</p>
       <button class="btn-primary" (click)="claimBootstrap()" [disabled]="claiming()">
         {{ claiming() ? 'Checking…' : 'Claim admin access' }}
       </button>
     </div>
-  } @else {
+
+  } @else if (auth.isAdmin()) {
+    <!-- ============ PLATFORM (GLOBAL) ADMIN ============ -->
     <div class="admin-grid">
 
       <!-- Clients / Customers -->
@@ -111,38 +116,186 @@
         }
       </section>
 
-      <!-- Admins -->
+      <!-- Users (scoped to the selected client) -->
+      <section class="admin-card card admin-card--wide">
+        <div class="admin-card__head">
+          <h2><tp-icon name="users" [size]="18" /> Users ({{ scopeUsers().length }})</h2>
+          @if (clients.clients().length > 0) {
+            <div class="admin-tabs">
+              @for (c of clients.clients(); track c.id) {
+                <button class="admin-tab" [class.active]="effectiveClientId() === c.id" (click)="selectClient(c.id)">
+                  <span class="admin-tab__dot" [style.background]="c.color"></span>{{ c.name }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <ng-container *ngTemplateOutlet="usersBody; context: { platform: true }"></ng-container>
+      </section>
+
+      <!-- Tasks overview -->
       <section class="admin-card card">
         <div class="admin-card__head">
-          <h2><tp-icon name="shield" [size]="18" /> Admins</h2>
+          <h2><tp-icon name="check-square" [size]="18" /> Tasks</h2>
         </div>
-        <p class="admin-muted">Promote another user to admin by email, or remove admin access.</p>
-
-        <div class="admin-field">
-          <label class="form-label">Promote to admin</label>
-          <div class="admin-row">
-            <input class="form-input" type="email" placeholder="user@example.com"
-                   [ngModel]="promoteEmail()" (ngModelChange)="promoteEmail.set($event)"
-                   (keydown.enter)="promote()">
-            <button class="btn-primary" (click)="promote()" [disabled]="working() || !promoteEmail().trim()">
-              <tp-icon name="user-plus" [size]="14" /> Promote
-            </button>
+        <div class="admin-stats">
+          <div class="admin-stat"><span class="admin-stat__n">{{ stats().roots }}</span><span class="admin-stat__l">Tasks</span></div>
+          <div class="admin-stat"><span class="admin-stat__n">{{ stats().subs }}</span><span class="admin-stat__l">Subtasks</span></div>
+          <div class="admin-stat"><span class="admin-stat__n">{{ stats().total }}</span><span class="admin-stat__l">Total</span></div>
+        </div>
+        @if (stats().byStage.length) {
+          <div class="admin-chips">
+            @for (s of stats().byStage; track s.label) { <span class="admin-chip">{{ s.label }} · {{ s.n }}</span> }
           </div>
-        </div>
+        }
+      </section>
 
-        <div class="admin-field">
-          <label class="form-label">Remove admin</label>
-          <div class="admin-row">
-            <input class="form-input" type="email" placeholder="user@example.com"
-                   [ngModel]="demoteEmail()" (ngModelChange)="demoteEmail.set($event)"
-                   (keydown.enter)="demote()">
-            <button class="btn-danger" (click)="demote()" [disabled]="working() || !demoteEmail().trim()">
-              <tp-icon name="x" [size]="14" /> Remove
-            </button>
-          </div>
+      <!-- Data footprint -->
+      <section class="admin-card card">
+        <div class="admin-card__head">
+          <h2><tp-icon name="layers" [size]="18" /> Data footprint</h2>
+          <span class="admin-list__tag">{{ totalStorage() }} stored</span>
         </div>
+        <p class="admin-muted">Data held per client across the platform.</p>
+        @if (footprint().length === 0) {
+          <p class="admin-muted">No clients yet.</p>
+        } @else {
+          <ul class="admin-list">
+            @for (f of footprint(); track f.client.id) {
+              <li class="admin-list__row">
+                <span class="admin-list__icon" [style.color]="f.client.color"><tp-icon name="briefcase" [size]="16" /></span>
+                <span class="admin-list__name">{{ f.client.name }}</span>
+                <span class="admin-list__meta">{{ f.orgs }} orgs · {{ f.spaces }} spaces · {{ f.tasks }} tasks · {{ f.storage }}</span>
+              </li>
+            }
+          </ul>
+        }
       </section>
 
     </div>
+
+  } @else {
+    <!-- ============ ORG-SCOPED ADMIN ============ -->
+    <div class="admin-grid">
+      <section class="admin-card card admin-card--wide">
+        <div class="admin-card__head">
+          <h2><tp-icon name="users" [size]="18" /> Members ({{ scopeUsers().length }})</h2>
+          <span class="admin-list__tag">{{ scopeOrgs().length }} {{ scopeOrgs().length === 1 ? 'organization' : 'organizations' }}</span>
+        </div>
+        <p class="admin-muted">Manage the members of the organizations you administer.</p>
+        <ng-container *ngTemplateOutlet="usersBody; context: { platform: false }"></ng-container>
+      </section>
+    </div>
+  }
+
+  <!-- ============ Shared users body (add row + list) ============ -->
+  <ng-template #usersBody let-platform="platform">
+    <!-- Add a user to an org by email -->
+    @if (scopeOrgs().length > 0) {
+      <div class="admin-add">
+        <input class="form-input" type="email" placeholder="Add a user by email…"
+               [ngModel]="addEmail()" (ngModelChange)="addEmail.set($event)" (keydown.enter)="addUser()">
+        <select class="form-input admin-add__org" [ngModel]="addOrgId()" (ngModelChange)="addOrgId.set($event)">
+          @for (o of scopeOrgs(); track o.id) { <option [value]="o.id">{{ o.name }}</option> }
+        </select>
+        <button class="btn-primary" (click)="addUser()" [disabled]="adding() || !addEmail().trim() || !addOrgId()">
+          <tp-icon name="user-plus" [size]="14" /> Add
+        </button>
+      </div>
+    }
+
+    @if (loadingData()) {
+      <p class="admin-muted">Loading…</p>
+    } @else if (scopeOrgs().length === 0) {
+      <p class="admin-muted">No organizations in this scope yet.</p>
+    } @else if (scopeUsers().length === 0) {
+      <p class="admin-muted">No users yet — add one by email above.</p>
+    } @else {
+      <ul class="admin-list">
+        @for (u of scopeUsers(); track u.uid) {
+          <li class="admin-user">
+            <div class="admin-user__row">
+              <span class="avatar avatar--sm">
+                @if (u.photoURL) { <img [src]="u.photoURL" alt=""> } @else { {{ userInitial(u) }} }
+              </span>
+              <div class="admin-user__main">
+                <span class="admin-user__name">
+                  {{ u.displayName }}
+                  @if (platform && u.globalRole === 'admin') { <span class="badge badge--admin">Platform admin</span> }
+                  @if (u.uid === auth.userId()) { <span class="admin-user__you">you</span> }
+                </span>
+                <span class="admin-user__sub">
+                  @if (u.email) { {{ u.email }} · }
+                  @for (m of u.memberships; track m.orgId) {
+                    <span class="admin-user__chip">{{ m.orgName }} · {{ ORG_ROLE_LABELS[m.role] }}</span>
+                  }
+                </span>
+              </div>
+              <button class="btn-ghost btn-sm" (click)="openManage(u.uid)" title="Manage org access">
+                <tp-icon name="grid" [size]="14" /> Access
+              </button>
+              <button class="btn-ghost btn-sm admin-user__menu-btn" (click)="toggleMenu(u.uid)" title="Actions">
+                <tp-icon name="more-horizontal" [size]="16" />
+              </button>
+
+              @if (openMenuUid() === u.uid) {
+                <div class="admin-menu">
+                  @if (platform) {
+                    @if (u.globalRole === 'admin') {
+                      <button class="admin-menu__item admin-danger" (click)="setUserAdmin(u, false)" [disabled]="working() || !u.email">
+                        <tp-icon name="shield" [size]="14" /> Remove platform admin
+                      </button>
+                    } @else {
+                      <button class="admin-menu__item" (click)="setUserAdmin(u, true)" [disabled]="working() || !u.email">
+                        <tp-icon name="shield" [size]="14" /> Make platform admin
+                      </button>
+                    }
+                  }
+                  <button class="admin-menu__item" (click)="openManage(u.uid)">
+                    <tp-icon name="grid" [size]="14" /> Manage org access
+                  </button>
+                  <button class="admin-menu__item admin-danger" (click)="removeFromScope(u)">
+                    <tp-icon name="x" [size]="14" /> Remove from all
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Manage org access panel -->
+            @if (manageUid() === u.uid) {
+              <div class="admin-access">
+                @for (o of scopeOrgs(); track o.id) {
+                  <div class="admin-access__row">
+                    <span class="admin-access__name">
+                      <span class="admin-access__emoji" [style.color]="o.color">{{ o.icon }}</span>{{ o.name }}
+                    </span>
+                    @if (membershipIn(u, o.id); as m) {
+                      @if (o.ownerId === u.uid) {
+                        <span class="admin-list__tag">Owner</span>
+                      } @else {
+                        <select class="form-input admin-access__role" [ngModel]="m.role"
+                                (ngModelChange)="setOrgRole(u, o, $event)">
+                          @for (r of ASSIGNABLE_ORG_ROLES; track r) { <option [value]="r">{{ ORG_ROLE_LABELS[r] }}</option> }
+                        </select>
+                        <button class="btn-ghost btn-sm admin-danger" (click)="toggleOrgAccess(u, o)">Remove</button>
+                      }
+                    } @else {
+                      <button class="btn-ghost btn-sm" (click)="toggleOrgAccess(u, o)" [disabled]="!u.email">
+                        <tp-icon name="plus" [size]="13" /> Add
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </ng-template>
+
+  @if (openMenuUid()) {
+    <div class="admin-menu-overlay" (click)="closeMenus()"></div>
   }
 </div>

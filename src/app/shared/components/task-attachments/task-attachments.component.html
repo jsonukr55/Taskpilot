@@ -1,0 +1,43 @@
+<div class="ta">
+  <h4 class="ta__title">
+    <tp-icon name="upload" [size]="15" /> Files
+    @if (files().length) { <span class="ta__count">{{ files().length }} · {{ fmt(total()) }}</span> }
+  </h4>
+
+  @if (canEdit()) {
+    <label class="ta__drop">
+      <input type="file" multiple hidden (change)="onFiles($any($event.target))">
+      <tp-icon name="upload" [size]="16" /> {{ uploading() ? 'Uploading…' : 'Attach files' }}
+    </label>
+  }
+
+  <div class="ta__list">
+    @for (a of files(); track a.id) {
+      <div class="ta-file">
+        <span class="ta-file__icon"><tp-icon [name]="isImage(a) ? 'image' : 'file-text'" [size]="16" /></span>
+        <button class="ta-file__name" (click)="openPreview(a)">{{ a.name }}</button>
+        <span class="ta-file__size">{{ fmt(a.size) }}</span>
+        <button class="btn-icon" (click)="download(a)" data-tooltip="Open"><tp-icon name="arrow-right" [size]="14" /></button>
+        @if (canEdit()) { <button class="btn-icon" (click)="remove(a)" data-tooltip="Delete"><tp-icon name="x" [size]="14" /></button> }
+      </div>
+    } @empty {
+      <p class="ta__empty">No files yet.</p>
+    }
+  </div>
+</div>
+
+@if (preview(); as p) {
+  <div class="modal-overlay" (click)="preview.set(null)">
+    <div class="ta-preview scale-in" (click)="$event.stopPropagation()">
+      <div class="ta-preview__bar">
+        <span class="ta-preview__name">{{ p.att.name }}</span>
+        <button class="btn-icon" (click)="preview.set(null)"><tp-icon name="x" [size]="18" /></button>
+      </div>
+      @if (isImage(p.att)) {
+        <img class="ta-preview__media" [src]="p.url" [alt]="p.att.name">
+      } @else if (isVideo(p.att)) {
+        <video class="ta-preview__media" [src]="p.url" controls></video>
+      }
+    </div>
+  </div>
+}

@@ -1,287 +1,511 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-.login-page {
+// ============================================================
+// Auth screen — brand panel (lg+) beside the sign-in form.
+// Mobile-first: single column, form in a card; the split layout
+// and the plain (card-less) form only kick in at $bp-lg.
+// ============================================================
+.auth {
   min-height: 100vh;
-  @include flex-center;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
   background: var(--bg-primary);
-  padding: $space-4;
-  position: relative;
-  overflow: hidden;
+  color: var(--text-primary);
+
+  @include lg { grid-template-columns: 1.05fr 1fr; }
 }
 
-// ---- Background Blobs ----
-.login-bg {
+// ---- Brand panel ----
+.auth__brand {
+  // Pointer-driven: --mx/--my = cursor position, --px/--py = -1…1 offset.
+  --mx: 50%;
+  --my: 38%;
+  --px: 0;
+  --py: 0;
+
+  display: none;
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: $space-10;
+  padding: $space-12;
+  color: white;
+  background:
+    radial-gradient(110% 80% at 12% 8%, rgba(255,255,255,0.18), transparent 55%),
+    linear-gradient(160deg, var(--accent-600) 0%, var(--accent-500) 48%, var(--accent-700) 100%);
+
+  @include lg { display: flex; }
+  @include xl { padding: $space-16; }
+}
+
+// Drifting task glyphs (canvas) — painted above the blurred layers.
+.auth__particles {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+// Cursor spotlight — fades in while the pointer is over the panel.
+.auth__spot {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity $transition-slow;
+  background:
+    radial-gradient(360px circle at var(--mx) var(--my), rgba(255,255,255,0.20), transparent 62%),
+    radial-gradient(160px circle at var(--mx) var(--my), rgba(255,255,255,0.16), transparent 60%);
 
-  &__blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.12;
+  .auth__brand.is-tracking & { opacity: 1; }
+}
 
-    &--1 {
-      width: 600px; height: 600px;
-      background: $indigo-500;
-      top: -200px; left: -100px;
-      animation: float 8s ease-in-out infinite;
-    }
+// Slow drifting light wash over the gradient.
+.auth__aurora {
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 28% 30%, rgba(255,255,255,0.30), transparent 62%),
+    radial-gradient(32% 36% at 74% 68%, rgba(255,255,255,0.18), transparent 60%),
+    radial-gradient(28% 30% at 55% 12%, rgba(var(--accent-rgb), 0.55), transparent 65%);
+  filter: blur(40px);
+  animation: auth-aurora 18s ease-in-out infinite;
+  will-change: transform;
+}
 
-    &--2 {
-      width: 500px; height: 500px;
-      background: $violet-500;
-      bottom: -150px; right: -100px;
-      animation: float 10s ease-in-out infinite reverse;
-    }
+// Faint dot grid that drifts diagonally.
+.auth__grid {
+  position: absolute;
+  inset: -40px;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(70% 60% at 30% 40%, #000 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(70% 60% at 30% 40%, #000 0%, transparent 75%);
+  animation: auth-grid 24s linear infinite;
+}
 
-    &--3 {
-      width: 300px; height: 300px;
-      background: $emerald-500;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      animation: float 12s ease-in-out infinite;
-    }
+.auth__orb {
+  position: absolute;
+  border-radius: $radius-full;
+  background: rgba(255,255,255,0.22);
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+
+  &--1 {
+    width: 420px; height: 420px;
+    top: -120px; right: -100px;
+    animation: auth-orb 14s ease-in-out infinite;
+  }
+  &--2 {
+    width: 320px; height: 320px;
+    bottom: -80px; left: -60px;
+    opacity: 0.6;
+    animation: auth-orb 19s ease-in-out infinite reverse;
   }
 }
 
-// ---- Card ----
-.login-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: $radius-2xl;
-  box-shadow: 0 24px 48px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.08);
-  padding: $space-10 $space-8;
-  width: 100%;
-  max-width: 420px;
+.auth__brand-inner {
   position: relative;
   z-index: 1;
-  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: $space-10;
+  max-width: 460px;
+  margin: auto 0;
+
+  // Subtle parallax away from the cursor.
+  transform: translate3d(calc(var(--px) * -10px), calc(var(--py) * -8px), 0);
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  // Staggered entrance for mark → copy → points.
+  > * { animation: auth-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  > *:nth-child(2) { animation-delay: 120ms; }
+  > *:nth-child(3) { animation-delay: 220ms; }
 }
 
-// ---- Logo ----
-.login-logo {
+.auth__headline {
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  letter-spacing: -0.02em;
+
+  @include xl { font-size: $font-size-4xl; }
+}
+
+.auth__lede {
+  margin-top: $space-4;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  color: rgba(255,255,255,0.78);
+}
+
+.auth__points {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.auth__point {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-4;
+  animation: auth-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  &:nth-child(1) { animation-delay: 320ms; }
+  &:nth-child(2) { animation-delay: 420ms; }
+  &:nth-child(3) { animation-delay: 520ms; }
+
+  &:hover .auth__point-icon {
+    background: rgba(255,255,255,0.24);
+    transform: translateY(-2px);
+  }
+}
+
+.auth__point-icon {
   @include flex-center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-lg;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.20);
+  transition: background $transition-normal, transform $transition-normal;
+
+  // Soft halo that breathes, offset per item.
+  tp-icon { animation: auth-pulse 4s ease-in-out infinite; }
+}
+
+.auth__point:nth-child(2) .auth__point-icon tp-icon { animation-delay: 0.6s; }
+.auth__point:nth-child(3) .auth__point-icon tp-icon { animation-delay: 1.2s; }
+
+.auth__point-text { display: flex; flex-direction: column; gap: 2px; }
+
+.auth__point-title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.auth__point-desc {
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: rgba(255,255,255,0.72);
+}
+
+.auth__brand-foot {
+  position: relative;
+  z-index: 1;
+  font-size: $font-size-xs;
+  color: rgba(255,255,255,0.62);
+  animation: auth-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) 620ms both;
+}
+
+// ---- Brand panel motion ----
+@keyframes auth-aurora {
+  0%   { transform: translate3d(-5%, -3%, 0) scale(1.02) rotate(0deg); }
+  33%  { transform: translate3d(4%, 3%, 0)   scale(1.10) rotate(2deg); }
+  66%  { transform: translate3d(3%, -4%, 0)  scale(1.06) rotate(-2deg); }
+  100% { transform: translate3d(-5%, -3%, 0) scale(1.02) rotate(0deg); }
+}
+
+@keyframes auth-grid {
+  from { background-position: 0 0; }
+  to   { background-position: 26px 52px; }
+}
+
+@keyframes auth-orb {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(-26px, 30px, 0) scale(1.10); }
+  66%      { transform: translate3d(22px, -20px, 0) scale(0.94); }
+}
+
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes auth-pulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.12); }
+}
+
+// ---- Wordmark (shared by both panels) ----
+.auth-mark {
+  display: inline-flex;
+  align-items: center;
   gap: $space-3;
-  margin-bottom: $space-8;
 
   &__icon {
     @include flex-center;
-    width: 52px;
-    height: 52px;
-    background: linear-gradient(135deg, $indigo-500, $violet-500);
-    border-radius: $radius-xl;
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-lg;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.24);
+    color: white;
   }
 
   &__name {
-    font-size: $font-size-2xl;
+    font-size: $font-size-xl;
     font-weight: $font-weight-bold;
-    @include gradient-text($indigo-500, $violet-500);
-  }
-}
-
-// ---- Typography ----
-.login-title {
-  font-size: $font-size-2xl;
-  font-weight: $font-weight-bold;
-  color: var(--text-primary);
-  text-align: center;
-  margin-bottom: $space-2;
-}
-
-.login-subtitle {
-  font-size: $font-size-sm;
-  color: var(--text-secondary);
-  text-align: center;
-  margin-bottom: $space-6;
-}
-
-// ---- Error ----
-.login-error {
-  @include flex-start;
-  gap: $space-2;
-  padding: $space-3 $space-4;
-  background: var(--surface-danger);
-  color: $rose-500;
-  border-radius: $radius-lg;
-  font-size: $font-size-sm;
-  margin-bottom: $space-4;
-}
-
-// ---- Google Button ----
-.login-google-btn {
-  @include flex-center;
-  gap: $space-3;
-  width: 100%;
-  padding: $space-4;
-  background: var(--card-bg);
-  border: 1px solid var(--border-default);
-  border-radius: $radius-xl;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all $transition-fast;
-  font-family: $font-sans;
-
-  &:hover:not(:disabled) {
-    background: var(--bg-tertiary);
-    border-color: var(--border-strong);
-    transform: translateY(-1px);
-    box-shadow: $shadow-md;
+    letter-spacing: -0.02em;
   }
 
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+  // Form-side variant: accent tile on the app background.
+  &--accent .auth-mark__icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent-400), var(--accent-600));
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.35);
   }
+  &--accent .auth-mark__name { color: var(--text-primary); }
 }
 
-.login-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-default);
-  border-top-color: $indigo-500;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-// ---- Divider ----
-.login-divider {
-  margin: $space-5 0;
-  text-align: center;
+// ---- Form panel ----
+.auth__panel {
   position: relative;
+  overflow: hidden;
+  @include flex-center;
+  padding: $space-8 $space-4;
+
+  @include md { padding: $space-12 $space-8; }
 
   &::before {
     content: '';
     position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--border-subtle);
-  }
-
-  span {
-    position: relative;
-    background: var(--card-bg);
-    padding: 0 $space-3;
-    font-size: $font-size-xs;
-    color: var(--text-tertiary);
+    width: 420px;
+    height: 420px;
+    top: -160px;
+    right: -140px;
+    border-radius: $radius-full;
+    background: radial-gradient(circle, rgba(var(--accent-rgb), 0.20), transparent 70%);
+    pointer-events: none;
   }
 }
 
-// ---- Tabs ----
-.login-tabs {
+.auth__form {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
   display: flex;
-  gap: $space-1;
-  background: var(--bg-tertiary);
-  border-radius: $radius-xl;
-  padding: $space-1;
-  margin-bottom: $space-5;
+  flex-direction: column;
+  gap: $space-5;
+  padding: $space-8 $space-6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: $radius-2xl;
+  box-shadow: var(--card-shadow-hover);
+
+  // On the split layout the form sits directly on the page.
+  @include lg {
+    max-width: 380px;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
 }
 
-.login-tab {
-  flex: 1;
-  padding: $space-2 $space-3;
-  border: none;
-  border-radius: $radius-lg;
+.auth__form-mark {
+  margin-bottom: $space-1;
+  @include lg { display: none; }
+}
+
+.auth__heading {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  letter-spacing: -0.02em;
+}
+
+.auth__sub {
+  margin-top: $space-2;
   font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
   color: var(--text-secondary);
+}
+
+// ---- Mode switch ----
+.auth__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-1;
+  padding: $space-1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-lg;
+}
+
+.auth__tab {
+  @include btn-base;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
   background: transparent;
-  cursor: pointer;
-  transition: all $transition-fast;
+  color: var(--text-secondary);
+  font-weight: $font-weight-medium;
+
+  &:hover:not(.active) { color: var(--text-primary); }
 
   &.active {
-    background: var(--card-bg);
-    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border-color: var(--border-subtle);
+    color: var(--text-brand);
+    font-weight: $font-weight-semibold;
     box-shadow: $shadow-sm;
   }
 }
 
-// ---- Email Form ----
-.login-form {
+// ---- Error ----
+.auth__error {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  border-radius: $radius-lg;
+  background: var(--surface-danger);
+  border: 1px solid rgba($rose-500, 0.28);
+  color: $rose-500;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+
+  tp-icon { flex-shrink: 0; margin-top: 1px; }
+}
+
+// ---- Google ----
+.auth__google {
+  gap: $space-3;
+  background: var(--bg-secondary);
+  border-color: var(--border-default);
+
+  &:hover:not(:disabled) { background: var(--bg-tertiary); }
+  svg { flex-shrink: 0; }
+}
+
+// ---- "or" divider ----
+.auth__or {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  font-size: $font-size-xs;
+  color: var(--text-tertiary);
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+}
+
+// ---- Fields ----
+.auth__fields {
   display: flex;
   flex-direction: column;
   gap: $space-4;
-  margin-bottom: $space-4;
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: $space-1;
-  }
-
-  .form-label {
-    font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
-    color: var(--text-secondary);
-  }
-
-  .form-input {
-    padding: $space-3 $space-4;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-default);
-    border-radius: $radius-lg;
-    font-size: $font-size-base;
-    color: var(--text-primary);
-    font-family: $font-sans;
-    transition: border-color $transition-fast;
-
-    &:focus {
-      outline: none;
-      border-color: $indigo-500;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-
-    &::placeholder { color: var(--text-tertiary); }
-  }
+  .form-label { margin-bottom: 0; }
 }
 
-// ---- Switch link ----
-.login-switch {
+.auth__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-input { padding-right: $space-12; }
+}
+
+.auth__reveal {
+  position: absolute;
+  right: $space-2;
+  @include flex-center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: $radius-md;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color $transition-fast, background $transition-fast;
+  @include focus-ring;
+
+  &:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+}
+
+.auth__submit { margin-top: $space-1; }
+
+.auth__spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: $radius-full;
+  opacity: 0.75;
+  animation: spin 0.6s linear infinite;
+}
+
+// ---- Footer ----
+.auth__foot {
   text-align: center;
   font-size: $font-size-sm;
   color: var(--text-secondary);
-  margin-bottom: $space-4;
 }
 
-.link-btn {
-  background: none;
-  border: none;
-  color: $indigo-500;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
+.auth__link {
   padding: 0;
-  font-size: inherit;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: $font-weight-semibold;
+  color: var(--text-brand);
+  cursor: pointer;
+  @include focus-ring;
 
   &:hover { text-decoration: underline; }
 }
 
-.login-spinner--sm {
-  width: 14px;
-  height: 14px;
-  border-width: 2px;
-}
-
-// ---- Features ----
-.login-features {
+// ---- Condensed value props (below lg only) ----
+.auth__mini {
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  gap: $space-2;
+  padding-top: $space-5;
+  border-top: 1px solid var(--border-subtle);
 
   li {
-    @include flex-start;
-    gap: $space-3;
-    font-size: $font-size-sm;
-    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: $font-size-xs;
+    color: var(--text-tertiary);
   }
 
-  &__icon {
-    font-size: 1.1rem;
-    flex-shrink: 0;
+  @include lg { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth__orb,
+  .auth__aurora,
+  .auth__grid,
+  .auth__brand-foot,
+  .auth__point,
+  .auth__point-icon tp-icon,
+  .auth__brand-inner > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
+
+  .auth__particles,
+  .auth__spot { display: none; }
+
+  .auth__brand-inner { transform: none; transition: none; }
+  .auth__form { animation: none; }
 }

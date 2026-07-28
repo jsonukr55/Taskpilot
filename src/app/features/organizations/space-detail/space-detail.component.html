@@ -57,12 +57,13 @@
             <button class="grp__toggle" (click)="toggle(col.key)">
               <tp-icon [name]="isCollapsed(col.key) ? 'chevron-right' : 'chevron-down'" [size]="16" />
             </button>
+            <span class="grp__dot"></span>
             @if (col.canManage && col.group) {
-              <input class="grp__name" [value]="col.name" [style.color]="col.color"
+              <input class="grp__name" [value]="col.name"
                      (blur)="renameGroup(col.group, $any($event.target).value)"
                      (keydown.enter)="$any($event.target).blur()">
             } @else {
-              <span class="grp__name-static" [style.color]="col.color">{{ col.name }}</span>
+              <span class="grp__name-static">{{ col.name }}</span>
             }
             <span class="grp__count">
               {{ col.tasks.length }} {{ col.tasks.length === 1 ? 'item' : 'items' }}

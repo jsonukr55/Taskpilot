@@ -53,9 +53,10 @@ input, textarea, select { font-family: inherit; }
 }
 
 // Native <select> — strip the OS control, add a custom chevron, and make the
-// dropdown popup + highlight follow the theme accent. (.filter-pill handles
-// its own arrow, so it's excluded here.)
-select:not(.filter-pill) {
+// dropdown popup + highlight follow the theme accent. (.filter-pill and the
+// board's status/priority .pill draw their own indicator, so both are excluded
+// here — otherwise this rule's chevron background wins over theirs.)
+select:not(.filter-pill):not(.pill) {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;

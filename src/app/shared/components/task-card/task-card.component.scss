@@ -271,29 +271,54 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
 // Monday-style filled pills for status + priority (replaces the
 // faint text label + flag icon). Bold, color-filled, unmistakable.
 // ============================================================
+// Status / priority chips — same quiet treatment as the space board: a colour
+// dot carries the meaning, the label stays neutral. `--pc` is the value's hue.
 .cell-pill {
-  display: flex;
+  --pc: #{$slate-400};
+
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 100%;             // fill the grid column → clean aligned filled cell
-  padding: 5px $space-2;
+  gap: $space-2;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px $space-2;
+  border: 1px solid transparent;
   border-radius: $radius-sm;
   font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
-  color: #fff;
+  font-weight: $font-weight-medium;
+  color: var(--text-secondary);
   text-transform: capitalize;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.01em;
 
-  &--prio-low    { background: #{$sky-500}; }
-  &--prio-medium { background: #{$amber-500}; }
-  &--prio-high   { background: #{$rose-500}; }
-  &--prio-urgent { background: #{$rose-600}; }
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-radius: $radius-full;
+    background: var(--pc);
+  }
 
-  &--status-todo        { background: #{$slate-400}; }
-  &--status-in_progress { background: #{$amber-500}; }
-  &--status-completed   { background: #{$emerald-500}; }
-  &--status-cancelled   { background: #{$slate-500}; }
+  // Priority — dot + muted label, no fill.
+  &--prio-low    { --pc: #{$slate-400}; }
+  &--prio-medium { --pc: #{$amber-500}; }
+  &--prio-high   { --pc: #{$rose-500}; }
+  &--prio-urgent { --pc: #{$rose-600}; }
+
+  // Status — faint tint of its own hue so it reads as the primary state.
+  &--status-todo        { --pc: #{$slate-400}; }
+  &--status-in_progress { --pc: #{$amber-500}; }
+  &--status-completed   { --pc: #{$emerald-500}; }
+  &--status-cancelled   { --pc: #{$slate-500}; }
+
+  &--status-todo,
+  &--status-in_progress,
+  &--status-completed,
+  &--status-cancelled {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--pc) 14%, transparent);
+    border-color: color-mix(in srgb, var(--pc) 26%, transparent);
+  }
 }

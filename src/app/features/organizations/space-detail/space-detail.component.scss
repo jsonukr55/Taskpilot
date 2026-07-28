@@ -10,24 +10,25 @@
     display: flex;
     align-items: center;
     gap: $space-3;
-    margin-bottom: $space-5;
+    margin-bottom: $space-4;
     flex-wrap: wrap;
   }
 
   &__icon {
     @include flex-center;
-    width: 52px;
-    height: 52px;
-    border-radius: $radius-lg;
-    font-size: $font-size-2xl;
+    width: 36px;
+    height: 36px;
+    border-radius: $radius-md;
+    background: var(--bg-tertiary);
+    font-size: $font-size-lg;
     flex-shrink: 0;
   }
 
   &__titles {
     flex: 1;
     min-width: 0;
-    h1 { font-size: $font-size-2xl; font-weight: $font-weight-bold; @include text-truncate; display: flex; align-items: center; gap: $space-2; }
-    p  { color: var(--text-secondary); font-size: $font-size-sm; }
+    h1 { font-size: $font-size-xl; font-weight: $font-weight-semibold; letter-spacing: -0.01em; @include text-truncate; display: flex; align-items: center; gap: $space-2; }
+    p  { color: var(--text-tertiary); font-size: $font-size-xs; }
   }
 
   &__startup { display: inline-flex; color: var(--accent-500); flex-shrink: 0; }
@@ -129,24 +130,23 @@
 .board {
   display: flex;
   flex-direction: column;
-  gap: $space-6;
+  gap: $space-4;
 
   &__bar {
     @include flex-between;
     gap: $space-3;
-    padding-bottom: $space-2;
     border-bottom: 1px solid var(--border-subtle);
   }
   &__views { display: flex; gap: $space-1; }
-  &__bar-actions { display: flex; align-items: center; gap: $space-2; }
+  &__bar-actions { display: flex; align-items: center; gap: $space-2; padding-bottom: $space-2; }
 
   &__empty {
     text-align: center;
-    padding: $space-12 $space-6;
+    padding: $space-8 $space-6;
     display: flex; flex-direction: column; align-items: center; gap: $space-2;
-    &-icon { font-size: 2.5rem; margin-bottom: $space-1; }
-    h3 { font-size: $font-size-lg; font-weight: $font-weight-semibold; }
-    p  { color: var(--text-secondary); max-width: 420px; }
+    &-icon { color: var(--text-tertiary); margin-bottom: $space-1; }
+    h3 { font-size: $font-size-base; font-weight: $font-weight-semibold; }
+    p  { color: var(--text-secondary); font-size: $font-size-sm; max-width: 420px; }
     .btn-primary { margin-top: $space-3; }
   }
 }
@@ -162,7 +162,9 @@
   border: 0;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  &--active { color: var(--text-brand); border-bottom-color: var(--accent-500); }
+  transition: color $transition-fast;
+  &:hover { color: var(--text-primary); }
+  &--active { color: var(--text-primary); font-weight: $font-weight-semibold; border-bottom-color: var(--accent-500); }
 }
 
 // ---- Group (section) ----
@@ -172,20 +174,27 @@
   &__head {
     @include flex-start;
     gap: $space-2;
-    padding: $space-1 0 $space-2;
+    padding: 0 0 $space-2;
   }
   &__toggle {
     @include flex-center;
-    width: 22px; height: 22px;
+    width: 20px; height: 20px;
     background: transparent; border: 0; cursor: pointer;
-    color: var(--gc);
+    color: var(--text-tertiary);
     border-radius: $radius-sm;
-    &:hover { background: var(--bg-tertiary); }
+    &:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  }
+  // The section's colour reads as a small marker, not as coloured text.
+  &__dot {
+    width: 8px; height: 8px;
+    border-radius: $radius-full;
+    background: var(--gc);
+    flex-shrink: 0;
   }
   &__name, &__name-static {
-    font-size: $font-size-base;
-    font-weight: $font-weight-bold;
-    color: var(--gc);
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: var(--text-primary);
   }
   &__name {
     background: transparent;
@@ -198,10 +207,10 @@
   }
   &__count {
     font-size: $font-size-xs;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
     background: var(--bg-tertiary);
-    border-radius: $radius-full;
-    padding: 2px $space-3;
+    border-radius: $radius-sm;
+    padding: 1px $space-2;
   }
   &__count-sub { color: var(--text-tertiary); }
   &__del { margin-left: $space-1; opacity: 0; transition: opacity $transition-fast; }
@@ -210,9 +219,10 @@
 
 // ---- Table ----
 .tblwrap {
-  overflow-x: auto;                 // never break the page layout on narrow screens
-  border-left: 3px solid var(--gc); // group colour bar
-  border-radius: 0 $radius-lg $radius-lg 0;
+  overflow-x: auto;                    // never break the page layout on narrow screens
+  border: 1px solid var(--card-border);
+  border-left: 2px solid var(--gc);    // group colour bar
+  border-radius: $radius-md;
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
@@ -234,7 +244,12 @@
     &--head {
       background: var(--bg-secondary);
       position: sticky; top: 0;
-      .c { font-size: $font-size-xs; font-weight: $font-weight-semibold; color: var(--text-tertiary); text-transform: none; }
+      .c {
+        min-height: 32px;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-semibold;
+        color: var(--text-tertiary);
+      }
     }
     &--add { .addrow { grid-column: 1 / -1; } }
   }
@@ -244,7 +259,7 @@
   display: flex;
   align-items: center;
   padding: 0 $space-3;
-  min-height: 46px;
+  min-height: 38px;
   border-right: 1px solid var(--border-subtle);
   font-size: $font-size-sm;
   color: var(--text-primary);
@@ -252,9 +267,9 @@
 
   &:last-child { border-right: 0; }
   &--task { font-weight: $font-weight-medium; }
-  &--status, &--prio { padding: $space-1; }
+  &--status, &--prio { padding: 0 $space-2; }
   &--date { color: var(--text-secondary); font-size: $font-size-xs; }
-  &--people { gap: -6px; }
+  &--people { gap: 0; }   // avatars overlap via their own negative margin
   &--empty { grid-column: 1 / -1; color: var(--text-tertiary); justify-content: center; }
 }
 
@@ -298,7 +313,7 @@
 
 // ---- Subtasks as a simple inset block (indented, no rails/curves) ----
 .subtable {
-  margin: 4px 0 8px 22px;               // inset from the parent; nesting compounds
+  margin: $space-1 0 $space-2 $space-6;  // inset from the parent; nesting compounds
   border: 1px solid var(--border-subtle);
   border-radius: $radius-md;
   overflow: hidden;
@@ -328,48 +343,75 @@
   &:hover { color: var(--text-brand); }
 }
 
-// ---- Status / priority pills (fill the cell, Monday-style) ----
+// ---- Status / priority chips ----
+// Enterprise-quiet: a neutral label with a small colour dot carrying the
+// meaning, instead of a saturated block of colour filling the cell. `--pc`
+// is the per-value hue; status gets a faint tint, priority stays bare so the
+// two columns read as different weights of information.
+// (main.scss excludes .pill from its native-select chevron rule.)
 .pill {
-  width: 100%;
-  height: 34px;
-  border: 0;
-  border-radius: $radius-md;
-  color: #fff;
+  --pc: #{$slate-400};
+
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 $space-2 0 $space-5;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  color: var(--text-primary);
   font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-medium;
   font-family: $font-sans;
-  text-align: center;
-  text-align-last: center;
+  text-align: left;
+  text-align-last: left;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  transition: filter $transition-fast;
-  &:hover { filter: brightness(1.05); }
-  &:focus { outline: 2px solid var(--accent-500); outline-offset: 1px; }
-  &--static { display: flex; align-items: center; justify-content: center; }
+  // Dot is painted as a background so it also works on <select>.
+  background-color: var(--bg-tertiary);
+  background-image: radial-gradient(circle at 9px 50%, var(--pc) 3px, transparent 3.5px);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 100% 100%;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  &:hover { border-color: var(--border-default); }
+  &:focus { outline: none; border-color: var(--input-focus); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
 
   option { color: var(--text-primary); background: var(--bg-elevated); }
 
-  // Status colors
-  // Workflow stage colors (the board Status column)
-  &[data-stage='created']       { background: #{$slate-400}; }
-  &[data-stage='in_discussion'] { background: #{$sky-500}; }
-  &[data-stage='development']   { background: #{$amber-500}; }
-  &[data-stage='done']          { background: #{$emerald-500}; }
-  &[data-stage='released']      { background: #{$violet-500}; }
-  &[data-stage='production']    { background: #{$emerald-600}; }
+  // Status — faint tint of its own hue.
+  &[data-stage] {
+    background-color: color-mix(in srgb, var(--pc) 14%, transparent);
+    border-color: color-mix(in srgb, var(--pc) 26%, transparent);
+    &:hover { background-color: color-mix(in srgb, var(--pc) 20%, transparent); }
+  }
+  &[data-stage='created']       { --pc: #{$slate-400}; }
+  &[data-stage='in_discussion'] { --pc: #{$sky-500}; }
+  &[data-stage='development']   { --pc: #{$amber-500}; }
+  &[data-stage='done']          { --pc: #{$emerald-500}; }
+  &[data-stage='released']      { --pc: #{$violet-500}; }
+  &[data-stage='production']    { --pc: #{$emerald-600}; }
 
-  // Priority colors
-  &[data-prio='low']    { background: #{$sky-500}; }
-  &[data-prio='medium'] { background: #{$amber-500}; }
-  &[data-prio='high']   { background: #{$rose-500}; }
-  &[data-prio='urgent'] { background: #{$rose-600}; }
+  // Priority — dot + muted label, no fill.
+  &[data-prio] {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--text-secondary);
+    &:hover { background-color: var(--bg-tertiary); }
+  }
+  &[data-prio='low']    { --pc: #{$slate-400}; }
+  &[data-prio='medium'] { --pc: #{$amber-500}; }
+  &[data-prio='high']   { --pc: #{$rose-500}; }
+  &[data-prio='urgent'] { --pc: #{$rose-600}; }
 }
 
 // ---- Assignee avatars ----
 .ava2 {
   @include flex-center;
-  width: 28px; height: 28px;
+  width: 24px; height: 24px;
   border-radius: $radius-full;
   background: var(--surface-brand);
   color: var(--text-brand);
@@ -396,7 +438,7 @@
 
 .addrow {
   width: 100%;
-  min-height: 42px;
+  min-height: 34px;
   padding: 0 $space-3;
   background: transparent;
   border: 0;

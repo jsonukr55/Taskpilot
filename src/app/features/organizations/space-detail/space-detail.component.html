@@ -140,6 +140,9 @@
     <ng-template #childRows let-parentId="parentId" let-depth="depth" let-rootId="rootId">
       @if (isRowOpen(parentId)) {
         <div class="tbl__row tbl__row--sublabel" [style.--ind.px]="depth * 18">
+          <svg class="subcx" viewBox="0 0 42 40" preserveAspectRatio="none" aria-hidden="true">
+            <line x1="2" y1="14" x2="2" y2="40" />
+          </svg>
           <span class="sublabel" [style.padding-left.px]="depth * 18 + 34">Subitem</span>
         </div>
         @for (s of subtasksOf(parentId); track s.id) {
@@ -151,6 +154,10 @@
         @if (canEdit()) {
           <div class="tbl__row tbl__row--subadd" [style.grid-template-columns]="gridTemplateForTask(rootId)">
             <div class="c c--task c--task-sub c--task-sub-last" [style.--ind.px]="depth * 18" [style.padding-left.px]="depth * 18 + 22">
+              <svg class="subcx" viewBox="0 0 42 46" preserveAspectRatio="none" aria-hidden="true">
+                <line x1="2" y1="0" x2="2" y2="24" />
+                <path d="M2 12 Q2 24 18 24" />
+              </svg>
               <input #si class="addrow addrow--sub" placeholder="+ Add subtask" (keydown.enter)="addSubtaskInline(parentId, si)">
             </div>
           </div>
@@ -163,6 +170,12 @@
     <ng-template #cells let-t let-depth="depth" let-drag="drag" let-rootId="rootId">
         <!-- Task (pinned, frozen) -->
         <div class="c c--task" [class.c--task-sub]="!drag" [style.--ind.px]="depth * 18" [style.padding-left.px]="depth * 18 + (drag ? 0 : 22)">
+          @if (!drag) {
+            <svg class="subcx" viewBox="0 0 42 46" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="2" y1="0" x2="2" y2="46" />
+              <path d="M2 12 Q2 24 18 24" />
+            </svg>
+          }
           @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
           <button class="tw-expand" [class.tw-expand--on]="isRowOpen(t.id)" (click)="toggleRow(t.id)"
                   [attr.data-tooltip]="childCountOf(t.id) ? childCountOf(t.id) + ' subtasks' : 'Subtasks'">

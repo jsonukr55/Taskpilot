@@ -310,38 +310,28 @@
 // by each nested cell's full-height segment; the last row (+ Add) caps it.
 // Trunk sits just inside the group's outer rail (so they read as one bar);
 // big sweeping curved branches hook into each subtask row.
-// Continuous trunk drawn as a background-gradient line on each nested cell
-// (guaranteed to stack seamlessly with no gaps); a small curve branches to
-// each row. Uses the group colour.
-.c--task-sub {
-  background-image: linear-gradient(var(--gc, var(--border-strong)), var(--gc, var(--border-strong)));
-  background-repeat: no-repeat;
-  background-position: calc(var(--ind, 0px) - 14px) 0;
-  background-size: 3px 100%;
-
-  &::after {                              // curved branch (╰) off the trunk
-    content: '';
-    position: absolute;
-    left: calc(var(--ind, 0px) - 14px);
-    top: calc(50% - 12px); height: 12px; width: 18px;
-    border-left: 3px solid var(--gc, var(--border-strong));
-    border-bottom: 3px solid var(--gc, var(--border-strong));
-    border-bottom-left-radius: 12px;
-  }
+// Subtask connector drawn with SVG (immune to grid/overflow/sticky-bg quirks):
+// a continuous vertical trunk + a clean rounded branch into each row. One SVG
+// per nested cell, sized to the cell, stacks seamlessly into one bracket.
+.subcx {
+  position: absolute;
+  left: calc(var(--ind, 0px) - 14px);
+  top: 0; width: 42px; height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
-// The "+ Add subtask" row caps the trunk at its own branch (no overrun).
-.c--task-sub-last { background-size: 3px 50%; }
+.subcx line, .subcx path {
+  stroke: var(--gc, var(--border-strong));
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+}
 
-// "Subitem" label — the trunk starts here (mid-label down), continuing into rows.
 .tbl__row--sublabel {
   display: block;
   position: relative;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
-  background-image: linear-gradient(var(--gc, var(--border-strong)), var(--gc, var(--border-strong)));
-  background-repeat: no-repeat;
-  background-position: calc(var(--ind, 0px) - 14px) 100%;
-  background-size: 3px 55%;
 }
 .sublabel {
   display: inline-block;

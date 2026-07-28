@@ -77,9 +77,14 @@ $nav-indent: $space-4;
   }
 
   // ---- Nav ----
+  // Takes the leftover height and scrolls on its own, so a long org tree
+  // never pushes the footer off the bottom (the sidebar clips overflow).
   &__nav {
     padding: $space-3 $space-3;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    @include custom-scrollbar;
   }
 
   &__nav-list {
@@ -333,8 +338,11 @@ $nav-indent: $space-4;
 
   // ---- Footer ----
   &__footer {
-    padding: $space-4 $space-3;
+    margin-top: auto;          // pinned to the bottom of the sidebar
+    flex-shrink: 0;
+    padding: $space-3;
     border-top: 1px solid var(--border-subtle);
+    background: var(--sidebar-bg);
     display: flex;
     align-items: center;
     gap: $space-2;

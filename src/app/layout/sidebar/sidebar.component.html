@@ -80,6 +80,7 @@
           @for (o of orgs.organizations(); track o.id) {
             <li class="sidebar__nav-item">
               <a [routerLink]="['/organizations', o.id]" routerLinkActive="active"
+                 [routerLinkActiveOptions]="{ exact: true }" [class.in-path]="isOrgInPath(o.id)"
                  class="sidebar__nav-link sidebar__nav-link--org">
                 <span class="sidebar__org-emoji" [style.color]="o.color">{{ o.icon }}</span>
                 <span class="sidebar__nav-label">{{ o.name }}</span>

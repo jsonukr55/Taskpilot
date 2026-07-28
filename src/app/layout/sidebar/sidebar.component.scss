@@ -1,6 +1,9 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
+/** Indent added per nesting level in the org tree (org → space). */
+$nav-indent: $space-4;
+
 .sidebar {
   position: fixed;
   left: 0;
@@ -114,24 +117,11 @@
 
   &__nav-list--nested { padding-left: $space-2; margin-bottom: $space-1; }
 
-  // Organization rows nested under the "Organizations" link
-  &__nav-link--org {
-    padding-left: $space-6;
-    font-size: $font-size-sm;
-    color: var(--text-secondary);
-  }
   &__org-emoji {
     width: 18px;
     text-align: center;
     font-size: $font-size-sm;
     flex-shrink: 0;
-  }
-
-  // Spaces nested one level under their organization
-  &__nav-link--space {
-    padding-left: $space-8;
-    font-size: $font-size-sm;
-    color: var(--text-secondary);
   }
 
   &__nav-divider {
@@ -159,9 +149,44 @@
       color: var(--text-primary);
     }
 
+    // "You are here" — a quiet tint plus an accent marker, so a deep tree
+    // doesn't turn into a stack of solid colour blocks.
     &.active {
-      background: var(--surface-brand);
-      color: var(--text-brand);
+      background: color-mix(in srgb, var(--accent-500) 10%, transparent);
+      color: var(--text-primary);
+      font-weight: $font-weight-semibold;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 18px;
+        border-radius: $radius-full;
+        background: var(--accent-500);
+      }
+
+      tp-icon { color: var(--accent-500); }
+    }
+
+    // An ancestor of the open page (e.g. the org whose space you're in):
+    // no fill, just a brighter label and a shorter, dimmer marker.
+    &.in-path:not(.active) {
+      color: var(--text-primary);
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 10px;
+        border-radius: $radius-full;
+        background: color-mix(in srgb, var(--accent-500) 45%, transparent);
+      }
     }
 
     &--soon {
@@ -171,6 +196,19 @@
       &:hover { background: transparent; color: var(--text-tertiary); }
       tp-icon { opacity: 0.7; }
     }
+
+    // ---- Hierarchy: organization › space ----
+    // Indent with margin, not padding, so the row's highlight pill steps in
+    // with the level instead of staying full-width. (Keep these inside the
+    // base rule — as standalone `&__nav-link--org` blocks they would lose to
+    // the base `padding` shorthand declared here.)
+    &--org,
+    &--space {
+      font-size: $font-size-sm;
+      color: var(--text-secondary);
+    }
+    &--org   { margin-left: $nav-indent; }        // one level in
+    &--space { margin-left: $nav-indent * 2; }    // two levels in
 
     tp-icon { flex-shrink: 0; }
   }

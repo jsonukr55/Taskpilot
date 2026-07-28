@@ -1,6 +1,7 @@
 import { Component, input, output, inject, computed, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '@core/services/auth.service';
 import { TaskService } from '@core/services/task.service';
 import { OrganizationService } from '@core/services/organization.service';
@@ -36,6 +37,23 @@ export class SidebarComponent {
   readonly spaces     = inject(SpaceService);
   readonly theme      = inject(ThemeService);
   readonly release    = inject(ReleaseNotesService);
+  private  readonly router = inject(Router);
+
+  /** Current URL, so nav rows can tell "this IS the open page" (solid highlight)
+   *  from "this is an ancestor of it" (quiet marker). Without this, opening a
+   *  space lights up its organization too. */
+  private readonly currentUrl = signal(this.router.url);
+
+  constructor() {
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(e => this.currentUrl.set((e as NavigationEnd).urlAfterRedirects));
+  }
+
+  /** True when the open page lives inside this organization (but isn't it). */
+  isOrgInPath = (orgId: string): boolean => {
+    const url = this.currentUrl().split('?')[0];
+    return url.startsWith(`/organizations/${orgId}/`);
+  };
 
   // Personal view — the individual's own productivity space.
   readonly personalNav: NavItem[] = [

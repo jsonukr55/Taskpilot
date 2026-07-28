@@ -196,6 +196,7 @@ select:not(.filter-pill) {
 
   &-sm { padding: $space-2 $space-4; font-size: $font-size-xs; border-radius: $radius-md; }
   &-lg { padding: $space-3 $space-6; font-size: $font-size-base; border-radius: $radius-xl; }
+  &-block { display: flex; width: 100%; }
   &-icon {
     @include btn-base;
     @include flex-center;

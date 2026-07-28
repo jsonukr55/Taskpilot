@@ -23,6 +23,7 @@ import {
   matSubdirectoryArrowLeft, matAlternateEmail, matPerson, matCropSquare,
   matUndo, matRedo, matStar, matBookmark, matWork, matShield, matMail,
   matAutoAwesome, matDragIndicator, matNotificationsNone,
+  matVisibility, matVisibilityOff,
 } from '@ng-icons/material-icons/baseline';
 
 /** camelCase key (== toPropertyName of the template name) → Material SVG. */
@@ -93,4 +94,6 @@ export const APP_ICONS: Record<string, string> = {
   shield:          matShield,
   mail:            matMail,
   drag:            matDragIndicator,
+  eye:             matVisibility,
+  eyeOff:          matVisibilityOff,
 };

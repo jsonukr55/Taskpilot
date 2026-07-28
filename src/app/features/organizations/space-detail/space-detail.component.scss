@@ -211,7 +211,7 @@
 // ---- Table ----
 .tblwrap {
   overflow-x: auto;                 // never break the page layout on narrow screens
-  border-left: 3px solid var(--gc); // Monday's colored group bar
+  border-left: 3px solid var(--gc); // group colour bar
   border-radius: 0 $radius-lg $radius-lg 0;
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
@@ -296,11 +296,10 @@
 .tbl__row--head.tbl__row--editing { outline: 1px dashed var(--accent-500); outline-offset: -1px; }
 .addrow--sub { font-size: $font-size-xs; color: var(--text-tertiary); }
 
-// ---- Subtasks as a real inset sub-table (Monday sub-board) ----
+// ---- Subtasks as a simple inset block (indented, no rails/curves) ----
 .subtable {
-  margin: 6px 0 8px 22px;               // inset from the parent; nesting compounds
+  margin: 4px 0 8px 22px;               // inset from the parent; nesting compounds
   border: 1px solid var(--border-subtle);
-  border-left: 4px solid var(--gc, var(--accent-500));   // the coloured rail
   border-radius: $radius-md;
   overflow: hidden;
   min-width: max-content;
@@ -311,25 +310,10 @@
     align-items: stretch;
     border-bottom: 1px solid var(--border-subtle);
     &:last-child { border-bottom: 0; }
-    &:not(.subtable__head):not(.subtable__add):hover { background: var(--bg-tertiary); }
+    &:not(.subtable__add):hover { background: var(--bg-tertiary); }
   }
-  &__head .c {
-    font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
-    color: var(--text-tertiary);
-  }
-  // The task cell isn't sticky inside the inset table (it scrolls with it).
+  // The task cell isn't sticky inside the inset block (it scrolls with it).
   .c--task { position: static; background: transparent; }
-
-  // ├ tick branch from the rail to each subtask row.
-  &__row { position: relative; }
-  &__row:not(.subtable__add)::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 50%;
-    width: 14px; height: 2px;
-    background: var(--gc, var(--accent-500));
-  }
 }
 
 .tname {

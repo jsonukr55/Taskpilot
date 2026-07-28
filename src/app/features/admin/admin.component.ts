@@ -157,30 +157,41 @@ export class AdminComponent {
     }));
   });
 
+  private loaded = false;
+
   constructor() {
-    // Load platform data once the user is (or becomes) a global admin.
-    effect(() => { if (this.auth.isAdmin()) this.loadData(); });
+    // Load platform data once the user is (or becomes) platform staff.
+    // allowSignalWrites: loadData writes signals; `loaded` guards against the
+    // reload loop (the effect also tracks loadingData via loadData's guard read).
+    effect(() => {
+      if (this.auth.isAdmin() && !this.loaded) {
+        this.loaded = true;
+        void this.loadData();
+      }
+    }, { allowSignalWrites: true });
     // Keep the "add to org" selector pointed at a valid scope org.
     effect(() => {
       const orgs = this.scopeOrgs();
       const cur = this.addOrgId();
       if (!orgs.some(o => o.id === cur)) this.addOrgId.set(orgs[0]?.id ?? null);
-    });
+    }, { allowSignalWrites: true });
   }
 
+  /** Load platform data. Each read is independent (allSettled) so one failing
+   *  query (e.g. attachments) never blanks the others (e.g. users → emails). */
   private async loadData(): Promise<void> {
     if (this.loadingData()) return;
     this.loadingData.set(true);
-    try {
-      const [users, tasks, spaces, attachments] = await Promise.all([
-        this.admin.allUsers(), this.admin.allTasks(), this.admin.allSpaces(), this.admin.allAttachments(),
-      ]);
-      this.users.set(users); this.tasks.set(tasks); this.spaces.set(spaces); this.attachments.set(attachments);
-    } catch (e: any) {
-      this.toast.error(this.msg(e) || 'Could not load platform data');
-    } finally {
-      this.loadingData.set(false);
-    }
+    const [users, tasks, spaces, attachments] = await Promise.allSettled([
+      this.admin.allUsers(), this.admin.allTasks(), this.admin.allSpaces(), this.admin.allAttachments(),
+    ]);
+    if (users.status === 'fulfilled')       this.users.set(users.value);
+    if (tasks.status === 'fulfilled')       this.tasks.set(tasks.value);
+    if (spaces.status === 'fulfilled')      this.spaces.set(spaces.value);
+    if (attachments.status === 'fulfilled') this.attachments.set(attachments.value);
+    const failed = [users, tasks, spaces, attachments].find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+    if (failed) this.toast.error(this.msg(failed.reason) || 'Some platform data could not be loaded');
+    this.loadingData.set(false);
   }
 
   // ---- User list interactions ----

@@ -3,7 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
-import { AdminService, AdminUser, TaskLite, SpaceLite } from '@core/services/admin.service';
+import { AdminService, AdminUser, TaskLite, SpaceLite, GlobalRole } from '@core/services/admin.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { ClientService } from '@core/services/client.service';
 import { ToastService } from '@core/services/toast.service';
@@ -23,7 +23,7 @@ export interface ScopeUser {
   displayName: string;
   photoURL: string | null;
   email: string;
-  globalRole: 'admin' | null;
+  globalRole: GlobalRole;
   memberships: { orgId: string; orgName: string; role: OrgRole }[];
 }
 
@@ -157,30 +157,41 @@ export class AdminComponent {
     }));
   });
 
+  private loaded = false;
+
   constructor() {
-    // Load platform data once the user is (or becomes) a global admin.
-    effect(() => { if (this.auth.isAdmin()) this.loadData(); });
+    // Load platform data once the user is (or becomes) platform staff.
+    // allowSignalWrites: loadData writes signals; `loaded` guards against the
+    // reload loop (the effect also tracks loadingData via loadData's guard read).
+    effect(() => {
+      if (this.auth.isAdmin() && !this.loaded) {
+        this.loaded = true;
+        void this.loadData();
+      }
+    }, { allowSignalWrites: true });
     // Keep the "add to org" selector pointed at a valid scope org.
     effect(() => {
       const orgs = this.scopeOrgs();
       const cur = this.addOrgId();
       if (!orgs.some(o => o.id === cur)) this.addOrgId.set(orgs[0]?.id ?? null);
-    });
+    }, { allowSignalWrites: true });
   }
 
+  /** Load platform data. Each read is independent (allSettled) so one failing
+   *  query (e.g. attachments) never blanks the others (e.g. users → emails). */
   private async loadData(): Promise<void> {
     if (this.loadingData()) return;
     this.loadingData.set(true);
-    try {
-      const [users, tasks, spaces, attachments] = await Promise.all([
-        this.admin.allUsers(), this.admin.allTasks(), this.admin.allSpaces(), this.admin.allAttachments(),
-      ]);
-      this.users.set(users); this.tasks.set(tasks); this.spaces.set(spaces); this.attachments.set(attachments);
-    } catch (e: any) {
-      this.toast.error(this.msg(e) || 'Could not load platform data');
-    } finally {
-      this.loadingData.set(false);
-    }
+    const [users, tasks, spaces, attachments] = await Promise.allSettled([
+      this.admin.allUsers(), this.admin.allTasks(), this.admin.allSpaces(), this.admin.allAttachments(),
+    ]);
+    if (users.status === 'fulfilled')       this.users.set(users.value);
+    if (tasks.status === 'fulfilled')       this.tasks.set(tasks.value);
+    if (spaces.status === 'fulfilled')      this.spaces.set(spaces.value);
+    if (attachments.status === 'fulfilled') this.attachments.set(attachments.value);
+    const failed = [users, tasks, spaces, attachments].find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+    if (failed) this.toast.error(this.msg(failed.reason) || 'Some platform data could not be loaded');
+    this.loadingData.set(false);
   }
 
   // ---- User list interactions ----
@@ -260,16 +271,40 @@ export class AdminComponent {
     }
   }
 
-  async setUserAdmin(u: ScopeUser, makeAdmin: boolean): Promise<void> {
+  /** Human label for a platform role. */
+  platformRoleLabel(role: GlobalRole): string {
+    return role === 'admin' ? 'Owner' : role === 'superglobal' ? 'Superglobal' : 'No platform role';
+  }
+
+  /** Can the current viewer change this user's platform role?
+   *  Owners can act on anyone; Superglobals can't touch an Owner. */
+  canActOnRole(u: ScopeUser): boolean {
+    return this.auth.isOwner() || u.globalRole !== 'admin';
+  }
+
+  /** Platform-role choices the viewer may assign to this user (minus the current). */
+  roleChoices(u: ScopeUser): { label: string; role: GlobalRole }[] {
+    const choices: { label: string; role: GlobalRole }[] = [];
+    if (this.auth.isOwner()) choices.push({ label: 'Make Owner', role: 'admin' });
+    choices.push({ label: 'Make Superglobal', role: 'superglobal' });
+    choices.push({ label: 'Remove platform role', role: null });
+    return choices.filter(c => c.role !== u.globalRole);
+  }
+
+  async setUserRole(u: ScopeUser, role: GlobalRole): Promise<void> {
     this.closeMenus();
-    if (!u.email) { this.toast.error('This user has no email on file.'); return; }
-    if (!makeAdmin && !(await this.dialog.confirm({ title: 'Remove admin', message: `Remove platform-admin access from ${u.email}?`, confirmText: 'Remove', danger: true }))) return;
+    if (role === null && !(await this.dialog.confirm({
+      title: 'Remove platform role',
+      message: `Remove platform access from ${u.displayName}?`, confirmText: 'Remove', danger: true,
+    }))) return;
     this.working.set(true);
     try {
-      await this.admin.setGlobalRole(u.email, makeAdmin ? 'admin' : null);
-      this.users.update(list => list.map(x => x.id === u.uid ? { ...x, globalRole: makeAdmin ? 'admin' : null } : x));
+      await this.admin.setGlobalRole({ uid: u.uid, email: u.email || undefined }, role);
+      this.users.update(list => list.map(x => x.id === u.uid ? { ...x, globalRole: role } : x));
       if (u.uid === this.auth.userId()) await this.auth.reloadProfile();
-      this.toast.success(makeAdmin ? `${u.email} is now a platform admin` : `${u.email} is no longer a platform admin`);
+      this.toast.success(role === null
+        ? `${u.email} no longer has platform access`
+        : `${u.email} is now ${this.platformRoleLabel(role)}`);
     } catch (e: any) {
       this.toast.error(this.msg(e) || 'Could not update the role');
     } finally {

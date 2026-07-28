@@ -5,8 +5,9 @@ import { environment } from '@env/environment';
 import { AuthService } from './auth.service';
 import { SupabaseService } from './supabase.service';
 
+export type GlobalRole = 'admin' | 'superglobal' | null;
 export interface AdminUser {
-  id: string; email: string; displayName: string; photoURL: string | null; globalRole: 'admin' | null;
+  id: string; email: string; displayName: string; photoURL: string | null; globalRole: GlobalRole;
 }
 export interface TaskLite {
   id: string; title: string; status: string; stage: string; parentId: string | null;
@@ -62,21 +63,22 @@ export class AdminService {
     return (data ?? []).map((r: any) => ({ clientId: r.client_id ?? null, size: Number(r.size ?? 0) }));
   }
 
-  /** Promote (role='admin') or demote (role=null) a user by email. */
-  async setGlobalRole(email: string, role: 'admin' | null): Promise<{ uid: string; email: string; role: 'admin' | null }> {
+  /** Set a user's platform role: 'admin' (Owner), 'superglobal', or null.
+   *  Target by uid (preferred — no dependency on the profiles list) or email. */
+  async setGlobalRole(target: { uid?: string; email?: string }, role: GlobalRole): Promise<{ uid: string; email: string; role: GlobalRole }> {
     const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
-    return firstValueFrom(this.http.post<{ uid: string; email: string; role: 'admin' | null }>(
+    return firstValueFrom(this.http.post<{ uid: string; email: string; role: GlobalRole }>(
       `${environment.functionsBaseUrl}/setGlobalRole`,
-      { email: email.trim(), role },
+      { uid: target.uid, email: target.email?.trim(), role },
       { headers: { Authorization: `Bearer ${idToken}` } }
     ));
   }
 
   /** Self-promote the first admin (only works for a bootstrap email). */
-  async claimBootstrapAdmin(): Promise<{ uid: string; email: string; role: 'admin' | null }> {
+  async claimBootstrapAdmin(): Promise<{ uid: string; email: string; role: GlobalRole }> {
     const email = this.auth.currentUser()?.email;
     if (!email) throw new Error('Not authenticated');
-    return this.setGlobalRole(email, 'admin');
+    return this.setGlobalRole({ email }, 'admin');
   }
 }

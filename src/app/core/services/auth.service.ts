@@ -25,7 +25,17 @@ export class AuthService {
     this.userProfile()?.displayName || metaName(this.currentUser()) || '');
   readonly photoURL        = computed(() =>
     this.userProfile()?.photoURL ?? metaPhoto(this.currentUser()));
-  readonly isAdmin         = computed(() => this.userProfile()?.globalRole === 'admin');
+  // Platform roles: 'admin' = Owner (top), 'superglobal' = below Owner.
+  /** Platform staff — Owner OR Superglobal. Gates the admin panel and all the
+   *  broad platform capabilities (both tiers have them). */
+  readonly isAdmin         = computed(() => {
+    const r = this.userProfile()?.globalRole;
+    return r === 'admin' || r === 'superglobal';
+  });
+  /** Owner (top tier) — the only role that can manage clients + grant Owner. */
+  readonly isOwner         = computed(() => this.userProfile()?.globalRole === 'admin');
+  /** Superglobal — below Owner. */
+  readonly isSuperglobal   = computed(() => this.userProfile()?.globalRole === 'superglobal');
 
   // Resolves after the first auth-state resolution (guards await this).
   private _resolveInit!: () => void;

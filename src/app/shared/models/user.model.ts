@@ -49,10 +49,12 @@ export interface UserProfile {
   displayName: string;
   photoURL?:   string | null;
 
-  /** Platform-level role. Absent/undefined = regular user. Only 'admin'
-   *  grants access to the admin panel (create orgs, promote admins).
-   *  Written server-side (Cloud Function) — never from the client. */
-  globalRole?: 'admin';
+  /** Platform-level role. Absent/undefined = regular user.
+   *   • 'admin'       = Owner (top tier; can manage clients + grant Owner)
+   *   • 'superglobal' = below Owner; all platform access except client CRUD
+   *                     and granting/modifying Owners.
+   *  Both grant the admin panel. Written server-side — never from the client. */
+  globalRole?: 'admin' | 'superglobal';
 
   preferences: UserPreferences;
   stats:       UserStats;

@@ -296,9 +296,9 @@
 .tbl__row--head.tbl__row--editing { outline: 1px dashed var(--accent-500); outline-offset: -1px; }
 .tbl__row--sub {
   background: var(--bg-secondary);
-  .c--task { background: var(--bg-secondary); }
+  .c--task { background-color: var(--bg-secondary); }
   &:hover { background: var(--bg-tertiary); }
-  &:hover .c--task { background: var(--bg-tertiary); }
+  &:hover .c--task { background-color: var(--bg-tertiary); }
 }
 .tbl__row--subadd .addrow--sub {
   font-size: $font-size-xs;
@@ -310,41 +310,38 @@
 // by each nested cell's full-height segment; the last row (+ Add) caps it.
 // Trunk sits just inside the group's outer rail (so they read as one bar);
 // big sweeping curved branches hook into each subtask row.
+// Continuous trunk drawn as a background-gradient line on each nested cell
+// (guaranteed to stack seamlessly with no gaps); a small curve branches to
+// each row. Uses the group colour.
 .c--task-sub {
-  &::before {                              // trunk segment (rows stack into one bar)
+  background-image: linear-gradient(var(--gc, var(--border-strong)), var(--gc, var(--border-strong)));
+  background-repeat: no-repeat;
+  background-position: calc(var(--ind, 0px) - 14px) 0;
+  background-size: 3px 100%;
+
+  &::after {                              // curved branch (╰) off the trunk
     content: '';
     position: absolute;
     left: calc(var(--ind, 0px) - 14px);
-    top: 0; bottom: 0; width: 3px;
-    background: var(--gc, var(--border-strong));
-  }
-  &::after {                              // big curved branch (╰) into this row
-    content: '';
-    position: absolute;
-    left: calc(var(--ind, 0px) - 14px);
-    top: 0; height: 62%; width: 20px;
+    top: calc(50% - 12px); height: 12px; width: 18px;
     border-left: 3px solid var(--gc, var(--border-strong));
     border-bottom: 3px solid var(--gc, var(--border-strong));
-    border-bottom-left-radius: 16px;
+    border-bottom-left-radius: 12px;
   }
 }
-// The "+ Add subtask" row caps the trunk: only draw down to its branch, not past.
-.c--task-sub-last::before { bottom: 50%; }
+// The "+ Add subtask" row caps the trunk at its own branch (no overrun).
+.c--task-sub-last { background-size: 3px 50%; }
 
-// "Subitem" section label + the rounded TOP of the bracket (curves from parent)
+// "Subitem" label — the trunk starts here (mid-label down), continuing into rows.
 .tbl__row--sublabel {
   display: block;
   position: relative;
-  background: var(--bg-secondary);
+  background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
-
-  &::before {                            // trunk through the label
-    content: '';
-    position: absolute;
-    left: calc(var(--ind, 0px) - 14px);
-    top: 40%; bottom: 0; width: 3px;
-    background: var(--gc, var(--border-strong));
-  }
+  background-image: linear-gradient(var(--gc, var(--border-strong)), var(--gc, var(--border-strong)));
+  background-repeat: no-repeat;
+  background-position: calc(var(--ind, 0px) - 14px) 100%;
+  background-size: 3px 55%;
 }
 .sublabel {
   display: inline-block;
@@ -579,9 +576,9 @@
   position: sticky;
   left: 0;
   z-index: 2;
-  background: var(--card-bg);
+  background-color: var(--card-bg);
 }
-.tbl__row:hover .c--task { background: var(--bg-tertiary); }
+.tbl__row:hover .c--task { background-color: var(--bg-tertiary); }
 .tbl__row--head .c--head-cell:first-child {
   position: sticky;
   left: 0;

@@ -3,7 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
-import { AdminService, AdminUser, TaskLite, SpaceLite } from '@core/services/admin.service';
+import { AdminService, AdminUser, TaskLite, SpaceLite, GlobalRole } from '@core/services/admin.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { ClientService } from '@core/services/client.service';
 import { ToastService } from '@core/services/toast.service';
@@ -23,7 +23,7 @@ export interface ScopeUser {
   displayName: string;
   photoURL: string | null;
   email: string;
-  globalRole: 'admin' | null;
+  globalRole: GlobalRole;
   memberships: { orgId: string; orgName: string; role: OrgRole }[];
 }
 
@@ -260,16 +260,41 @@ export class AdminComponent {
     }
   }
 
-  async setUserAdmin(u: ScopeUser, makeAdmin: boolean): Promise<void> {
+  /** Human label for a platform role. */
+  platformRoleLabel(role: GlobalRole): string {
+    return role === 'admin' ? 'Owner' : role === 'superglobal' ? 'Superglobal' : 'No platform role';
+  }
+
+  /** Can the current viewer change this user's platform role?
+   *  Owners can act on anyone; Superglobals can't touch an Owner. */
+  canActOnRole(u: ScopeUser): boolean {
+    return this.auth.isOwner() || u.globalRole !== 'admin';
+  }
+
+  /** Platform-role choices the viewer may assign to this user (minus the current). */
+  roleChoices(u: ScopeUser): { label: string; role: GlobalRole }[] {
+    const choices: { label: string; role: GlobalRole }[] = [];
+    if (this.auth.isOwner()) choices.push({ label: 'Make Owner', role: 'admin' });
+    choices.push({ label: 'Make Superglobal', role: 'superglobal' });
+    choices.push({ label: 'Remove platform role', role: null });
+    return choices.filter(c => c.role !== u.globalRole);
+  }
+
+  async setUserRole(u: ScopeUser, role: GlobalRole): Promise<void> {
     this.closeMenus();
     if (!u.email) { this.toast.error('This user has no email on file.'); return; }
-    if (!makeAdmin && !(await this.dialog.confirm({ title: 'Remove admin', message: `Remove platform-admin access from ${u.email}?`, confirmText: 'Remove', danger: true }))) return;
+    if (role === null && !(await this.dialog.confirm({
+      title: 'Remove platform role',
+      message: `Remove platform access from ${u.email}?`, confirmText: 'Remove', danger: true,
+    }))) return;
     this.working.set(true);
     try {
-      await this.admin.setGlobalRole(u.email, makeAdmin ? 'admin' : null);
-      this.users.update(list => list.map(x => x.id === u.uid ? { ...x, globalRole: makeAdmin ? 'admin' : null } : x));
+      await this.admin.setGlobalRole(u.email, role);
+      this.users.update(list => list.map(x => x.id === u.uid ? { ...x, globalRole: role } : x));
       if (u.uid === this.auth.userId()) await this.auth.reloadProfile();
-      this.toast.success(makeAdmin ? `${u.email} is now a platform admin` : `${u.email} is no longer a platform admin`);
+      this.toast.success(role === null
+        ? `${u.email} no longer has platform access`
+        : `${u.email} is now ${this.platformRoleLabel(role)}`);
     } catch (e: any) {
       this.toast.error(this.msg(e) || 'Could not update the role');
     } finally {

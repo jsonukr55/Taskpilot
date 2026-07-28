@@ -30,9 +30,11 @@
       <section class="admin-card card">
         <div class="admin-card__head">
           <h2><tp-icon name="users" [size]="18" /> Clients</h2>
-          <button class="btn-primary btn-sm" (click)="startCreateClient()">
-            <tp-icon name="plus" [size]="14" /> New client
-          </button>
+          @if (auth.isOwner()) {
+            <button class="btn-primary btn-sm" (click)="startCreateClient()">
+              <tp-icon name="plus" [size]="14" /> New client
+            </button>
+          }
         </div>
         <p class="admin-muted">Top-level customers. Every organization belongs to a client.</p>
 
@@ -81,9 +83,11 @@
                    title="New organization in this client">
                   <tp-icon name="plus" [size]="14" />
                 </a>
-                <button class="btn-ghost btn-sm admin-danger" (click)="deleteClient(c)" title="Delete client">
-                  <tp-icon name="trash-2" [size]="14" />
-                </button>
+                @if (auth.isOwner()) {
+                  <button class="btn-ghost btn-sm admin-danger" (click)="deleteClient(c)" title="Delete client">
+                    <tp-icon name="trash-2" [size]="14" />
+                  </button>
+                }
               </li>
             }
           </ul>
@@ -222,7 +226,8 @@
               <div class="admin-user__main">
                 <span class="admin-user__name">
                   {{ u.displayName }}
-                  @if (platform && u.globalRole === 'admin') { <span class="badge badge--admin">Platform admin</span> }
+                  @if (platform && u.globalRole === 'admin') { <span class="badge badge--admin">Owner</span> }
+                  @else if (platform && u.globalRole === 'superglobal') { <span class="badge badge--super">Superglobal</span> }
                   @if (u.uid === auth.userId()) { <span class="admin-user__you">you</span> }
                 </span>
                 <span class="admin-user__sub">
@@ -241,14 +246,11 @@
 
               @if (openMenuUid() === u.uid) {
                 <div class="admin-menu">
-                  @if (platform) {
-                    @if (u.globalRole === 'admin') {
-                      <button class="admin-menu__item admin-danger" (click)="setUserAdmin(u, false)" [disabled]="working() || !u.email">
-                        <tp-icon name="shield" [size]="14" /> Remove platform admin
-                      </button>
-                    } @else {
-                      <button class="admin-menu__item" (click)="setUserAdmin(u, true)" [disabled]="working() || !u.email">
-                        <tp-icon name="shield" [size]="14" /> Make platform admin
+                  @if (platform && canActOnRole(u)) {
+                    @for (c of roleChoices(u); track c.label) {
+                      <button class="admin-menu__item" [class.admin-danger]="c.role === null"
+                              (click)="setUserRole(u, c.role)" [disabled]="working() || !u.email">
+                        <tp-icon name="shield" [size]="14" /> {{ c.label }}
                       </button>
                     }
                   }

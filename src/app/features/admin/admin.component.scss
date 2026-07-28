@@ -151,11 +151,13 @@
 .admin-user__you { font-size: $font-size-xs; color: var(--text-brand); }
 .admin-user__menu-btn { flex-shrink: 0; }
 
-.badge--admin {
+.badge--admin,
+.badge--super {
   font-size: $font-size-xs; font-weight: $font-weight-medium;
-  color: #fff; background: var(--accent-500);
-  padding: 0 $space-2; border-radius: $radius-full;
+  color: #fff; padding: 0 $space-2; border-radius: $radius-full;
 }
+.badge--admin { background: var(--accent-500); }
+.badge--super { background: #0ea5e9; }
 
 // Row action menu
 .admin-menu-overlay { position: fixed; inset: 0; z-index: 40; }

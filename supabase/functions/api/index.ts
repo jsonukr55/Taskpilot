@@ -163,27 +163,43 @@ async function addOrgMember(user: { id: string }, body: any): Promise<Response> 
   return json({ uid: target.id, displayName: target.display_name ?? 'Member', alreadyMember });
 }
 
-// ---- setGlobalRole (bootstrap email or existing admin) ---------------
+// ---- setGlobalRole (bootstrap email, Owner, or Superglobal) ----------
+// Platform tiers: 'admin' = Owner (top), 'superglobal' = below Owner, null = none.
+//   • Owner can set any role (incl. Owner) on anyone.
+//   • Superglobal can set 'superglobal' or null, but CANNOT grant Owner and
+//     CANNOT modify an existing Owner.
 async function setGlobalRole(user: { id: string; email?: string }, body: any): Promise<Response> {
   const email = (body?.email ?? '').trim();
-  const role: 'admin' | null = body?.role === 'admin' ? 'admin' : null;
+  const role: 'admin' | 'superglobal' | null =
+    body?.role === 'admin' ? 'admin' : body?.role === 'superglobal' ? 'superglobal' : null;
   if (!email) return json({ error: 'email required' }, 400);
 
   const callerEmail = (user.email ?? '').toLowerCase();
   const bootstrap = BOOTSTRAP_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(callerEmail);
+
+  let callerRole: string | null = null;
   if (!bootstrap) {
     const { data: caller } = await admin.from('profiles').select('global_role').eq('id', user.id).maybeSingle();
-    if (caller?.global_role !== 'admin') return json({ error: 'Only an admin can change roles.' }, 403);
+    callerRole = caller?.global_role ?? null;
+    if (callerRole !== 'admin' && callerRole !== 'superglobal') {
+      return json({ error: 'Only a platform admin can change roles.' }, 403);
+    }
   }
+  const callerIsOwner = bootstrap || callerRole === 'admin';
 
   const { data: target } = await admin.from('profiles').select('id, global_role').ilike('email', email).maybeSingle();
   if (!target) return json({ error: 'No account found for that email.' }, 404);
 
-  if (role === null) {
+  // Superglobal restrictions: no granting Owner, no touching Owners.
+  if (!callerIsOwner) {
+    if (role === 'admin')                return json({ error: 'Only an Owner can grant Owner access.' }, 403);
+    if (target.global_role === 'admin')  return json({ error: 'Only an Owner can change an Owner.' }, 403);
+  }
+
+  // Protect the last Owner (demoting the sole Owner to anything non-Owner).
+  if (target.global_role === 'admin' && role !== 'admin') {
     const { count } = await admin.from('profiles').select('*', { count: 'exact', head: true }).eq('global_role', 'admin');
-    if ((count ?? 0) <= 1 && target.global_role === 'admin') {
-      return json({ error: "Can't remove the last admin." }, 409);
-    }
+    if ((count ?? 0) <= 1) return json({ error: "Can't remove the last Owner." }, 409);
   }
 
   // service_role satisfies the guard_global_role trigger.

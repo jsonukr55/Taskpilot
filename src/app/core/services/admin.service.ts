@@ -63,13 +63,14 @@ export class AdminService {
     return (data ?? []).map((r: any) => ({ clientId: r.client_id ?? null, size: Number(r.size ?? 0) }));
   }
 
-  /** Set a user's platform role: 'admin' (Owner), 'superglobal', or null. */
-  async setGlobalRole(email: string, role: GlobalRole): Promise<{ uid: string; email: string; role: GlobalRole }> {
+  /** Set a user's platform role: 'admin' (Owner), 'superglobal', or null.
+   *  Target by uid (preferred — no dependency on the profiles list) or email. */
+  async setGlobalRole(target: { uid?: string; email?: string }, role: GlobalRole): Promise<{ uid: string; email: string; role: GlobalRole }> {
     const idToken = await this.auth.getAccessToken();
     if (!idToken) throw new Error('Not authenticated');
     return firstValueFrom(this.http.post<{ uid: string; email: string; role: GlobalRole }>(
       `${environment.functionsBaseUrl}/setGlobalRole`,
-      { email: email.trim(), role },
+      { uid: target.uid, email: target.email?.trim(), role },
       { headers: { Authorization: `Bearer ${idToken}` } }
     ));
   }
@@ -78,6 +79,6 @@ export class AdminService {
   async claimBootstrapAdmin(): Promise<{ uid: string; email: string; role: GlobalRole }> {
     const email = this.auth.currentUser()?.email;
     if (!email) throw new Error('Not authenticated');
-    return this.setGlobalRole(email, 'admin');
+    return this.setGlobalRole({ email }, 'admin');
   }
 }

@@ -169,10 +169,11 @@ async function addOrgMember(user: { id: string }, body: any): Promise<Response> 
 //   • Superglobal can set 'superglobal' or null, but CANNOT grant Owner and
 //     CANNOT modify an existing Owner.
 async function setGlobalRole(user: { id: string; email?: string }, body: any): Promise<Response> {
+  const targetUid = (body?.uid ?? '').trim();
   const email = (body?.email ?? '').trim();
   const role: 'admin' | 'superglobal' | null =
     body?.role === 'admin' ? 'admin' : body?.role === 'superglobal' ? 'superglobal' : null;
-  if (!email) return json({ error: 'email required' }, 400);
+  if (!targetUid && !email) return json({ error: 'uid or email required' }, 400);
 
   const callerEmail = (user.email ?? '').toLowerCase();
   const bootstrap = BOOTSTRAP_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(callerEmail);
@@ -187,8 +188,12 @@ async function setGlobalRole(user: { id: string; email?: string }, body: any): P
   }
   const callerIsOwner = bootstrap || callerRole === 'admin';
 
-  const { data: target } = await admin.from('profiles').select('id, global_role').ilike('email', email).maybeSingle();
-  if (!target) return json({ error: 'No account found for that email.' }, 404);
+  // Resolve target by uid (preferred) or email.
+  const targetQuery = admin.from('profiles').select('id, global_role, email');
+  const { data: target } = targetUid
+    ? await targetQuery.eq('id', targetUid).maybeSingle()
+    : await targetQuery.ilike('email', email).maybeSingle();
+  if (!target) return json({ error: 'No account found.' }, 404);
 
   // Superglobal restrictions: no granting Owner, no touching Owners.
   if (!callerIsOwner) {
@@ -205,7 +210,7 @@ async function setGlobalRole(user: { id: string; email?: string }, body: any): P
   // service_role satisfies the guard_global_role trigger.
   const { error } = await admin.from('profiles').update({ global_role: role }).eq('id', target.id);
   if (error) return json({ error: error.message }, 500);
-  return json({ uid: target.id, email, role });
+  return json({ uid: target.id, email: target.email ?? email, role });
 }
 
 // ---- Router ----------------------------------------------------------

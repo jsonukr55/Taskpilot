@@ -249,7 +249,7 @@
                   @if (platform && canActOnRole(u)) {
                     @for (c of roleChoices(u); track c.label) {
                       <button class="admin-menu__item" [class.admin-danger]="c.role === null"
-                              (click)="setUserRole(u, c.role)" [disabled]="working() || !u.email">
+                              (click)="setUserRole(u, c.role)" [disabled]="working()">
                         <tp-icon name="shield" [size]="14" /> {{ c.label }}
                       </button>
                     }

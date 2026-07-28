@@ -293,14 +293,13 @@ export class AdminComponent {
 
   async setUserRole(u: ScopeUser, role: GlobalRole): Promise<void> {
     this.closeMenus();
-    if (!u.email) { this.toast.error('This user has no email on file.'); return; }
     if (role === null && !(await this.dialog.confirm({
       title: 'Remove platform role',
-      message: `Remove platform access from ${u.email}?`, confirmText: 'Remove', danger: true,
+      message: `Remove platform access from ${u.displayName}?`, confirmText: 'Remove', danger: true,
     }))) return;
     this.working.set(true);
     try {
-      await this.admin.setGlobalRole(u.email, role);
+      await this.admin.setGlobalRole({ uid: u.uid, email: u.email || undefined }, role);
       this.users.update(list => list.map(x => x.id === u.uid ? { ...x, globalRole: role } : x));
       if (u.uid === this.auth.userId()) await this.auth.reloadProfile();
       this.toast.success(role === null

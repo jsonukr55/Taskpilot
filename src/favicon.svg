@@ -1,5 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#6366f1"/>
-  <path d="M16 7 7 11.5l9 4.5 9-4.5L16 7zM7 20l9 4.5 9-4.5M7 15.5l9 4.5 9-4.5"
-        fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- TaskPilot mark — keep in sync with tp-brand-mark
+       (src/app/shared/components/brand-mark/brand-mark.component.ts). -->
+  <rect x="45" y="6"  width="10" height="36" rx="2.5" fill="#2b7cc4"/>
+  <rect x="32" y="19" width="10" height="23" rx="2.5" fill="#2b7cc4"/>
+  <rect x="19" y="26" width="10" height="16" rx="2.5" fill="#2b7cc4"/>
+  <rect x="32" y="6"  width="10" height="10" rx="2.5" fill="#2b3190"/>
+  <rect x="58" y="45" width="36" height="10" rx="2.5" fill="#f0592b"/>
+  <rect x="58" y="32" width="23" height="10" rx="2.5" fill="#f0592b"/>
+  <rect x="58" y="19" width="16" height="10" rx="2.5" fill="#f0592b"/>
+  <rect x="84" y="32" width="10" height="10" rx="2.5" fill="#e8412b"/>
+  <rect x="45" y="58" width="10" height="36" rx="2.5" fill="#2b7cc4"/>
+  <rect x="58" y="58" width="10" height="23" rx="2.5" fill="#3fa535"/>
+  <rect x="71" y="58" width="10" height="16" rx="2.5" fill="#3fa535"/>
+  <rect x="58" y="84" width="10" height="10" rx="2.5" fill="#3fa535"/>
+  <rect x="6"  y="45" width="36" height="10" rx="2.5" fill="#7b2d8e"/>
+  <rect x="19" y="58" width="23" height="10" rx="2.5" fill="#7b2d8e"/>
+  <rect x="26" y="71" width="16" height="10" rx="2.5" fill="#7b2d8e"/>
+  <rect x="6"  y="58" width="10" height="10" rx="2.5" fill="#7b2d8e"/>
 </svg>

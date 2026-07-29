@@ -53,15 +53,13 @@ $nav-indent: $space-4;
     overflow: hidden;
   }
 
+  // The mark carries its own colour, so it sits on the bare sidebar
+  // rather than an accent tile that would fight with it.
   &__logo-icon {
     @include flex-center;
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, var(--accent-500), #{$violet-500});
-    border-radius: $radius-lg;
-    color: white;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);
   }
 
   &__logo-text {

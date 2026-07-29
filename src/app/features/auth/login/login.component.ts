@@ -5,6 +5,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { BrandMarkComponent } from '@shared/components/brand-mark/brand-mark.component';
 import { startBrandMotion } from './brand-motion';
 
 type AuthTab = 'login' | 'register';
@@ -18,7 +19,7 @@ interface AuthPoint {
 @Component({
   selector:    'tp-login',
   standalone:  true,
-  imports:     [FormsModule, IconComponent],
+  imports:     [FormsModule, IconComponent, BrandMarkComponent],
   templateUrl: './login.component.html',
   styleUrl:    './login.component.scss'
 })

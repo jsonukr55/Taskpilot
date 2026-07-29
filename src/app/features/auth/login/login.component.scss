@@ -257,13 +257,13 @@
     letter-spacing: -0.02em;
   }
 
-  // Form-side variant: accent tile on the app background.
+  // Form-side variant: the mark sits bare on the app background, since it
+  // brings its own colour and an accent tile would fight with it.
   &--accent .auth-mark__icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--accent-400), var(--accent-600));
+    background: none;
     border-color: transparent;
-    box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.35);
   }
   &--accent .auth-mark__name { color: var(--text-primary); }
 }

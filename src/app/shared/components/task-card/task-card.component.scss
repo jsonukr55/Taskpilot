@@ -113,16 +113,33 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
     min-width: 0;
   }
 
-  &__subcount {
+  // Subtask completion — a bar carries "how far along" far faster than a count
+  &__progress {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: $space-2;
     flex-shrink: 0;
-    font-size: $font-size-xs;
-    color: var(--text-tertiary);
-    padding: 1px 6px;
+  }
+  &__progress-bar {
+    width: 46px;
+    height: 4px;
     border-radius: $radius-full;
     background: var(--bg-tertiary);
+    overflow: hidden;
+  }
+  &__progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: $radius-full;
+    background: var(--accent-500);
+    transition: width $transition-normal;
+
+    &.full { background: $emerald-500; }
+  }
+  &__progress-text {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
   }
 
   &__add-sub {

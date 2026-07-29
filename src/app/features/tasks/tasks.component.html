@@ -43,10 +43,15 @@
       <span class="stat__value">{{ stats().doneWeek }}</span>
       <span class="stat__label"><tp-icon name="check-circle" [size]="12" /> Done this week</span>
     </button>
-    <div class="stat stat--rate">
+    <div class="stat stat--rate" data-tooltip="Done · In progress · To do">
       <span class="stat__value">{{ stats().rate }}%</span>
       <span class="stat__label">Completion</span>
-      <span class="stat__bar"><span class="stat__fill" [style.width.%]="stats().rate"></span></span>
+      <!-- Workload mix: how the backlog actually splits, not just one number -->
+      <span class="stat__bar">
+        <span class="stat__seg stat__seg--done" [style.width.%]="stats().mix.done"></span>
+        <span class="stat__seg stat__seg--progress" [style.width.%]="stats().mix.progress"></span>
+        <span class="stat__seg stat__seg--todo" [style.width.%]="stats().mix.todo"></span>
+      </span>
     </div>
   </div>
 

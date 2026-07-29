@@ -91,14 +91,26 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly stats = computed(() => {
     const all = this.taskService.tasks().filter(t => !t.parentId);
     const weekAgo = Date.now() - 7 * 86_400_000;
+
+    const todo       = all.filter(t => t.status === 'todo').length;
+    const inProgress = all.filter(t => t.status === 'in_progress').length;
+    const done       = all.filter(t => t.status === 'completed').length;
+    const live       = todo + inProgress + done || 1;   // ignore cancelled; never divide by 0
+
     return {
-      open:       all.filter(t => t.status !== 'completed' && t.status !== 'cancelled').length,
-      inProgress: all.filter(t => t.status === 'in_progress').length,
+      open:       todo + inProgress,
+      inProgress,
       dueToday:   this.taskService.todayTasks().length,
       overdue:    this.taskService.overdueTasks().length,
       doneWeek:   all.filter(t =>
                     t.status === 'completed' && t.completedAt && t.completedAt.toMillis() >= weekAgo).length,
       rate:       this.taskService.completionRate(),
+      // Segment widths for the workload bar.
+      mix: {
+        done:     Math.round((done / live) * 100),
+        progress: Math.round((inProgress / live) * 100),
+        todo:     Math.round((todo / live) * 100),
+      },
     };
   });
 

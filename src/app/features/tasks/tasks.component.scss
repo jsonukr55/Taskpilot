@@ -113,19 +113,21 @@
   }
 
   &__bar {
+    display: flex;
     width: 100%;
-    height: 3px;
+    height: 6px;
     margin-top: $space-2;
     border-radius: $radius-full;
     background: var(--bg-tertiary);
     overflow: hidden;
   }
-  &__fill {
-    display: block;
+  &__seg {
     height: 100%;
-    border-radius: $radius-full;
-    background: $emerald-500;
     transition: width $transition-slow;
+
+    &--done     { background: $emerald-500; }
+    &--progress { background: $amber-500; }
+    &--todo     { background: var(--border-strong); }
   }
 }
 

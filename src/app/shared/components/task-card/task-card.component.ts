@@ -42,6 +42,14 @@ export class TaskCardComponent {
 
   readonly subtaskCount = computed(() => this.taskService.getSubtasks(this.task().id).length);
 
+  /** Subtask completion, so a parent row shows progress rather than a raw count. */
+  readonly subtaskProgress = computed(() => {
+    const subs = this.taskService.getSubtasks(this.task().id);
+    if (!subs.length) return null;
+    const done = subs.filter(s => s.status === 'completed').length;
+    return { done, total: subs.length, pct: Math.round((done / subs.length) * 100) };
+  });
+
   /** Owning group, so a mixed list shows which group each task came from.
    *  Personal tasks have none — absence of the tag is the signal. */
   readonly group = computed(() => {

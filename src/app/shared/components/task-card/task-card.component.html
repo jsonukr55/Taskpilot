@@ -32,8 +32,13 @@
       </span>
     }
 
-    @if (subtaskCount() > 0) {
-      <span class="task-row__subcount" title="Subtasks"><tp-icon name="list" [size]="11" /> {{ subtaskCount() }}</span>
+    @if (subtaskProgress(); as p) {
+      <span class="task-row__progress" [attr.data-tooltip]="p.done + ' of ' + p.total + ' subtasks done'">
+        <span class="task-row__progress-bar">
+          <span class="task-row__progress-fill" [class.full]="p.pct === 100" [style.width.%]="p.pct"></span>
+        </span>
+        <span class="task-row__progress-text">{{ p.done }}/{{ p.total }}</span>
+      </span>
     }
 
     <!-- Assignee avatars ARE the trigger — click to open the picker -->

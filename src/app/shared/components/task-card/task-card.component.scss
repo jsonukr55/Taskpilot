@@ -142,6 +142,9 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
     font-variant-numeric: tabular-nums;
   }
 
+  // Add-subtask affordance. It reveals on row hover, but at tertiary-on-
+  // elevated it was invisible even when shown — so it now carries a border
+  // and a secondary glyph, and turns accent on its own hover.
   &__add-sub {
     position: absolute;
     right: $space-3;
@@ -150,20 +153,33 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
     @include flex-center;
     width: 26px;
     height: 26px;
-    border: none;
+    border: 1px solid var(--border-default);
     border-radius: $radius-md;
     background: var(--bg-elevated);
     box-shadow: var(--card-shadow);
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
-    transition: opacity $transition-fast;
+    transition: opacity $transition-fast, color $transition-fast,
+                background $transition-fast, border-color $transition-fast;
     z-index: 2;
 
-    &:hover { color: var(--text-brand); }
+    &:hover {
+      background: var(--surface-brand);
+      border-color: var(--border-brand);
+      color: var(--text-brand);
+    }
+
+    // Reachable by keyboard, not only by pointer.
+    &:focus-visible { opacity: 1; outline: 2px solid var(--accent-500); outline-offset: 1px; }
   }
 
   &:hover &__add-sub { opacity: 1; }
+
+  // No hover on touch, so a hover-only control would never be discoverable.
+  @media (hover: none) {
+    &__add-sub { opacity: 0.7; }
+  }
 
   // Assignee control — avatars (or an add button) that open the picker.
   // `margin-left: auto` right-aligns it to the end of the name column so the

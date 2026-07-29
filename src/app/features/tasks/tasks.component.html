@@ -59,8 +59,9 @@
   <div class="tasks-toolbar">
   <div class="smart-filters">
     @for (qf of smart.quickFilters(); track qf.id) {
-      <button class="filter-pill" [class.active]="smart.isActive(qf)" (click)="applyPreset(qf)">
-        <tp-icon [name]="qf.icon || 'filter'" [size]="12" /> {{ qf.label }}
+      <button class="filter-pill" [attr.data-preset]="qf.id"
+              [class.active]="smart.isActive(qf)" (click)="applyPreset(qf)">
+        <tp-icon [name]="qf.icon || 'filter'" [size]="13" /> {{ qf.label }}
       </button>
     }
 

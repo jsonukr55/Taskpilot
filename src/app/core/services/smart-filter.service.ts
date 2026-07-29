@@ -2,6 +2,7 @@ import { Injectable, inject, computed, signal, effect, Signal } from '@angular/c
 import { TaskService, TaskFilter, TaskSortOption } from './task.service';
 import { AuthService } from './auth.service';
 import { CategoryService } from './category.service';
+import { GroupService } from './group.service';
 import { FilterPreset } from '@shared/models/filter-preset.model';
 import { nanoid } from '@shared/utils/id.util';
 
@@ -30,6 +31,7 @@ export class SmartFilterService {
   private readonly tasks      = inject(TaskService);
   private readonly auth       = inject(AuthService);
   private readonly categories = inject(CategoryService);
+  private readonly groups     = inject(GroupService);
 
   readonly saved  = signal<FilterPreset[]>([]);
   readonly recent = signal<FilterPreset[]>([]);
@@ -144,8 +146,13 @@ export class SmartFilterService {
     if (known) return;
     if (this.recent().some(p => this.signature(p.filter, p.sort, p.search) === signature)) return;
 
+    // A view we can't name is a chip the user can't tell apart — skip it.
+    const label = this.describe(filter, search);
+    if (!label) return;
+    if (this.recent().some(p => p.label === label)) return;
+
     const preset: FilterPreset = {
-      id: nanoid(10), label: this.describe(filter, search), icon: 'clock', kind: 'recent',
+      id: nanoid(10), label, icon: 'clock', kind: 'recent',
       filter, sort, search,
     };
     this.recent.update(list => [preset, ...list].slice(0, RECENT_LIMIT));
@@ -210,7 +217,14 @@ export class SmartFilterService {
       parts.push(filter.categoryIds.map(id => this.categories.getCategoryById(id)?.name ?? 'Category').join('/'));
     }
     if (filter.assigneeId)        parts.push(filter.assigneeId === this.auth.userId() ? 'Mine' : 'Assigned');
-    return parts.join(' · ') || 'All tasks';
+    if (filter.groupId) {
+      parts.push(filter.groupId === 'none'
+        ? 'Personal'
+        : this.groups.getGroupById(filter.groupId)?.name ?? 'Group');
+    }
+    // Empty means "nothing worth naming" — the caller drops it rather than
+    // recording another indistinguishable "All tasks" chip.
+    return parts.join(' · ');
   }
 }
 

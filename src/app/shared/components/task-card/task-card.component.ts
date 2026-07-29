@@ -6,11 +6,12 @@ import { TaskService } from '@core/services/task.service';
 import { GroupService } from '@core/services/group.service';
 import { AssignablePerson } from '@shared/models/group.model';
 import { IconComponent } from '../icon/icon.component';
+import { SelectComponent, SelectOption } from '../select/select.component';
 
 @Component({
   selector:   'tp-task-card',
   standalone: true,
-  imports:    [IconComponent],
+  imports:    [IconComponent, SelectComponent],
   templateUrl: './task-card.component.html',
   styleUrl:    './task-card.component.scss'
 })
@@ -61,6 +62,14 @@ export class TaskCardComponent {
     return t.dueDate.toDate() < new Date();
   });
 
+  /** Due today or tomorrow (and not done) — warrants a warning colour. */
+  readonly isDueSoon = computed(() => {
+    const t = this.task();
+    if (!t.dueDate || t.status === 'completed' || this.isOverdue()) return false;
+    const days = Math.ceil((t.dueDate.toDate().getTime() - Date.now()) / 86_400_000);
+    return days <= 1;
+  });
+
   readonly dueDateLabel = computed(() => {
     const t = this.task();
     if (!t.dueDate) return null;
@@ -107,6 +116,20 @@ export class TaskCardComponent {
     if (this.assignMenuOpen()) TaskCardComponent.openMenuTaskId.set(null);
   }
 
+  /** Inline status chip — the only way to reach In Progress without the drawer. */
+  readonly statusOptions: SelectOption[] = [
+    { value: 'todo',        label: 'To Do',       color: '#94a3b8' },
+    { value: 'in_progress', label: 'In Progress', color: '#f59e0b' },
+    { value: 'completed',   label: 'Done',        color: '#10b981' },
+    { value: 'cancelled',   label: 'Cancelled',   color: '#64748b' },
+  ];
+
+  async setStatus(status: TaskStatus): Promise<void> {
+    if (status === this.task().status) return;
+    await this.taskService.updateStatus(this.task().id, status);
+  }
+
+  /** The leading circle stays a quick complete/undo toggle. */
   async toggleStatus(): Promise<void> {
     const task = this.task();
     const next: TaskStatus = task.status === 'completed' ? 'todo' : 'completed';

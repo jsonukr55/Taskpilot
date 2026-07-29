@@ -69,31 +69,33 @@
   </div>
 
   <div class="task-row__priority">
-    <span class="cell-pill cell-pill--prio-{{ task().priority }}">{{ task().priority }}</span>
-  </div>
-
-  <div class="task-row__status-col">
-    <span class="cell-pill cell-pill--status-{{ task().status }}">
-      @if (task().status === 'in_progress') { In Progress }
-      @else if (task().status === 'completed') { Done }
-      @else if (task().status === 'cancelled') { Cancelled }
-      @else { To Do }
+    <span class="prio-flag" [attr.data-prio]="task().priority">
+      <tp-icon name="flag" [size]="12" /> {{ task().priority }}
     </span>
   </div>
 
+  <!-- Status is editable inline: the chip IS the control, so a task can go
+       straight to In Progress without opening the drawer. -->
+  <div class="task-row__status-col" (click)="$event.stopPropagation()">
+    <tp-select chip [options]="statusOptions" [value]="task().status" (changed)="setStatus($event)" />
+  </div>
+
   <div class="task-row__due-col">
-    @if (isOverdue()) {
-      <span class="task-row__due task-row__due--overdue">{{ dueDateLabel() }}</span>
-    } @else if (dueDateLabel()) {
-      <span class="task-row__due">{{ dueDateLabel() }}</span>
+    @if (dueDateLabel()) {
+      <span class="task-row__due" [class.task-row__due--overdue]="isOverdue()"
+            [class.task-row__due--soon]="isDueSoon()">{{ dueDateLabel() }}</span>
+    } @else {
+      <span class="task-row__blank">—</span>
     }
   </div>
 
   <div class="task-row__cat-col">
     @if (taskCategories()[0]; as cat) {
-      <span class="task-row__cat" [style.color]="cat!.color">
+      <span class="task-row__cat">
         <span class="task-row__cat-dot" [style.background]="cat!.color"></span>{{ cat!.name }}
       </span>
+    } @else {
+      <span class="task-row__blank">—</span>
     }
   </div>
 

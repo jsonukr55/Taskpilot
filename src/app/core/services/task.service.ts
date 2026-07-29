@@ -19,6 +19,8 @@ export interface TaskFilter {
   priority?:    TaskPriority[];
   categoryIds?: string[];
   assigneeId?:  string;      // show only tasks assigned to this uid
+  /** Owning group. A group id, or 'none' for personal tasks (no group). */
+  groupId?:     string | 'none';
   dueBefore?:   Date;
   dueAfter?:    Date;
   search?:      string;
@@ -73,6 +75,9 @@ export class TaskService {
       t.categoryIds.some(id => f.categoryIds!.includes(id))
     );
     if (f.assigneeId) list = list.filter(t => (t.assigneeIds ?? []).includes(f.assigneeId!));
+    if (f.groupId) list = f.groupId === 'none'
+      ? list.filter(t => !t.groupId)
+      : list.filter(t => t.groupId === f.groupId);
     if (f.isOverdue) {
       const now = new Date();
       list = list.filter(t =>

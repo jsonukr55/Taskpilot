@@ -22,6 +22,8 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
     padding: 0 $space-3;
   }
 
+  // (The colour rail lives on the status group block, Monday-style, so rows
+  // keep a clean leading edge — priority is carried by the flag instead.)
   &:hover { background: var(--bg-tertiary); }
 
   &--done {
@@ -207,7 +209,14 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
     &--urgent { color: #ff4444;      opacity: 1; }
   }
 
-  &__status-col { display: flex; align-items: center; }
+  // Holds the inline status chip. overflow must stay visible for its dropdown,
+  // and the cell swallows row clicks so picking a status doesn't open the task.
+  &__status-col {
+    display: flex;
+    align-items: center;
+    overflow: visible;
+    position: relative;
+  }
 
   &__status {
     display: inline-flex;
@@ -226,12 +235,16 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
   &__due-col { display: flex; align-items: center; }
 
   &__due {
-    font-size: 11px;
-    color: var(--text-tertiary);
+    font-size: $font-size-xs;
+    color: var(--text-secondary);
     white-space: nowrap;
 
     &--overdue { color: $rose-500; font-weight: $font-weight-medium; }
+    &--soon    { color: $amber-500; font-weight: $font-weight-medium; }
   }
+
+  // Placeholder for an empty cell, so the column still reads as deliberate
+  &__blank { color: var(--text-tertiary); opacity: 0.5; font-size: $font-size-xs; }
 
   &__cat-col { display: flex; align-items: center; }
 
@@ -239,8 +252,8 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: 11px;
-    opacity: 0.8;
+    font-size: $font-size-xs;
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -271,19 +284,15 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
 // Monday-style filled pills for status + priority (replaces the
 // faint text label + flag icon). Bold, color-filled, unmistakable.
 // ============================================================
-// Status / priority chips — same quiet treatment as the space board: a colour
-// dot carries the meaning, the label stays neutral. `--pc` is the value's hue.
-.cell-pill {
+// Priority — a ClickUp-style coloured flag with a muted label. The colour sits
+// in the glyph, so a column of these reads as a scannable gradient of urgency
+// rather than a stack of filled blocks.
+.prio-flag {
   --pc: #{$slate-400};
 
   display: inline-flex;
   align-items: center;
   gap: $space-2;
-  width: fit-content;
-  max-width: 100%;
-  padding: 2px $space-2;
-  border: 1px solid transparent;
-  border-radius: $radius-sm;
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
   color: var(--text-secondary);
@@ -292,33 +301,10 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
   overflow: hidden;
   text-overflow: ellipsis;
 
-  &::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    flex-shrink: 0;
-    border-radius: $radius-full;
-    background: var(--pc);
-  }
+  tp-icon { color: var(--pc); flex-shrink: 0; }
 
-  // Priority — dot + muted label, no fill.
-  &--prio-low    { --pc: #{$slate-400}; }
-  &--prio-medium { --pc: #{$amber-500}; }
-  &--prio-high   { --pc: #{$rose-500}; }
-  &--prio-urgent { --pc: #{$rose-600}; }
-
-  // Status — faint tint of its own hue so it reads as the primary state.
-  &--status-todo        { --pc: #{$slate-400}; }
-  &--status-in_progress { --pc: #{$amber-500}; }
-  &--status-completed   { --pc: #{$emerald-500}; }
-  &--status-cancelled   { --pc: #{$slate-500}; }
-
-  &--status-todo,
-  &--status-in_progress,
-  &--status-completed,
-  &--status-cancelled {
-    color: var(--text-primary);
-    background: color-mix(in srgb, var(--pc) 14%, transparent);
-    border-color: color-mix(in srgb, var(--pc) 26%, transparent);
-  }
+  &[data-prio='low']    { --pc: #{$slate-400}; }
+  &[data-prio='medium'] { --pc: #{$amber-500}; }
+  &[data-prio='high']   { --pc: #{$rose-500}; }
+  &[data-prio='urgent'] { --pc: #{$rose-600}; color: var(--text-primary); }
 }

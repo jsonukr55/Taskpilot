@@ -19,6 +19,7 @@ import { CreateTaskModalComponent } from './create-task-modal/create-task-modal.
 import { Task, TaskPriority, TaskStatus } from '@shared/models/task.model';
 
 type ViewMode = 'list' | 'board';
+type StatKind = 'open' | 'inProgress' | 'dueToday' | 'overdue' | 'doneWeek';
 
 @Component({
   selector:   'tp-tasks',
@@ -86,6 +87,45 @@ export class TasksComponent implements OnInit, OnDestroy {
     }));
   });
 
+  // ---- Overview strip: at-a-glance counts that double as one-click filters ----
+  readonly stats = computed(() => {
+    const all = this.taskService.tasks().filter(t => !t.parentId);
+    const weekAgo = Date.now() - 7 * 86_400_000;
+    return {
+      open:       all.filter(t => t.status !== 'completed' && t.status !== 'cancelled').length,
+      inProgress: all.filter(t => t.status === 'in_progress').length,
+      dueToday:   this.taskService.todayTasks().length,
+      overdue:    this.taskService.overdueTasks().length,
+      doneWeek:   all.filter(t =>
+                    t.status === 'completed' && t.completedAt && t.completedAt.toMillis() >= weekAgo).length,
+      rate:       this.taskService.completionRate(),
+    };
+  });
+
+  isStatActive(kind: StatKind): boolean {
+    const f = this.taskService.filter();
+    switch (kind) {
+      case 'open':       return f.status?.length === 2 && f.status.includes('todo') && f.status.includes('in_progress');
+      case 'inProgress': return f.status?.length === 1 && f.status[0] === 'in_progress';
+      case 'dueToday':   return !!f.dueToday;
+      case 'overdue':    return !!f.isOverdue;
+      case 'doneWeek':   return f.completedWithinDays === 7;
+    }
+  }
+
+  /** Clicking a tile applies its filter; clicking the active one clears. */
+  applyStat(kind: StatKind): void {
+    if (this.isStatActive(kind)) { this.taskService.filter.set({}); return; }
+    const next: Record<StatKind, TaskFilter> = {
+      open:       { status: ['todo', 'in_progress'] },
+      inProgress: { status: ['in_progress'] },
+      dueToday:   { dueToday: true },
+      overdue:    { isOverdue: true },
+      doneWeek:   { completedWithinDays: 7 },
+    };
+    this.taskService.filter.set(next[kind]);
+  }
+
   readonly priorityOptions: { value: TaskPriority; label: string }[] = [
     { value: 'urgent', label: 'Urgent' },
     { value: 'high',   label: 'High' },
@@ -109,9 +149,17 @@ export class TasksComponent implements OnInit, OnDestroy {
       label: p.isSelf ? 'Me' : p.displayName,
     })),
   ]);
+  readonly groupFilterOptions = computed<SelectOption[]>(() => [
+    { value: '',     label: 'All groups' },
+    { value: 'none', label: 'Personal only' },
+    ...this.groups.groups().map(g => ({
+      value: g.id, label: g.name, icon: g.icon, color: g.color,
+    })),
+  ]);
   readonly currentCategoryFilter = computed(() => this.taskService.filter().categoryIds?.[0] ?? '');
   readonly currentPriorityFilter = computed(() => this.taskService.filter().priority?.[0] ?? '');
   readonly currentAssigneeFilter = computed(() => this.taskService.filter().assigneeId ?? '');
+  readonly currentGroupFilter    = computed(() => this.taskService.filter().groupId ?? '');
 
   // ---- Keyboard navigation ----
   readonly activeId = signal<string | null>(null);
@@ -317,6 +365,10 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   onAssigneeFilter(value: string): void {
     this.taskService.filter.update(f => ({ ...f, assigneeId: value || undefined }));
+  }
+
+  onGroupFilter(value: string): void {
+    this.taskService.filter.update(f => ({ ...f, groupId: value || undefined }));
   }
 
   toggleOverdue(): void {

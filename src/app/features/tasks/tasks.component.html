@@ -21,7 +21,37 @@
     </div>
   </div>
 
+  <!-- Overview: counts that double as one-click filters -->
+  <div class="tasks-stats">
+    <button class="stat" [class.stat--on]="isStatActive('open')" (click)="applyStat('open')">
+      <span class="stat__value">{{ stats().open }}</span>
+      <span class="stat__label"><tp-icon name="circle" [size]="12" /> Open</span>
+    </button>
+    <button class="stat stat--progress" [class.stat--on]="isStatActive('inProgress')" (click)="applyStat('inProgress')">
+      <span class="stat__value">{{ stats().inProgress }}</span>
+      <span class="stat__label"><tp-icon name="play-circle" [size]="12" /> In progress</span>
+    </button>
+    <button class="stat stat--today" [class.stat--on]="isStatActive('dueToday')" (click)="applyStat('dueToday')">
+      <span class="stat__value">{{ stats().dueToday }}</span>
+      <span class="stat__label"><tp-icon name="calendar" [size]="12" /> Due today</span>
+    </button>
+    <button class="stat stat--overdue" [class.stat--on]="isStatActive('overdue')" (click)="applyStat('overdue')">
+      <span class="stat__value">{{ stats().overdue }}</span>
+      <span class="stat__label"><tp-icon name="alert-circle" [size]="12" /> Overdue</span>
+    </button>
+    <button class="stat stat--done" [class.stat--on]="isStatActive('doneWeek')" (click)="applyStat('doneWeek')">
+      <span class="stat__value">{{ stats().doneWeek }}</span>
+      <span class="stat__label"><tp-icon name="check-circle" [size]="12" /> Done this week</span>
+    </button>
+    <div class="stat stat--rate">
+      <span class="stat__value">{{ stats().rate }}%</span>
+      <span class="stat__label">Completion</span>
+      <span class="stat__bar"><span class="stat__fill" [style.width.%]="stats().rate"></span></span>
+    </div>
+  </div>
+
   <!-- Smart filters: quick presets + saved -->
+  <div class="tasks-toolbar">
   <div class="smart-filters">
     @for (qf of smart.quickFilters(); track qf.id) {
       <button class="filter-pill" [class.active]="smart.isActive(qf)" (click)="applyPreset(qf)">
@@ -83,6 +113,13 @@
       (changed)="onAssigneeFilter($event)"
     />
 
+    <tp-select
+      pill
+      [options]="groupFilterOptions()"
+      [value]="currentGroupFilter()"
+      (changed)="onGroupFilter($event)"
+    />
+
     <button class="filter-pill filter-pill--sort" (click)="updateSort('dueDate')">
       Due @if (taskService.sort().field === 'dueDate') {
         <tp-icon [name]="taskService.sort().direction === 'asc' ? 'chevron-up' : 'chevron-down'" [size]="11" />
@@ -100,10 +137,11 @@
         <tp-icon name="alert-circle" [size]="12" /> {{ taskService.overdueTasks().length }} overdue
       </button>
     }
-    @if (taskService.searchQuery() || taskService.filter().categoryIds?.length || taskService.filter().priority?.length || taskService.filter().assigneeId) {
+    @if (taskService.searchQuery() || taskService.filter().categoryIds?.length || taskService.filter().priority?.length || taskService.filter().assigneeId || taskService.filter().groupId) {
       <button class="filter-pill filter-pill--clear" (click)="clearFilter()"><tp-icon name="x" [size]="12" /> Clear</button>
     }
   </div>
+  </div><!-- /tasks-toolbar -->
 
   @if (taskService.isLoading()) {
     <div class="tasks-loading">
@@ -128,7 +166,7 @@
       <div class="status-groups">
         @for (group of statusGroups(); track group.status) {
           @if (group.tasks.length > 0) {
-            <div class="status-group">
+            <div class="status-group" [attr.data-status]="group.status">
               <div class="status-group__header" (click)="toggleGroup(group.status)">
                 <span class="status-badge status-badge--{{ group.status }}">
                   @if (group.status === 'completed') { <tp-icon name="check-circle" [size]="13" /> }

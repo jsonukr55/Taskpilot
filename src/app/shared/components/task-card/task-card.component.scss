@@ -246,6 +246,28 @@ $task-cols: 28px 1fr 96px 116px 92px 110px;
   // Placeholder for an empty cell, so the column still reads as deliberate
   &__blank { color: var(--text-tertiary); opacity: 0.5; font-size: $font-size-xs; }
 
+  // Owning-group tag, tinted with the group's own colour. Sits next to the
+  // title so a mixed list is readable without spending a whole column.
+  &__group {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    flex-shrink: 0;
+    max-width: 160px;
+    padding: 1px $space-2;
+    border-radius: $radius-full;
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    line-height: 1.5;
+    color: var(--gc, var(--text-secondary));
+    background: color-mix(in srgb, var(--gc, #{$slate-400}) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gc, #{$slate-400}) 26%, transparent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__group-icon { font-size: 10px; line-height: 1; }
+
   &__cat-col { display: flex; align-items: center; }
 
   &__cat {

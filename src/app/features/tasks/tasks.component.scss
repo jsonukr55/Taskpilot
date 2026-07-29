@@ -166,11 +166,18 @@
 
 // Compact pill filters
 .filter-pill {
+  // Must be a flex row: these pills carry an icon + label, and on a plain
+  // inline-block the glyph sits on the text baseline instead of the centre.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-1;
   height: 32px;
   padding: 0 $space-3;
   border-radius: $radius-full;
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
+  line-height: 1;
   border: 1px solid var(--border-subtle);
   background: var(--bg-secondary);
   color: var(--text-secondary);

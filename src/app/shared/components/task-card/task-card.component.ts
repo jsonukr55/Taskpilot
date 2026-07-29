@@ -42,6 +42,14 @@ export class TaskCardComponent {
 
   readonly subtaskCount = computed(() => this.taskService.getSubtasks(this.task().id).length);
 
+  /** Owning group, so a mixed list shows which group each task came from.
+   *  Personal tasks have none — absence of the tag is the signal. */
+  readonly group = computed(() => {
+    const id = this.task().groupId;
+    // Read the signal so the tag appears once groups finish loading.
+    return id ? this.groups.groups().find(g => g.id === id) ?? null : null;
+  });
+
   readonly taskCategories = computed(() =>
     this.task().categoryIds
       .map(id => this.categories.getCategoryById(id))

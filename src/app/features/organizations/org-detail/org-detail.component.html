@@ -4,7 +4,18 @@
     <!-- Header -->
     <header class="od__header">
       <a routerLink="/organizations" class="btn-icon od__back" data-tooltip="All organizations"><tp-icon name="arrow-left" [size]="18" /></a>
-      <span class="od__icon" [style.color]="o.color"><tp-icon name="grid" [size]="20" /></span>
+      <tp-avatar-picker
+        kind="organizations"
+        [entityId]="o.id"
+        [icon]="o.icon"
+        [iconUrl]="o.iconUrl ?? null"
+        [color]="o.color"
+        [size]="52"
+        [editable]="canManage()"
+        [label]="'Change ' + o.name + ' icon'"
+        (iconChange)="saveIcon({ icon: $event })"
+        (iconUrlChange)="saveIcon({ iconUrl: $event })"
+      />
       <div class="od__titles">
         <h1>{{ o.name }}</h1>
         @if (o.description) { <p>{{ o.description }}</p> }
@@ -36,7 +47,7 @@
           @for (s of orgSpaces(); track s.id) {
             <div class="tp-list__row" (click)="openSpace(s.id)">
               <span class="tp-list__name">
-                <span class="tp-list__icon" [style.color]="s.color"><tp-icon name="folder" [size]="16" /></span>
+                <tp-entity-avatar [icon]="s.icon" [iconUrl]="s.iconUrl ?? null" [color]="s.color" [size]="30" [alt]="s.name" />
                 <span>{{ s.name }}</span>
               </span>
               <span class="tp-list__meta">{{ s.memberIds.length }} {{ s.memberIds.length === 1 ? 'member' : 'members' }}</span>
@@ -117,6 +128,16 @@
                  placeholder="e.g. Engineering" (keydown.enter)="createSpace()">
         </div>
         <div class="form-group">
+          <label class="form-label">Icon</label>
+          <tp-avatar-picker
+            kind="spaces"
+            [icon]="spaceIcon()"
+            [color]="spaceColor()"
+            (iconChange)="spaceIcon.set($event)"
+            (fileSelected)="pendingSpaceLogo.set($event)"
+          />
+        </div>
+        <div class="form-group">
           <label class="form-label">Color</label>
           <div class="picker">
             @for (c of SPACE_COLORS; track c) {
@@ -193,6 +214,18 @@
         <div class="form-group">
           <label class="form-label">Description</label>
           <textarea class="form-textarea" [ngModel]="editDesc()" (ngModelChange)="editDesc.set($event)"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <tp-avatar-picker
+            kind="organizations"
+            [entityId]="orgId()"
+            [icon]="editIcon()"
+            [iconUrl]="editIconUrl()"
+            [color]="editColor()"
+            (iconChange)="editIcon.set($event)"
+            (iconUrlChange)="editIconUrl.set($event)"
+          />
         </div>
         <div class="form-group">
           <label class="form-label">Color</label>

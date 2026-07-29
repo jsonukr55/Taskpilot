@@ -8,15 +8,18 @@ import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
+import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
+import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
+import { LogoService } from '@core/services/logo.service';
 import { Category } from '@shared/models/category.model';
 
-const CATEGORY_ICONS = ['💼', '🏠', '🏃', '📚', '💰', '🎯', '🎨', '🔧', '🌱', '✈️', '💊', '🎵', '🍳', '📱', '🏋️'];
 const CATEGORY_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6','#f97316','#84cc16'];
 
 @Component({
   selector:   'tp-categories',
   standalone: true,
-  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DecimalPipe, TooltipDirective, MenuComponent, SelectComponent],
+  imports:    [FormsModule, ReactiveFormsModule, IconComponent, DecimalPipe, TooltipDirective,
+               MenuComponent, SelectComponent, AvatarPickerComponent, EntityAvatarComponent],
   templateUrl: './categories.component.html',
   styleUrl:    './categories.component.scss'
 })
@@ -30,8 +33,12 @@ export class CategoriesComponent {
   readonly editingId   = signal<string | null>(null);
   readonly isSubmitting = signal(false);
 
-  readonly ICONS  = CATEGORY_ICONS;
   readonly COLORS = CATEGORY_COLORS;
+
+  private readonly logos = inject(LogoService);
+  readonly editIconUrl = signal<string | null>(null);
+  /** Chosen logo, held until the category exists — see IconPickerComponent. */
+  readonly pendingLogo = signal<File | null>(null);
 
   readonly priorityBiasOptions: SelectOption[] = [
     { value: 'low',    label: 'Low' },
@@ -78,11 +85,15 @@ export class CategoriesComponent {
   startCreate(): void {
     this.editingId.set(null);
     this.form.reset({ icon: '📁', color: '#6366f1', priorityBias: 'medium', preferredStart: '09:00', preferredEnd: '18:00', reminderMinutes: 30 });
+    this.editIconUrl.set(null);
+    this.pendingLogo.set(null);
     this.showForm.set(true);
   }
 
   startEdit(cat: Category): void {
     this.editingId.set(cat.id);
+    this.editIconUrl.set(cat.iconUrl ?? null);
+    this.pendingLogo.set(null);
     this.form.patchValue({
       name:        cat.name,
       description: cat.description ?? '',
@@ -107,6 +118,7 @@ export class CategoriesComponent {
       name:        v.name!,
       description: v.description ?? '',
       icon:        v.icon!,
+      iconUrl:     this.editIconUrl(),
       color:       v.color!,
       parentId:    v.parentId ?? null,
       keywords:    v.keywords ? v.keywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [],
@@ -119,11 +131,22 @@ export class CategoriesComponent {
     };
 
     try {
-      if (this.editingId()) {
-        await this.categories.update(this.editingId()!, data);
+      let id = this.editingId();
+      if (id) {
+        await this.categories.update(id, data);
       } else {
-        await this.categories.create(data);
+        id = await this.categories.create(data);
       }
+
+      // Storage RLS checks the category exists and is ours, so a logo chosen
+      // during creation can only be stored once the row is in place.
+      const file = this.pendingLogo();
+      if (file) {
+        const iconUrl = await this.logos.upload('categories', id, file);
+        await this.categories.update(id, { iconUrl });
+        this.pendingLogo.set(null);
+      }
+
       this.showForm.set(false);
     } finally {
       this.isSubmitting.set(false);

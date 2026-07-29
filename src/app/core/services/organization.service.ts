@@ -9,7 +9,7 @@ import {
   Organization, OrgRole, OrgInvite, OrgInvitePreview,
 } from '@shared/models/organization.model';
 import { inviteToken, slugId } from '@shared/utils/id.util';
-import { toTs } from './supabase-map.util';
+import { toTs, entityIconPatch } from './supabase-map.util';
 
 // ============================================================
 // OrganizationService — top-level tenants that hold users + spaces
@@ -124,8 +124,17 @@ export class OrganizationService {
     return id;
   }
 
-  async updateOrganization(id: string, changes: Partial<Pick<Organization, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {
-    await this.supa.db('organizations').update(changes).eq('id', id);
+  async updateOrganization(id: string, changes: Partial<Pick<Organization, 'name' | 'description' | 'icon' | 'color' | 'iconUrl'>>): Promise<void> {
+    const { error } = await this.supa.db('organizations').update(entityIconPatch(changes)).eq('id', id);
+    if (error) throw error;
+
+    // Invites snapshot the org's name + icon, so refresh live ones or their
+    // join page would keep showing the old branding.
+    if (changes.name === undefined && changes.icon === undefined) return;
+    const snapshot: Record<string, string> = {};
+    if (changes.name !== undefined) snapshot['org_name'] = changes.name;
+    if (changes.icon !== undefined) snapshot['org_icon'] = changes.icon;
+    await this.supa.db('org_invites').update(snapshot).eq('org_id', id).eq('revoked', false);
   }
 
   /** Owner/admin only. Deleting the org cascades to spaces and their tasks (FK on delete cascade). */
@@ -229,6 +238,7 @@ function rowToOrg(r: any): Organization {
     name:        r.name,
     description: r.description ?? undefined,
     icon:        r.icon,
+    iconUrl:     r.icon_url ?? null,
     color:       r.color,
     clientId:    r.client_id ?? null,
     ownerId:     r.owner_id,

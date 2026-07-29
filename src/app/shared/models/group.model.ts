@@ -17,6 +17,7 @@ export interface Group {
   name:           string;
   description?:   string;
   icon:           string;   // emoji (matches Category convention)
+  iconUrl?:       string | null;   // uploaded logo; overrides `icon` when set
   color:          string;   // hex
 
   ownerId:        string;

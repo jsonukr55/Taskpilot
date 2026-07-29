@@ -27,7 +27,8 @@
       @for (item of categoryWithStats(); track item.cat.id) {
         <div class="tp-list__row" (click)="startEdit(item.cat)">
           <span class="tp-list__name">
-            <span class="tp-list__icon" [style.color]="item.cat.color"><tp-icon name="tag" [size]="16" /></span>
+            <tp-entity-avatar [icon]="item.cat.icon" [iconUrl]="item.cat.iconUrl ?? null"
+                              [color]="item.cat.color" [size]="30" [alt]="item.cat.name" />
             <span>{{ item.cat.name }}</span>
             @if (item.children.length) { <span class="tag">{{ item.children.length }} sub</span> }
           </span>
@@ -53,6 +54,21 @@
       </div>
       <div class="modal__body">
         <form [formGroup]="form" (ngSubmit)="submit()" class="cat-form">
+
+          <!-- Icon -->
+          <div class="form-group">
+            <label class="form-label">Icon</label>
+            <tp-avatar-picker
+              kind="categories"
+              [entityId]="editingId()"
+              [icon]="form.value.icon || '📁'"
+              [iconUrl]="editIconUrl()"
+              [color]="form.value.color || '#6366f1'"
+              (iconChange)="form.patchValue({ icon: $event })"
+              (iconUrlChange)="editIconUrl.set($event)"
+              (fileSelected)="pendingLogo.set($event)"
+            />
+          </div>
 
           <!-- Color -->
           <div class="form-group">

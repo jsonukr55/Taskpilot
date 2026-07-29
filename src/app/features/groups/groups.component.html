@@ -29,7 +29,7 @@
       @for (g of groups.groups(); track g.id) {
         <div class="tp-list__row" (click)="open(g.id)">
           <span class="tp-list__name">
-            <span class="tp-list__icon" [style.color]="g.color"><tp-icon name="users" [size]="16" /></span>
+            <tp-entity-avatar [icon]="g.icon" [iconUrl]="g.iconUrl ?? null" [color]="g.color" [size]="30" [alt]="g.name" />
             <span>{{ g.name }}</span>
           </span>
           <span class="tp-list__meta">{{ memberCount(g) }} {{ memberCount(g) === 1 ? 'member' : 'members' }}</span>
@@ -59,6 +59,17 @@
         <div class="form-group">
           <label class="form-label">Description <span class="optional">(optional)</span></label>
           <textarea class="form-textarea" formControlName="description" placeholder="What is this group for?"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <tp-avatar-picker
+            kind="groups"
+            [icon]="form.value.icon || '👥'"
+            [color]="form.value.color || '#6366f1'"
+            (iconChange)="form.patchValue({ icon: $event })"
+            (fileSelected)="pendingLogo.set($event)"
+          />
         </div>
 
         <div class="form-group">

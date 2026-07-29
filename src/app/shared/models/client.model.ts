@@ -12,6 +12,7 @@ export interface Client {
   name:         string;
   description?: string;
   icon:         string;   // emoji
+  iconUrl?:     string | null;   // uploaded logo; overrides `icon` when set
   color:        string;   // hex
 
   createdBy:    string;

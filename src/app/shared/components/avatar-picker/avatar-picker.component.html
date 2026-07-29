@@ -1,0 +1,26 @@
+@if (editable()) {
+  <button type="button" class="ap__trigger" [class.ap__trigger--open]="open()"
+          [attr.aria-label]="label()" [attr.aria-expanded]="open()"
+          [style.width.px]="size()" [style.height.px]="size()"
+          (click)="toggle()">
+    <tp-entity-avatar [icon]="icon()" [iconUrl]="iconUrl()" [color]="color()" [size]="size()" />
+    <span class="ap__overlay"><tp-icon name="edit-2" [size]="14" /></span>
+  </button>
+
+  @if (open()) {
+    <div class="ap__panel" [class.ap__panel--up]="up()" [class.ap__panel--right]="right()">
+      <tp-icon-picker
+        [kind]="kind()"
+        [entityId]="entityId()"
+        [icon]="icon()"
+        [iconUrl]="iconUrl()"
+        [color]="color()"
+        (iconChange)="onIcon($event)"
+        (iconUrlChange)="iconUrlChange.emit($event)"
+        (fileSelected)="fileSelected.emit($event)"
+      />
+    </div>
+  }
+} @else {
+  <tp-entity-avatar [icon]="icon()" [iconUrl]="iconUrl()" [color]="color()" [size]="size()" />
+}

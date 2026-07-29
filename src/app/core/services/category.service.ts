@@ -151,6 +151,7 @@ function rowToCategory(r: any): Category {
     name:        r.name,
     description: r.description ?? undefined,
     icon:        r.icon,
+    iconUrl:     r.icon_url ?? null,
     color:       r.color,
     parentId:    r.parent_id ?? null,
     keywords:    r.keywords ?? [],
@@ -166,6 +167,7 @@ function categoryPatch(c: Partial<Category>): Record<string, unknown> {
   if (c.name        !== undefined) p['name'] = c.name;
   if (c.description !== undefined) p['description'] = c.description;
   if (c.icon        !== undefined) p['icon'] = c.icon;
+  if (c.iconUrl     !== undefined) p['icon_url'] = c.iconUrl;
   if (c.color       !== undefined) p['color'] = c.color;
   if (c.parentId    !== undefined) p['parent_id'] = c.parentId;
   if (c.keywords    !== undefined) p['keywords'] = c.keywords;

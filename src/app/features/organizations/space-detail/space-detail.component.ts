@@ -17,7 +17,8 @@ import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component'
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
-import { spaceMembers, SpaceRole, ASSIGNABLE_SPACE_ROLES, SPACE_ROLE_LABELS } from '@shared/models/space.model';
+import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
+import { Space, spaceMembers, SpaceRole, ASSIGNABLE_SPACE_ROLES, SPACE_ROLE_LABELS } from '@shared/models/space.model';
 import { SpaceGroup } from '@shared/models/space-group.model';
 import { SpaceColumn, SpaceColumnType, SPACE_COLUMN_TYPES } from '@shared/models/space-column.model';
 import { Task, TaskPriority, TaskStage, TASK_STAGES, TASK_STAGE_LABELS } from '@shared/models/task.model';
@@ -39,7 +40,7 @@ const STAGE_HEX: Record<TaskStage, string> = {
 @Component({
   selector:   'tp-space-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, MenuComponent, TooltipDirective, TaskDrawerComponent, SelectComponent],
+  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, MenuComponent, TooltipDirective, TaskDrawerComponent, SelectComponent, AvatarPickerComponent],
   templateUrl: './space-detail.component.html',
   styleUrl:    './space-detail.component.scss'
 })
@@ -60,6 +61,12 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly notFound = computed(() => !this.spaces.isLoading() && !this.space());
   readonly members  = computed(() => { const s = this.space(); return s ? spaceMembers(s) : []; });
   readonly canEdit  = computed(() => this.spaces.canEditSpace(this.space()));
+
+  /** Header avatar: the picker has already stored the image, so just persist. */
+  async saveIcon(change: Partial<Pick<Space, 'icon' | 'iconUrl'>>): Promise<void> {
+    try { await this.spaces.updateSpace(this.spaceId(), change); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not update the icon'); }
+  }
   readonly isOwner  = computed(() => this.spaces.isSpaceOwner(this.space()));
 
   /** Space owner OR an org manager (owner/admin/global admin) may add,

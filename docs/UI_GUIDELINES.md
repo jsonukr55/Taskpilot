@@ -205,14 +205,47 @@ Right-side sheet (see task-drawer): `width: 40%`, `min-width: 400px`, `max-width
 
 ## 10. Pickers (icon + color)
 
-Reuse the **global** `.picker` component — do not reinvent:
+### Entity avatars — always these two components
+
+Never hand-roll an entity avatar or an emoji grid. Client / org / space /
+group / category all render and edit their avatar through:
+
 ```html
-<div class="picker">
-  @for (ic of ICONS; track ic) {
-    <button type="button" class="picker__item" [class.active]="icon() === ic"
-            (click)="icon.set(ic)">{{ ic }}</button>
-  }
-</div>
+<!-- Read-only (lists, rows, sidebar) -->
+<tp-entity-avatar [icon]="o.icon" [iconUrl]="o.iconUrl ?? null"
+                  [color]="o.color" [size]="30" [alt]="o.name" />
+
+<!-- Editable (headers + forms) — click the avatar to open the picker -->
+<tp-avatar-picker
+  kind="organizations"          <!-- the table name; drives storage RLS -->
+  [entityId]="o.id"             <!-- null while creating: see below -->
+  [icon]="o.icon" [iconUrl]="o.iconUrl ?? null" [color]="o.color"
+  [size]="52" [editable]="canManage()"
+  (iconChange)="save({ icon: $event })"
+  (iconUrlChange)="save({ iconUrl: $event })" />
+```
+
+- `tp-entity-avatar` shows the uploaded `iconUrl` when set, otherwise the
+  emoji on a `color + '22'` chip, and falls back to the emoji if the image
+  fails to load. `[round]` for a circle (default is a rounded square);
+  `[plain]` drops the chip for a bare glyph, as the sidebar nav uses.
+- `tp-avatar-picker` is the **only** thing screens should place — clicking it
+  opens the panel (searchable library of all 1,914 Unicode emoji + image
+  upload). `tp-icon-picker` is that panel's body; don't use it directly.
+- `[editable]="false"` degrades to a plain avatar, so one tag serves both
+  members and managers.
+
+**Create vs edit.** Storage RLS resolves permission from the object path
+(`{kind}/{entityId}/…`), so an upload can't happen before the row exists.
+With `entityId` set the picker uploads immediately and emits
+`(iconUrlChange)`. With `entityId` null it emits `(fileSelected)` instead and
+shows a local preview — the screen holds that `File`, creates the entity, then
+uploads and patches `iconUrl`. Every create form follows that shape.
+
+### Raw `.picker` (colors, and bespoke grids)
+
+The global `.picker` still backs the color swatches — do not reinvent:
+```html
 <div class="picker">
   @for (c of COLORS; track c) {
     <button type="button" class="picker__swatch" [class.active]="color() === c"
@@ -240,9 +273,34 @@ name flex-1 truncated (`text-truncate` mixin), trailing meta `$font-size-xs`
   Names are kebab-case; they resolve through the registry in `src/app/shared/icons.ts`.
   **Only use names registered there** — add new ones to `APP_ICONS` first.
 - **Entity avatars** (client/org/space/group/category): an **emoji** on a tinted
-  round/rounded chip (`background: color + '22'`), not an ng-icon.
+  round/rounded chip (`background: color + '22'`), or the entity's uploaded
+  logo — never an ng-icon. Always render via `<tp-entity-avatar>` (§10), which
+  handles both cases and the image-load fallback.
 - Icon sizes: 12 (meta) · 14 (in `.btn-sm`, chips) · 16 (buttons, inputs) ·
   18 (nav, card titles) · 20–22 (page/modal titles).
+- **The TaskPilot logo** is not an icon — see §12a.
+
+---
+
+## 12a. Brand mark (the logo)
+
+Render the logo **only** via `<tp-brand-mark [size]="30" />`
+(`src/app/shared/components/brand-mark/brand-mark.component.ts`). Never paste
+the SVG into a template — the sidebar, the login brand panel, and the login
+form mark all point at this one component, and `src/favicon.svg` is a manual
+copy of the same geometry (keep the two in sync if the mark ever changes).
+
+- Pass `label="TaskPilot"` only when no wordmark sits next to it; otherwise
+  leave `label` empty so the mark renders `aria-hidden` and screen readers
+  don't announce the name twice.
+- **The mark is the one place raw hex is correct.** It is a fixed brand asset,
+  so it must not follow the theme or the user-chosen accent — it looks the
+  same in light mode, dark mode, and under every accent.
+- **Never put it on an accent-coloured tile.** The mark carries its own colour;
+  an accent gradient behind it clashes. Show it bare, or on a neutral/translucent
+  plate if the surface underneath is busy.
+- Sizes in use: 28 (compact/form) · 30 (sidebar, brand panel). It stays legible
+  down to 16px, so a favicon-scale use is fine.
 
 ---
 

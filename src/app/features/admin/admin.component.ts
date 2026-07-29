@@ -9,12 +9,16 @@ import { ClientService } from '@core/services/client.service';
 import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
+import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
+import { LogoService } from '@core/services/logo.service';
 import { Client } from '@shared/models/client.model';
 import { TASK_STAGE_LABELS } from '@shared/models/task.model';
 import { formatBytes } from '@shared/models/task-attachment.model';
 import { Organization, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
 
-const CLIENT_ICONS  = ['🏢','🏦','🏪','🏭','🌐','💼','🚀','🧩','🛰️','🎯','📦','⚙️'];
+/** Default avatar for a new client; the full library lives in the picker. */
+const CLIENT_ICONS = ['🏢'];
 const CLIENT_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 
 /** A person shown in the admin user list, with their org memberships in the current scope. */
@@ -40,7 +44,8 @@ export interface ScopeUser {
 @Component({
   selector:   'tp-admin',
   standalone: true,
-  imports:    [NgTemplateOutlet, RouterLink, FormsModule, IconComponent],
+  imports:    [NgTemplateOutlet, RouterLink, FormsModule, IconComponent,
+               AvatarPickerComponent, EntityAvatarComponent],
   templateUrl: './admin.component.html',
   styleUrl:    './admin.component.scss'
 })
@@ -50,9 +55,9 @@ export class AdminComponent {
   readonly clients = inject(ClientService);
   private readonly admin = inject(AdminService);
   private readonly toast = inject(ToastService);
+  private readonly logos = inject(LogoService);
   private readonly dialog = inject(DialogService);
 
-  readonly CLIENT_ICONS  = CLIENT_ICONS;
   readonly CLIENT_COLORS = CLIENT_COLORS;
   readonly ASSIGNABLE_ORG_ROLES = ASSIGNABLE_ORG_ROLES;
   readonly ORG_ROLE_LABELS = ORG_ROLE_LABELS;
@@ -336,6 +341,8 @@ export class AdminComponent {
   readonly newClientIcon   = signal(CLIENT_ICONS[0]);
   readonly newClientColor  = signal(CLIENT_COLORS[0]);
   readonly creatingClient  = signal(false);
+  /** Chosen logo, held until the client exists — see IconPickerComponent. */
+  readonly pendingClientLogo = signal<File | null>(null);
 
   // Bootstrap (non-admin self-promote)
   readonly claiming = signal(false);
@@ -348,6 +355,7 @@ export class AdminComponent {
     this.newClientDesc.set('');
     this.newClientIcon.set(CLIENT_ICONS[0]);
     this.newClientColor.set(CLIENT_COLORS[0]);
+    this.pendingClientLogo.set(null);
     this.showClientForm.set(true);
   }
 
@@ -356,12 +364,25 @@ export class AdminComponent {
     if (name.length < 2) return;
     this.creatingClient.set(true);
     try {
-      await this.clients.createClient({
+      const id = await this.clients.createClient({
         name,
         description: this.newClientDesc().trim(),
         icon:  this.newClientIcon(),
         color: this.newClientColor(),
       });
+
+      // Storage RLS checks the client exists before allowing the write, so an
+      // uploaded logo can only be stored once the row is in place.
+      const file = this.pendingClientLogo();
+      if (file) {
+        try {
+          const iconUrl = await this.logos.upload('clients', id, file);
+          await this.clients.updateClient(id, { iconUrl });
+        } catch {
+          this.toast.error('Client created, but the logo failed to upload.');
+        }
+      }
+
       this.showClientForm.set(false);
       this.toast.success('Client created');
     } catch (e: any) {

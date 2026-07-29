@@ -73,6 +73,8 @@
   .tp-list__head, .tp-list__row {
     grid-template-columns: minmax(200px, 1fr) 160px 120px 80px 44px;
   }
+  // The leading tile holds the org's emoji, not an ng-icon.
+  .tp-list__icon { font-size: $font-size-base; line-height: 1; }
   @media (max-width: 720px) {
     .tp-list__head, .tp-list__row { grid-template-columns: 1fr 90px 44px; }
     .tp-list__head span:nth-child(2), .tp-list__row > span:nth-child(2),

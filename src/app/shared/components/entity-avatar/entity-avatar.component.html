@@ -1,0 +1,7 @@
+@if (showImage()) {
+  <span class="tp-avatar" [style]="boxStyle()">
+    <img [src]="iconUrl()" [alt]="alt()" (error)="onError()" loading="lazy">
+  </span>
+} @else {
+  <span class="tp-avatar" [style]="boxStyle()">{{ icon() }}</span>
+}

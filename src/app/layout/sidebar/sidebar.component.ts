@@ -9,7 +9,9 @@ import { SpaceService } from '@core/services/space.service';
 import { ThemeService, Theme } from '@core/services/theme.service';
 import { ReleaseNotesService } from '@core/services/release-notes.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { BrandMarkComponent } from '@shared/components/brand-mark/brand-mark.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
+import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
 
 interface NavItem {
   label:   string;
@@ -23,7 +25,7 @@ interface NavItem {
 @Component({
   selector:   'tp-sidebar',
   standalone: true,
-  imports:    [NgTemplateOutlet, RouterLink, RouterLinkActive, IconComponent, TooltipDirective],
+  imports:    [NgTemplateOutlet, RouterLink, RouterLinkActive, IconComponent, BrandMarkComponent, TooltipDirective, EntityAvatarComponent],
   templateUrl: './sidebar.component.html',
   styleUrl:    './sidebar.component.scss'
 })

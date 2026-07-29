@@ -23,6 +23,7 @@ export interface Organization {
   name:           string;
   description?:   string;
   icon:           string;   // emoji
+  iconUrl?:       string | null;   // uploaded logo; overrides `icon` when set
   color:          string;   // hex
 
   clientId:       string | null;   // parent client/customer (null = legacy/unassigned)

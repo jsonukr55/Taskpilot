@@ -10,7 +10,7 @@ import {
   AssignablePerson, buildAssignablePeople
 } from '@shared/models/group.model';
 import { inviteToken, slugId } from '@shared/utils/id.util';
-import { toTs } from './supabase-map.util';
+import { toTs, entityIconPatch } from './supabase-map.util';
 
 // ============================================================
 // GroupService — collaborative groups, members, invites (Supabase).
@@ -130,8 +130,9 @@ export class GroupService {
     return id;
   }
 
-  async updateGroup(id: string, changes: Partial<Pick<Group, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {
-    await this.supa.db('groups').update(changes).eq('id', id);
+  async updateGroup(id: string, changes: Partial<Pick<Group, 'name' | 'description' | 'icon' | 'color' | 'iconUrl'>>): Promise<void> {
+    const { error } = await this.supa.db('groups').update(entityIconPatch(changes)).eq('id', id);
+    if (error) throw error;
   }
 
   /** Owner-only. Deleting the group cascades to members, notes and tasks (FK on delete cascade). */
@@ -227,6 +228,7 @@ function rowToGroup(r: any): Group {
     name:        r.name,
     description: r.description ?? undefined,
     icon:        r.icon,
+    iconUrl:     r.icon_url ?? null,
     color:       r.color,
     ownerId:     r.owner_id,
     memberIds,

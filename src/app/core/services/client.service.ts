@@ -4,7 +4,7 @@ import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { Client } from '@shared/models/client.model';
 import { slugId } from '@shared/utils/id.util';
-import { toTs } from './supabase-map.util';
+import { toTs, entityIconPatch } from './supabase-map.util';
 
 // ============================================================
 // ClientService — top-level tenants (customers). Created and managed
@@ -78,8 +78,9 @@ export class ClientService {
     return id;
   }
 
-  async updateClient(id: string, changes: Partial<Pick<Client, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {
-    await this.supa.db('clients').update(changes).eq('id', id);
+  async updateClient(id: string, changes: Partial<Pick<Client, 'name' | 'description' | 'icon' | 'color' | 'iconUrl'>>): Promise<void> {
+    const { error } = await this.supa.db('clients').update(entityIconPatch(changes)).eq('id', id);
+    if (error) throw error;
   }
 
   /** Deleting a client cascades to its organizations, spaces and tasks (FK on delete cascade). */
@@ -96,6 +97,7 @@ function rowToClient(r: any): Client {
     name:        r.name,
     description: r.description ?? undefined,
     icon:        r.icon,
+    iconUrl:     r.icon_url ?? null,
     color:       r.color,
     createdBy:   r.created_by,
     createdAt:   toTs(r.created_at) as any,

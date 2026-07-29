@@ -1,0 +1,67 @@
+<div class="ip">
+
+  <!-- Live preview + mode tabs -->
+  <div class="ip__head">
+    <tp-entity-avatar [icon]="icon()" [iconUrl]="effectiveUrl()" [color]="color()" [size]="48" />
+    <div class="ip__tabs" role="tablist">
+      <button type="button" class="ip__tab" role="tab" [class.active]="tab() === 'emoji'"
+              [attr.aria-selected]="tab() === 'emoji'" (click)="tab.set('emoji')">
+        <tp-icon name="smile" [size]="14" /> Emoji
+      </button>
+      <button type="button" class="ip__tab" role="tab" [class.active]="tab() === 'upload'"
+              [attr.aria-selected]="tab() === 'upload'" (click)="tab.set('upload')">
+        <tp-icon name="upload" [size]="14" /> Upload
+      </button>
+    </div>
+  </div>
+
+  <!-- Emoji library -->
+  @if (tab() === 'emoji') {
+    <input class="form-input ip__search" type="search" placeholder="Search emoji — try “rocket”, “money”, “bug”…"
+           [ngModel]="query()" (ngModelChange)="query.set($event)">
+
+    <div class="ip__scroll">
+      @for (g of groups(); track g.name) {
+        <p class="ip__group">{{ g.name }}</p>
+        <div class="picker ip__grid">
+          @for (x of g.emojis; track x.e) {
+            <button type="button" class="picker__item" [class.active]="!hasImage() && icon() === x.e"
+                    [attr.aria-label]="x.k" [title]="x.k" (click)="pickEmoji(x.e)">{{ x.e }}</button>
+          }
+        </div>
+      }
+      @if (noMatches()) {
+        <p class="ip__empty">No emoji match “{{ query() }}”.</p>
+      } @else if (loadingLibrary()) {
+        <p class="ip__empty">Loading the full emoji library…</p>
+      }
+    </div>
+  }
+
+  <!-- Image upload -->
+  @if (tab() === 'upload') {
+    <div class="ip__upload">
+      <input #fileInput type="file" hidden [accept]="accept" (change)="onFile(fileInput)">
+
+      <button type="button" class="ip__drop" (click)="fileInput.click()" [disabled]="busy()">
+        <tp-icon name="image" [size]="20" />
+        <span class="ip__drop-title">{{ busy() ? 'Uploading…' : hasImage() ? 'Replace logo' : 'Choose an image' }}</span>
+        <span class="ip__drop-hint">PNG, JPG, WEBP, GIF or SVG · up to 2 MB</span>
+      </button>
+
+      @if (hasImage()) {
+        <button type="button" class="btn-ghost btn-sm ip__remove" (click)="clearImage()">
+          <tp-icon name="trash-2" [size]="14" /> Remove logo, use emoji
+        </button>
+      }
+
+      @if (uploadError(); as err) {
+        <p class="form-error"><tp-icon name="alert-circle" [size]="14" /> {{ err }}</p>
+      }
+
+      @if (!entityId() && hasImage()) {
+        <p class="ip__note">The logo uploads once you save.</p>
+      }
+    </div>
+  }
+</div>

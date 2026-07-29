@@ -4,7 +4,18 @@
     <!-- Header -->
     <header class="sd__header">
       <a [routerLink]="['/organizations', orgId()]" class="btn-icon sd__back" data-tooltip="Back to organization"><tp-icon name="arrow-left" [size]="18" /></a>
-      <span class="sd__icon" [style.color]="s.color"><tp-icon name="folder" [size]="20" /></span>
+      <tp-avatar-picker
+        kind="spaces"
+        [entityId]="s.id"
+        [icon]="s.icon"
+        [iconUrl]="s.iconUrl ?? null"
+        [color]="s.color"
+        [size]="40"
+        [editable]="canEdit()"
+        [label]="'Change ' + s.name + ' icon'"
+        (iconChange)="saveIcon({ icon: $event })"
+        (iconUrlChange)="saveIcon({ iconUrl: $event })"
+      />
       <div class="sd__titles">
         <h1>
           {{ s.name }}

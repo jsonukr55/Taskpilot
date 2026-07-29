@@ -8,15 +8,18 @@ import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
+import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
+import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
+import { LogoService } from '@core/services/logo.service';
 import { Organization } from '@shared/models/organization.model';
 
-const ORG_ICONS  = ['🏢','🚀','🌐','💼','🏗️','🧩','📊','🛠️','🔬','🎯','🏦','⚙️'];
 const ORG_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 
 @Component({
   selector:   'tp-organizations',
   standalone: true,
-  imports:    [RouterLink, ReactiveFormsModule, IconComponent, MenuComponent],
+  imports:    [RouterLink, ReactiveFormsModule, IconComponent, MenuComponent,
+               AvatarPickerComponent, EntityAvatarComponent],
   templateUrl: './organizations.component.html',
   styleUrl:    './organizations.component.scss'
 })
@@ -50,8 +53,11 @@ export class OrganizationsComponent implements OnInit {
 
   readonly showForm     = signal(false);
   readonly isSubmitting = signal(false);
-  readonly ICONS  = ORG_ICONS;
   readonly COLORS = ORG_COLORS;
+
+  private readonly logos = inject(LogoService);
+  /** Chosen logo, held until the org exists — see IconPickerComponent. */
+  readonly pendingLogo = signal<File | null>(null);
 
   readonly form = this.fb.group({
     name:        ['', [Validators.required, Validators.minLength(2)]],
@@ -71,6 +77,7 @@ export class OrganizationsComponent implements OnInit {
 
   startCreate(clientId: string | null = null): void {
     this.form.reset({ name: '', description: '', icon: '🏢', color: '#6366f1', clientId: clientId ?? '' });
+    this.pendingLogo.set(null);
     this.showForm.set(true);
   }
 
@@ -79,13 +86,26 @@ export class OrganizationsComponent implements OnInit {
     this.isSubmitting.set(true);
     const v = this.form.value;
     try {
-      await this.orgs.createOrganization({
+      const id = await this.orgs.createOrganization({
         name:        v.name!,
         description: v.description ?? '',
         icon:        v.icon!,
         color:       v.color!,
         clientId:    v.clientId || null
       });
+
+      // Storage RLS checks the org exists and that we can manage it, so an
+      // uploaded logo can only be stored once the row is in place.
+      const file = this.pendingLogo();
+      if (file) {
+        try {
+          const iconUrl = await this.logos.upload('organizations', id, file);
+          await this.orgs.updateOrganization(id, { iconUrl });
+        } catch {
+          this.toast.error('Organization created, but the logo failed to upload. Add it from settings.');
+        }
+      }
+
       this.showForm.set(false);
       this.toast.success('Organization created');
     } catch (e: any) {

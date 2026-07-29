@@ -9,16 +9,19 @@ import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
-import { orgMembers, OrgInvite, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
+import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
+import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
+import { LogoService } from '@core/services/logo.service';
+import { Organization, orgMembers, OrgInvite, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
 import { Space } from '@shared/models/space.model';
 
-const SPACE_ICONS  = ['📁','🚀','🎯','🧩','📊','🛠️','🎨','🔬','📌','🗂️','💡','📈'];
 const SPACE_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 
 @Component({
   selector:   'tp-org-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, IconComponent, MenuComponent, SelectComponent],
+  imports:    [RouterLink, FormsModule, IconComponent, MenuComponent, SelectComponent,
+               AvatarPickerComponent, EntityAvatarComponent],
   templateUrl: './org-detail.component.html',
   styleUrl:    './org-detail.component.scss'
 })
@@ -31,8 +34,8 @@ export class OrgDetailComponent {
   private readonly toast  = inject(ToastService);
   private readonly dialog = inject(DialogService);
   private readonly router = inject(Router);
+  private readonly logos  = inject(LogoService);
 
-  readonly SPACE_ICONS = SPACE_ICONS;
   readonly SPACE_COLORS = SPACE_COLORS;
 
   readonly org      = computed(() => this.orgs.getOrgById(this.orgId()));
@@ -123,15 +126,24 @@ export class OrgDetailComponent {
     await this.refreshInvites();
   }
 
+  /** Header avatar: the picker has already stored the image, so just persist. */
+  async saveIcon(change: Partial<Pick<Organization, 'icon' | 'iconUrl'>>): Promise<void> {
+    try { await this.orgs.updateOrganization(this.orgId(), change); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not update the icon'); }
+  }
+
   // ---- Create space ----
   readonly showSpace = signal(false);
   readonly spaceName  = signal('');
   readonly spaceIcon  = signal('📁');
   readonly spaceColor = signal('#6366f1');
   readonly creatingSpace = signal(false);
+  /** Chosen logo, held until the space exists — see IconPickerComponent. */
+  readonly pendingSpaceLogo = signal<File | null>(null);
 
   openCreateSpace(): void {
     this.spaceName.set(''); this.spaceIcon.set('📁'); this.spaceColor.set('#6366f1');
+    this.pendingSpaceLogo.set(null);
     this.showSpace.set(true);
   }
   async createSpace(): Promise<void> {
@@ -142,6 +154,19 @@ export class OrgDetailComponent {
       const id = await this.spaces.createSpace(this.orgId(), {
         name, description: '', icon: this.spaceIcon(), color: this.spaceColor(),
       });
+
+      // Storage RLS checks the space exists and that we can edit it, so an
+      // uploaded logo can only be stored once the row is in place.
+      const file = this.pendingSpaceLogo();
+      if (file) {
+        try {
+          const iconUrl = await this.logos.upload('spaces', id, file);
+          await this.spaces.updateSpace(id, { iconUrl });
+        } catch {
+          this.toast.error('Space created, but the logo failed to upload. Add it from the space header.');
+        }
+      }
+
       this.showSpace.set(false);
       await this.router.navigate(['/organizations', this.orgId(), 'spaces', id]);
     } catch (e: any) {
@@ -172,15 +197,16 @@ export class OrgDetailComponent {
   readonly editName  = signal('');
   readonly editDesc  = signal('');
   readonly editIcon  = signal('🏢');
+  readonly editIconUrl = signal<string | null>(null);
   readonly editColor = signal('#6366f1');
-  readonly ICONS  = ['🏢','🚀','🌐','💼','🏗️','🧩','📊','🛠️','🔬','🎯','🏦','⚙️'];
   readonly COLORS = SPACE_COLORS;
 
   openSettings(): void {
     const o = this.org();
     if (!o) return;
     this.editName.set(o.name); this.editDesc.set(o.description ?? '');
-    this.editIcon.set(o.icon); this.editColor.set(o.color);
+    this.editIcon.set(o.icon); this.editIconUrl.set(o.iconUrl ?? null);
+    this.editColor.set(o.color);
     this.showSettings.set(true);
   }
   async saveSettings(): Promise<void> {
@@ -188,7 +214,8 @@ export class OrgDetailComponent {
     if (name.length < 2) return;
     try {
       await this.orgs.updateOrganization(this.orgId(), {
-        name, description: this.editDesc().trim(), icon: this.editIcon(), color: this.editColor(),
+        name, description: this.editDesc().trim(), icon: this.editIcon(),
+        iconUrl: this.editIconUrl(), color: this.editColor(),
       });
       this.showSettings.set(false);
       this.toast.success('Organization updated');

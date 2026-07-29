@@ -6,7 +6,7 @@ import {
   Space, SpaceRole, SpaceMemberProfile, canEditSpace as canEditSpaceRole,
 } from '@shared/models/space.model';
 import { slugId } from '@shared/utils/id.util';
-import { toTs } from './supabase-map.util';
+import { toTs, entityIconPatch } from './supabase-map.util';
 
 // ============================================================
 // SpaceService — projects inside an organization that hold tasks
@@ -105,8 +105,9 @@ export class SpaceService {
     return id;
   }
 
-  async updateSpace(id: string, changes: Partial<Pick<Space, 'name' | 'description' | 'icon' | 'color'>>): Promise<void> {
-    await this.supa.db('spaces').update(changes).eq('id', id);
+  async updateSpace(id: string, changes: Partial<Pick<Space, 'name' | 'description' | 'icon' | 'color' | 'iconUrl'>>): Promise<void> {
+    const { error } = await this.supa.db('spaces').update(entityIconPatch(changes)).eq('id', id);
+    if (error) throw error;
   }
 
   /** Owner-only. Deleting the space cascades to its tasks (FK on delete cascade). */
@@ -160,6 +161,7 @@ function rowToSpace(r: any): Space {
     name:        r.name,
     description: r.description ?? undefined,
     icon:        r.icon,
+    iconUrl:     r.icon_url ?? null,
     color:       r.color,
     ownerId:     r.owner_id,
     memberIds,

@@ -52,6 +52,16 @@
                      [ngModel]="newClientDesc()" (ngModelChange)="newClientDesc.set($event)">
             </div>
             <div class="admin-form__field">
+              <label class="form-label">Icon</label>
+              <tp-avatar-picker
+                kind="clients"
+                [icon]="newClientIcon()"
+                [color]="newClientColor()"
+                (iconChange)="newClientIcon.set($event)"
+                (fileSelected)="pendingClientLogo.set($event)"
+              />
+            </div>
+            <div class="admin-form__field">
               <label class="form-label">Color</label>
               <div class="picker">
                 @for (col of CLIENT_COLORS; track col) {
@@ -76,7 +86,7 @@
           <ul class="admin-list">
             @for (c of clients.clients(); track c.id) {
               <li class="admin-list__row">
-                <span class="admin-list__icon" [style.color]="c.color"><tp-icon name="briefcase" [size]="16" /></span>
+                <tp-entity-avatar [icon]="c.icon" [iconUrl]="c.iconUrl ?? null" [color]="c.color" [size]="32" [alt]="c.name" />
                 <span class="admin-list__name">{{ c.name }}</span>
                 <span class="admin-list__meta">{{ orgCount(c.id) }} {{ orgCount(c.id) === 1 ? 'org' : 'orgs' }}</span>
                 <a class="btn-ghost btn-sm" routerLink="/organizations" [queryParams]="{ new: true, client: c.id }"
@@ -108,7 +118,7 @@
           <ul class="admin-list">
             @for (o of orgs.organizations(); track o.id) {
               <li class="admin-list__row">
-                <span class="admin-list__icon" [style.color]="o.color"><tp-icon name="grid" [size]="16" /></span>
+                <tp-entity-avatar [icon]="o.icon" [iconUrl]="o.iconUrl ?? null" [color]="o.color" [size]="32" [alt]="o.name" />
                 <a class="admin-list__name" [routerLink]="['/organizations', o.id]">{{ o.name }}</a>
                 @if (o.clientId && clients.getClientById(o.clientId); as parent) {
                   <span class="admin-list__tag">{{ parent.name }}</span>
@@ -168,7 +178,7 @@
           <ul class="admin-list">
             @for (f of footprint(); track f.client.id) {
               <li class="admin-list__row">
-                <span class="admin-list__icon" [style.color]="f.client.color"><tp-icon name="briefcase" [size]="16" /></span>
+                <tp-entity-avatar [icon]="f.client.icon" [iconUrl]="f.client.iconUrl ?? null" [color]="f.client.color" [size]="32" [alt]="f.client.name" />
                 <span class="admin-list__name">{{ f.client.name }}</span>
                 <span class="admin-list__meta">{{ f.orgs }} orgs · {{ f.spaces }} spaces · {{ f.tasks }} tasks · {{ f.storage }}</span>
               </li>

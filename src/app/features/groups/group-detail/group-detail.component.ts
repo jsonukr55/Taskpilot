@@ -12,19 +12,19 @@ import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { ActivityFeedComponent } from '@shared/components/activity-feed/activity-feed.component';
+import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
 import {
   Group, GroupInvite, GroupRole, groupMembers, ROLE_LABELS
 } from '@shared/models/group.model';
 import { Task } from '@shared/models/task.model';
 import { ActivityEvent } from '@shared/models/activity.model';
 
-const GROUP_ICONS  = ['👥','🚀','📁','🎯','💼','🧩','🏗️','🌐','🔬','🎨','📊','🛠️'];
 const GROUP_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 
 @Component({
   selector:   'tp-group-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective, SelectComponent, ActivityFeedComponent],
+  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective, SelectComponent, ActivityFeedComponent, AvatarPickerComponent],
   templateUrl: './group-detail.component.html',
   styleUrl:    './group-detail.component.scss'
 })
@@ -86,8 +86,8 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   readonly editName     = signal('');
   readonly editDesc     = signal('');
   readonly editIcon     = signal('👥');
+  readonly editIconUrl  = signal<string | null>(null);
   readonly editColor    = signal('#6366f1');
-  readonly ICONS  = GROUP_ICONS;
   readonly COLORS = GROUP_COLORS;
 
   readonly newTaskTitle = signal('');
@@ -194,8 +194,15 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     this.editName.set(g.name);
     this.editDesc.set(g.description ?? '');
     this.editIcon.set(g.icon);
+    this.editIconUrl.set(g.iconUrl ?? null);
     this.editColor.set(g.color);
     this.showSettings.set(true);
+  }
+
+  /** Header avatar: the picker has already stored the image, so just persist. */
+  async saveIcon(change: Partial<Pick<Group, 'icon' | 'iconUrl'>>): Promise<void> {
+    try { await this.groups.updateGroup(this.groupId(), change); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not update the icon'); }
   }
   async saveSettings(): Promise<void> {
     const name = this.editName().trim();
@@ -205,6 +212,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
         name,
         description: this.editDesc().trim(),
         icon:        this.editIcon(),
+        iconUrl:     this.editIconUrl(),
         color:       this.editColor()
       });
       this.showSettings.set(false);

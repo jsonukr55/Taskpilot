@@ -26,6 +26,7 @@ export interface Category {
   name:        string;
   description?: string;
   icon:        string;    // emoji or icon name
+  iconUrl?:    string | null;   // uploaded logo; overrides `icon` when set
   color:       string;    // hex color
 
   /** Parent category id for hierarchy */

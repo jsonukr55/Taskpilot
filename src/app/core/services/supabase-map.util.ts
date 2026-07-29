@@ -26,3 +26,19 @@ export function fromTs(ts: Timestamp | Date | string | null | undefined): string
 export function nowIso(): string {
   return new Date().toISOString();
 }
+
+/**
+ * Update patch for the entity avatar fields shared by client / org / space /
+ * group. Every other key on those tables is already snake_case-identical to
+ * the model, so `iconUrl` -> `icon_url` is the only rename needed — and it
+ * must survive an explicit `null` (clearing an uploaded logo), which is why
+ * this tests `!== undefined` rather than truthiness.
+ */
+export function entityIconPatch<T extends { iconUrl?: string | null }>(
+  changes: T,
+): Record<string, unknown> {
+  const { iconUrl, ...rest } = changes;
+  const patch: Record<string, unknown> = { ...rest };
+  if (iconUrl !== undefined) patch['icon_url'] = iconUrl;
+  return patch;
+}

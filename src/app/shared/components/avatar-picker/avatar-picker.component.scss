@@ -1,0 +1,51 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:host {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.ap__trigger {
+  position: relative;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover .ap__overlay,
+  &--open .ap__overlay { opacity: 1; }
+
+  &:focus-visible { outline: 2px solid var(--accent-500); outline-offset: 2px; }
+}
+
+.ap__overlay {
+  @include flex-center;
+  position: absolute;
+  inset: 0;
+  background: var(--bg-overlay);
+  color: #fff;
+  opacity: 0;
+  transition: opacity $transition-fast;
+}
+
+.ap__panel {
+  position: absolute;
+  top: calc(100% + #{$space-2});
+  left: 0;
+  z-index: $z-dropdown;
+  width: 340px;
+  max-width: calc(100vw - #{$space-6});
+  padding: $space-4;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+
+  &--up    { top: auto; bottom: calc(100% + #{$space-2}); }
+  &--right { left: auto; right: 0; }
+}

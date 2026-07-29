@@ -4,9 +4,7 @@
   <div class="sidebar__header">
     <div class="sidebar__logo">
       <div class="sidebar__logo-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <tp-brand-mark [size]="30" label="TaskPilot" />
       </div>
       @if (!collapsed()) {
         <span class="sidebar__logo-text">TaskPilot</span>
@@ -82,7 +80,7 @@
               <a [routerLink]="['/organizations', o.id]" routerLinkActive="active"
                  [routerLinkActiveOptions]="{ exact: true }" [class.in-path]="isOrgInPath(o.id)"
                  class="sidebar__nav-link sidebar__nav-link--org">
-                <span class="sidebar__org-emoji" [style.color]="o.color">{{ o.icon }}</span>
+                <tp-entity-avatar class="sidebar__org-emoji" [icon]="o.icon" [iconUrl]="o.iconUrl ?? null" [color]="o.color" [size]="18" [plain]="true" />
                 <span class="sidebar__nav-label">{{ o.name }}</span>
               </a>
             </li>
@@ -90,7 +88,7 @@
               <li class="sidebar__nav-item">
                 <a [routerLink]="['/organizations', o.id, 'spaces', s.id]" routerLinkActive="active"
                    class="sidebar__nav-link sidebar__nav-link--space">
-                  <span class="sidebar__org-emoji" [style.color]="s.color">{{ s.icon }}</span>
+                  <tp-entity-avatar class="sidebar__org-emoji" [icon]="s.icon" [iconUrl]="s.iconUrl ?? null" [color]="s.color" [size]="18" [plain]="true" />
                   <span class="sidebar__nav-label">{{ s.name }}</span>
                 </a>
               </li>

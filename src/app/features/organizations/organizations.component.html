@@ -36,7 +36,7 @@
       @for (o of orgs.organizations(); track o.id) {
         <div class="tp-list__row" (click)="open(o.id)">
           <span class="tp-list__name">
-            <span class="tp-list__icon" [style.color]="o.color"><tp-icon name="grid" [size]="16" /></span>
+            <tp-entity-avatar [icon]="o.icon" [iconUrl]="o.iconUrl ?? null" [color]="o.color" [size]="30" [alt]="o.name" />
             <span>{{ o.name }}</span>
           </span>
           <span class="tp-list__meta">
@@ -79,6 +79,17 @@
         <div class="form-group">
           <label class="form-label">Description <span class="optional">(optional)</span></label>
           <textarea class="form-textarea" formControlName="description" placeholder="What is this organization for?"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <tp-avatar-picker
+            kind="organizations"
+            [icon]="form.value.icon || '🏢'"
+            [color]="form.value.color || '#6366f1'"
+            (iconChange)="form.patchValue({ icon: $event })"
+            (fileSelected)="pendingLogo.set($event)"
+          />
         </div>
 
         <div class="form-group">

@@ -1,0 +1,97 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.ip {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__head {
+    @include flex-start;
+    gap: $space-3;
+  }
+
+  &__tabs {
+    display: flex;
+    gap: $space-1;
+    padding: $space-1;
+    background: var(--bg-tertiary);
+    border-radius: $radius-md;
+  }
+
+  &__tab {
+    @include flex-center;
+    gap: $space-1;
+    padding: $space-2 $space-3;
+    border-radius: $radius-sm;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover  { color: var(--text-primary); }
+    &.active { background: var(--bg-primary); color: var(--text-primary); box-shadow: var(--card-shadow); }
+  }
+
+  &__search { width: 100%; }
+
+  &__scroll {
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: $space-1;
+  }
+
+  &__group {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: var(--text-tertiary);
+    margin: $space-3 0 $space-2;
+    &:first-child { margin-top: 0; }
+  }
+
+  // The full library is ~1,900 tiles. content-visibility lets the browser skip
+  // layout/paint for the groups scrolled out of view, which keeps opening the
+  // picker instant without hand-rolling virtual scrolling.
+  &__grid {
+    gap: $space-1;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 200px;
+  }
+
+  &__empty,
+  &__note {
+    font-size: $font-size-sm;
+    color: var(--text-tertiary);
+    padding: $space-2 0;
+  }
+
+  // ---- Upload tab ----
+  &__upload { display: flex; flex-direction: column; gap: $space-2; align-items: flex-start; }
+
+  &__drop {
+    @include flex-center;
+    flex-direction: column;
+    gap: $space-1;
+    width: 100%;
+    padding: $space-5;
+    border: 1px dashed var(--border-default);
+    border-radius: $radius-lg;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover:not(:disabled) { border-color: var(--accent-500); background: var(--bg-tertiary); }
+    &:disabled { opacity: 0.6; cursor: default; }
+  }
+
+  &__drop-title { font-size: $font-size-sm; font-weight: $font-weight-medium; color: var(--text-primary); }
+  &__drop-hint  { font-size: $font-size-xs; color: var(--text-tertiary); }
+
+  &__remove { color: var(--text-secondary); }
+
+  .form-error { @include flex-start; gap: $space-1; margin-top: 0; }
+}

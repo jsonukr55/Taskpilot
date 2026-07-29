@@ -8,6 +8,7 @@ import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { orgMembers, OrgInvite, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
 import { Space } from '@shared/models/space.model';
 
@@ -17,7 +18,7 @@ const SPACE_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9
 @Component({
   selector:   'tp-org-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, IconComponent, MenuComponent],
+  imports:    [RouterLink, FormsModule, IconComponent, MenuComponent, SelectComponent],
   templateUrl: './org-detail.component.html',
   styleUrl:    './org-detail.component.scss'
 })
@@ -71,6 +72,10 @@ export class OrgDetailComponent {
   // ---- Role management ----
   readonly ASSIGNABLE_ORG_ROLES = ASSIGNABLE_ORG_ROLES;
   roleLabel = (r: OrgRole): string => ORG_ROLE_LABELS[r] ?? r;
+
+  /** Options for the themed <tp-select> role picker. */
+  readonly roleOptions: SelectOption[] =
+    ASSIGNABLE_ORG_ROLES.map(r => ({ value: r, label: ORG_ROLE_LABELS[r] ?? r }));
 
   async changeRole(uid: string, role: string): Promise<void> {
     try {

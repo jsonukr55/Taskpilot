@@ -16,6 +16,7 @@ import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { spaceMembers, SpaceRole, ASSIGNABLE_SPACE_ROLES, SPACE_ROLE_LABELS } from '@shared/models/space.model';
 import { SpaceGroup } from '@shared/models/space-group.model';
 import { SpaceColumn, SpaceColumnType, SPACE_COLUMN_TYPES } from '@shared/models/space-column.model';
@@ -38,7 +39,7 @@ const STAGE_HEX: Record<TaskStage, string> = {
 @Component({
   selector:   'tp-space-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, MenuComponent, TooltipDirective, TaskDrawerComponent],
+  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, MenuComponent, TooltipDirective, TaskDrawerComponent, SelectComponent],
   templateUrl: './space-detail.component.html',
   styleUrl:    './space-detail.component.scss'
 })
@@ -582,6 +583,10 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly ASSIGNABLE_SPACE_ROLES = ASSIGNABLE_SPACE_ROLES;
   readonly addRole = signal<Exclude<SpaceRole, 'owner'>>('editor');
   spaceRoleLabel = (r: SpaceRole): string => SPACE_ROLE_LABELS[r] ?? r;
+
+  /** Options for the themed <tp-select> role pickers. */
+  readonly roleOptions: SelectOption[] =
+    ASSIGNABLE_SPACE_ROLES.map(r => ({ value: r, label: SPACE_ROLE_LABELS[r] ?? r }));
 
   async addMember(uid: string, profile: { displayName: string; photoURL: string | null }): Promise<void> {
     try {

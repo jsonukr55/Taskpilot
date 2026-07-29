@@ -102,22 +102,53 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     if (!el) return;
 
     const r = el.getBoundingClientRect();
+    const origin = this.fixedOrigin();          // see below — not always the viewport
     const width = Math.max(180, r.width);
+    const height = Math.min(280, this.options().length * 36 + 16);
+
+    // Flip above the control when there isn't room below it.
     const spaceBelow = window.innerHeight - r.bottom;
-    const style: Record<string, string> = {
+    const openUp = spaceBelow < height && r.top > spaceBelow;
+
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+    const top  = openUp ? r.top - height - 6 : r.bottom + 6;
+
+    this.panelStyle.set({
       position: 'fixed',
-      left: `${Math.max(8, Math.min(r.left, window.innerWidth - width - 8))}px`,
+      left:  `${left - origin.x}px`,
+      top:   `${top - origin.y}px`,
       width: `${width}px`,
       right: 'auto',
-    };
-    if (spaceBelow < 240 && r.top > spaceBelow) style['bottom'] = `${window.innerHeight - r.top + 6}px`;
-    else style['top'] = `${r.bottom + 6}px`;
-    this.panelStyle.set(style);
+      bottom: 'auto',
+    });
 
     // Capture phase so scrolling of any ancestor container is caught too.
     this.scrollHandler = () => this.close();
     document.addEventListener('scroll', this.scrollHandler, true);
     window.addEventListener('resize', this.scrollHandler);
+  }
+
+  /**
+   * `position: fixed` resolves against the viewport ONLY if no ancestor
+   * establishes a containing block. A transform / filter / perspective does,
+   * and the pages here carry entrance animations (`.fade-in` ends on
+   * `transform: translateY(0)`, which still counts) — so a fixed panel was
+   * being offset by the whole content area. Returns the origin to subtract.
+   */
+  private fixedOrigin(): { x: number; y: number } {
+    let el: HTMLElement | null = this.host.nativeElement.parentElement;
+    while (el && el !== document.body && el !== document.documentElement) {
+      const s = getComputedStyle(el);
+      if (s.transform !== 'none' || s.perspective !== 'none' || s.filter !== 'none' ||
+          s.willChange.includes('transform') || s.willChange.includes('filter') ||
+          s.contain.includes('paint') || s.contain.includes('layout') ||
+          s.backdropFilter !== 'none') {
+        const r = el.getBoundingClientRect();
+        return { x: r.left, y: r.top };
+      }
+      el = el.parentElement;
+    }
+    return { x: 0, y: 0 };
   }
 
   private releasePanel(): void {

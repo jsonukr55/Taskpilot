@@ -7,6 +7,11 @@
   width: 100%;
 }
 
+:host(.tp-select-host--chip) {
+  display: inline-block;
+  width: auto;
+}
+
 :host(.tp-select-host--pill) {
   display: inline-block;
   width: auto;
@@ -51,6 +56,22 @@
     }
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    // Dense chip variant — sized for a table cell (board status / priority).
+    // The option's `color` swatch carries the meaning, so the surface stays neutral.
+    &--chip {
+      height: 24px;
+      padding: 0 $space-1 0 $space-2;
+      gap: $space-2;
+      border-radius: $radius-sm;
+      border-color: transparent;
+      background-color: var(--bg-tertiary);
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+
+      &:hover:not(:disabled) { border-color: var(--border-default); }
+      .tp-select__chevron { width: 14px; height: 14px; }
+    }
 
     // Compact pill variant (filters)
     &--pill {

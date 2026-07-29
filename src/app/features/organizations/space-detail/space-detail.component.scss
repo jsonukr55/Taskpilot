@@ -253,7 +253,8 @@
 
   &:last-child { border-right: 0; }
   &--task { font-weight: $font-weight-medium; }
-  &--status, &--prio { padding: 0 $space-2; }
+  // overflow must stay visible or the chip's dropdown is clipped by the cell
+  &--status, &--prio { padding: 0 $space-2; overflow: visible; position: relative; }
   &--date { color: var(--text-secondary); font-size: $font-size-xs; }
   &--people { gap: 0; }   // avatars overlap via their own negative margin
   &--empty { grid-column: 1 / -1; color: var(--text-tertiary); justify-content: center; }

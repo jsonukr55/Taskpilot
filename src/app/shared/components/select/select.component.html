@@ -2,6 +2,7 @@
   type="button"
   class="tp-select__control"
   [class.tp-select__control--pill]="pill()"
+  [class.tp-select__control--chip]="chip()"
   [class.open]="open()"
   [disabled]="disabled()"
   [attr.aria-expanded]="open()"
@@ -23,7 +24,7 @@
 </button>
 
 @if (open()) {
-  <ul class="tp-select__panel" role="listbox">
+  <ul class="tp-select__panel" role="listbox" [style]="panelStyle()">
     @for (o of options(); track o.value; let i = $index) {
       <li
         class="tp-select__option"

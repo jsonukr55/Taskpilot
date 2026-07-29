@@ -233,9 +233,8 @@
               @case ('status') {
                 <div class="c c--status">
                   @if (canEdit()) {
-                    <select class="pill" [attr.data-stage]="t.stage" [value]="t.stage" (change)="setStage(t.id, $any($event.target).value)">
-                      @for (o of STAGES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
-                    </select>
+                    <tp-select chip [options]="stageOptions" [value]="t.stage ?? 'created'"
+                               (changed)="setStage(t.id, $event)" />
                   } @else {
                     <span class="pill pill--static" [attr.data-stage]="t.stage">{{ stageLabel(t.stage) }}</span>
                   }
@@ -244,9 +243,8 @@
               @case ('priority') {
                 <div class="c c--prio">
                   @if (canEdit()) {
-                    <select class="pill" [attr.data-prio]="t.priority" [value]="t.priority" (change)="setPriority(t.id, $any($event.target).value)">
-                      @for (o of PRIORITIES; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
-                    </select>
+                    <tp-select chip [options]="priorityOptions" [value]="t.priority"
+                               (changed)="setPriority(t.id, $event)" />
                   } @else {
                     <span class="pill pill--static" [attr.data-prio]="t.priority">{{ priorityLabel(t.priority) }}</span>
                   }

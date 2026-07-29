@@ -502,6 +502,23 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   stageLabel = (s: TaskStage | undefined): string => TASK_STAGE_LABELS[s ?? 'created'] ?? 'Created';
   priorityLabel = (p: TaskPriority): string => PRIORITY_LABELS[p] ?? p;
 
+  // Chip options for <tp-select>: the colour becomes the dot on the chip and
+  // on every row of the dropdown. Hues match the .pill--static fallbacks.
+  private static readonly STAGE_COLORS: Record<TaskStage, string> = {
+    created: '#94a3b8', in_discussion: '#0ea5e9', development: '#f59e0b',
+    done: '#10b981', released: '#8b5cf6', production: '#059669',
+  };
+  private static readonly PRIORITY_COLORS: Record<TaskPriority, string> = {
+    low: '#94a3b8', medium: '#f59e0b', high: '#f43f5e', urgent: '#e11d48',
+  };
+
+  readonly stageOptions: SelectOption[] = TASK_STAGES.map(s => ({
+    value: s.value, label: s.label, color: SpaceDetailComponent.STAGE_COLORS[s.value],
+  }));
+  readonly priorityOptions: SelectOption[] = this.PRIORITIES.map(p => ({
+    value: p.value, label: p.label, color: SpaceDetailComponent.PRIORITY_COLORS[p.value],
+  }));
+
   async setStage(id: string, stage: string): Promise<void> {
     try { await this.tasks.setStage(id, stage as TaskStage); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not update status'); }

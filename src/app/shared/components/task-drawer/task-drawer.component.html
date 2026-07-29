@@ -1,325 +1,344 @@
 <div class="drawer-backdrop" (click)="close()"></div>
 
-<aside class="drawer">
+<!-- data-tone tints the rail + header wash with the task's priority colour. -->
+<aside class="drawer" role="dialog" aria-modal="true" [attr.data-tone]="editPriority()">
 
-  <!-- Top bar: save indicator + close only -->
-  <div class="drawer__topbar">
-    <span class="save-indicator" [class]="'save-indicator--' + saveState()">
-      @if (saveState() === 'saving') { Saving… }
-      @else if (saveState() === 'saved') { Saved }
-      @else if (saveState() === 'error') { Error saving }
-    </span>
-    <button class="drawer__close" (click)="close()"><tp-icon name="x" [size]="16" /></button>
-  </div>
+  <!-- ── Header: context, save state, actions, title, status/priority ── -->
+  <header class="drawer__head">
 
-  <!-- Scrollable body -->
-  <div class="drawer__body">
-
-    <!-- Breadcrumb (shown when drilled into a subtask) -->
-    @if (trail().length > 1) {
-      <nav class="drawer__crumbs">
-        @for (c of trail(); track c.id; let last = $last) {
-          @if (!last) {
-            <button class="drawer__crumb" (click)="focusTask(c.id)">{{ c.title }}</button>
-            <tp-icon name="chevron-right" [size]="13" />
-          } @else {
-            <span class="drawer__crumb drawer__crumb--current">{{ c.title }}</span>
+    <div class="drawer__bar">
+      @if (trail().length > 1) {
+        <nav class="crumbs" aria-label="Parent tasks">
+          @for (c of trail(); track c.id; let last = $last) {
+            @if (!last) {
+              <button class="crumbs__link" (click)="focusTask(c.id)">{{ c.title }}</button>
+              <tp-icon name="chevron-right" [size]="12" />
+            } @else {
+              <span class="crumbs__current">{{ c.title }}</span>
+            }
           }
-        }
-      </nav>
-    }
+        </nav>
+      } @else {
+        <span class="drawer__eyebrow">
+          <tp-icon name="check-square" [size]="13" /> Task
+        </span>
+      }
 
-    <!-- Title -->
+      @if (isOverdue()) {
+        <span class="flag flag--danger"><tp-icon name="alert-circle" [size]="12" /> Overdue</span>
+      }
+
+      <span class="save-pill" [class]="'save-pill--' + saveState()">
+        @if (saveState() === 'saving') { <span class="save-pill__dot"></span> Saving… }
+        @else if (saveState() === 'saved') { <tp-icon name="check" [size]="12" /> Saved }
+        @else if (saveState() === 'error') { <tp-icon name="alert-circle" [size]="12" /> Not saved }
+      </span>
+
+      <tp-menu [items]="menuItems()" />
+
+      <button class="drawer__icon-btn" (click)="close()" aria-label="Close" data-tooltip="Close · Esc">
+        <tp-icon name="x" [size]="18" />
+      </button>
+    </div>
+
     <input
       class="drawer__title"
       [value]="editTitle()"
       (input)="editTitle.set($any($event.target).value); scheduleAutoSave()"
       placeholder="Task title"
+      aria-label="Task title"
       autocomplete="off"
     />
 
     @if (mode() === 'full') {
-    <!-- Property rows (ClickUp style) -->
-    <div class="drawer__props">
-
-      <!-- Status -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="circle" [size]="13" /> Status
-        </span>
-        <div class="drawer__prop-value">
-          @for (s of [['todo','Open'],['in_progress','In Progress'],['completed','Done']]; track s[0]) {
-            <button class="status-chip" [class.active]="editStatus() === s[0]" [attr.data-s]="s[0]"
-              (click)="saveImmediate('status', $any(s[0]))">{{ s[1] }}</button>
-          }
-        </div>
-      </div>
-
-      <!-- Priority -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="flag" [size]="13" /> Priority
-        </span>
-        <div class="drawer__prop-value">
-          @for (p of [['low','Low'],['medium','Medium'],['high','High'],['urgent','Urgent']]; track p[0]) {
-            <button class="priority-chip" [class.active]="editPriority() === p[0]" [attr.data-p]="p[0]"
-              (click)="saveImmediate('priority', $any(p[0]))">{{ p[1] }}</button>
-          }
-        </div>
-      </div>
-
-      <!-- Assignees -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="user" [size]="13" /> Assignees
-        </span>
-        <div class="drawer__prop-value">
-          <div class="drawer-assign" (click)="$event.stopPropagation()">
-            <!-- Assigned people as removable chips -->
-            @for (person of assignees(); track person.uid) {
-              <span class="assignee-chip">
-                <span class="avatar avatar--sm">
-                  @if (person.photoURL) { <img [src]="person.photoURL" alt=""> }
-                  @else { {{ initial(person.displayName) }} }
-                </span>
-                <span class="assignee-chip__name">{{ person.displayName }}</span>
-                <button class="assignee-chip__remove" (click)="toggleAssignee(person.uid)" title="Remove">
-                  <tp-icon name="x" [size]="11" />
-                </button>
-              </span>
-            }
-
-            <!-- Distinct add button -->
-            <button class="assignee-add" (click)="toggleAssignMenu()" [title]="assignees().length ? 'Add assignee' : 'Assign'">
-              <tp-icon name="user-plus" [size]="13" />
-              @if (!assignees().length) { <span>Assign</span> }
+      <!-- The two properties changed most often stay pinned above the scroll,
+           one click per value — no dropdown round-trip. -->
+      <div class="drawer__quick">
+        <div class="seg" role="group" aria-label="Status">
+          @for (s of STATUSES; track s.value) {
+            <button class="seg__btn" [class.is-on]="editStatus() === s.value" [attr.data-s]="s.value"
+              (click)="saveImmediate('status', s.value)">
+              <tp-icon [name]="s.icon" [size]="12" /> {{ s.label }}
             </button>
+          }
+        </div>
 
-            @if (assignMenuOpen()) {
-              <div class="assign-menu">
-                <p class="assign-menu__label">Assign to</p>
-                @if (assignablePeople().length === 0) {
-                  <p class="assign-menu__empty">No people available.</p>
-                }
-                @for (person of assignablePeople(); track person.uid) {
-                  <button class="assign-menu__item" [class.on]="isAssigned(person.uid)"
-                    (click)="toggleAssignee(person.uid)">
+        <div class="seg" role="group" aria-label="Priority">
+          @for (p of PRIORITIES; track p.value) {
+            <button class="seg__btn" [class.is-on]="editPriority() === p.value" [attr.data-p]="p.value"
+              (click)="saveImmediate('priority', p.value)">
+              <span class="seg__dot" [attr.data-p]="p.value"></span> {{ p.label }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </header>
+
+  <!-- ── Scrollable body ── -->
+  <div class="drawer__body">
+
+    @if (mode() === 'full') {
+
+      <!-- Details -->
+      <section class="dsec" data-sec="details">
+        <h3 class="dsec__title"><tp-icon name="layers" [size]="13" /> Details</h3>
+
+        <div class="fields">
+
+          <div class="field field--full" data-f="people">
+            <span class="field__label"><tp-icon name="user" [size]="13" /> Assignees</span>
+            <div class="popover-host" (click)="$event.stopPropagation()">
+              <div class="chipbox chipbox--plain">
+                @for (person of assignees(); track person.uid) {
+                  <span class="chip chip--person">
                     <span class="avatar avatar--sm">
                       @if (person.photoURL) { <img [src]="person.photoURL" alt=""> }
                       @else { {{ initial(person.displayName) }} }
                     </span>
-                    <span class="assign-menu__name">{{ person.displayName }}@if (person.isSelf) { <span class="assign-menu__you">you</span> }</span>
-                    @if (isAssigned(person.uid)) { <tp-icon name="check" [size]="14" /> }
-                  </button>
+                    <span class="chip__text">{{ person.displayName }}</span>
+                    <button class="chip__x" (click)="toggleAssignee(person.uid)"
+                      [attr.aria-label]="'Unassign ' + person.displayName">
+                      <tp-icon name="x" [size]="11" />
+                    </button>
+                  </span>
                 }
+                <button class="chip-add" (click)="toggleAssignMenu()">
+                  <tp-icon name="user-plus" [size]="13" />
+                  {{ assignees().length ? 'Add' : 'Assign' }}
+                </button>
               </div>
+
+              @if (assignMenuOpen()) {
+                <div class="assign-menu">
+                  <p class="assign-menu__label">Assign to</p>
+                  @if (assignablePeople().length === 0) {
+                    <p class="assign-menu__empty">No people available.</p>
+                  }
+                  @for (person of assignablePeople(); track person.uid) {
+                    <button class="assign-menu__item" [class.on]="isAssigned(person.uid)"
+                      (click)="toggleAssignee(person.uid)">
+                      <span class="avatar avatar--sm">
+                        @if (person.photoURL) { <img [src]="person.photoURL" alt=""> }
+                        @else { {{ initial(person.displayName) }} }
+                      </span>
+                      <span class="assign-menu__name">{{ person.displayName }}@if (person.isSelf) { <span class="assign-menu__you">you</span> }</span>
+                      @if (isAssigned(person.uid)) { <tp-icon name="check" [size]="14" /> }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="field" data-f="start">
+            <label class="field__label" for="tp-start"><tp-icon name="play-circle" [size]="13" /> Start date</label>
+            <input id="tp-start" type="date" class="field__input" [value]="editStartDate()"
+              (change)="editStartDate.set($any($event.target).value); scheduleAutoSave()" />
+          </div>
+
+          <div class="field" data-f="due">
+            <label class="field__label" for="tp-due"><tp-icon name="calendar" [size]="13" /> Due date</label>
+            <input id="tp-due" type="date" class="field__input" [class.is-overdue]="isOverdue()"
+              [value]="editDueDate()"
+              (change)="editDueDate.set($any($event.target).value); scheduleAutoSave()" />
+          </div>
+
+          <div class="field" data-f="time">
+            <label class="field__label" for="tp-time"><tp-icon name="clock" [size]="13" /> Due time</label>
+            <input id="tp-time" type="time" class="field__input" [value]="editDueTime()"
+              (change)="editDueTime.set($any($event.target).value); scheduleAutoSave()" />
+          </div>
+
+          <div class="field" data-f="est">
+            <label class="field__label" for="tp-est"><tp-icon name="zap" [size]="13" /> Estimate (hours)</label>
+            @if (hasSubtaskEst()) {
+              <p class="field__static">{{ subtaskEstSum() }}h <span>summed from subtasks</span></p>
+            } @else {
+              <input id="tp-est" type="number" min="0" step="0.5" class="field__input" placeholder="e.g. 2"
+                [value]="editEstHours()"
+                (input)="editEstHours.set($any($event.target).valueAsNumber || null); scheduleAutoSave()" />
             }
           </div>
-        </div>
-      </div>
 
-      <!-- Start date -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="play-circle" [size]="13" /> Start date
-        </span>
-        <div class="drawer__prop-value">
-          <input type="date" class="drawer__input drawer__input--inline" [value]="editStartDate()"
-            (change)="editStartDate.set($any($event.target).value); scheduleAutoSave()" />
-        </div>
-      </div>
-
-      <!-- Due date -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="calendar" [size]="13" /> Due date
-        </span>
-        <div class="drawer__prop-value">
-          <input type="date" class="drawer__input drawer__input--inline" [value]="editDueDate()"
-            (change)="editDueDate.set($any($event.target).value); scheduleAutoSave()"
-            [class.is-overdue]="isOverdue()" />
-        </div>
-      </div>
-
-      <!-- Time -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="clock" [size]="13" /> Due time
-        </span>
-        <div class="drawer__prop-value">
-          <input type="time" class="drawer__input drawer__input--inline" [value]="editDueTime()"
-            (change)="editDueTime.set($any($event.target).value); scheduleAutoSave()" />
-        </div>
-      </div>
-
-      <!-- Tags -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="tag" [size]="13" /> Tags
-        </span>
-        <div class="drawer__prop-value">
-          <input class="drawer__input drawer__input--inline" placeholder="design, backend…"
-            [value]="editTags()"
-            (input)="editTags.set($any($event.target).value); scheduleAutoSave()" />
-        </div>
-      </div>
-
-      <!-- Est. hours (auto from subtasks, else manual) -->
-      <div class="drawer__prop">
-        <span class="drawer__prop-label">
-          <tp-icon name="clock" [size]="13" /> Est. hours
-        </span>
-        <div class="drawer__prop-value">
-          @if (hasSubtaskEst()) {
-            <span class="drawer__est-auto">{{ subtaskEstSum() }}h · auto from subtasks</span>
-          } @else {
-            <input type="number" min="0" step="0.5" class="drawer__input drawer__input--inline" placeholder="e.g. 2"
-              [value]="editEstHours()"
-              (input)="editEstHours.set($any($event.target).valueAsNumber || null); scheduleAutoSave()" />
-          }
-        </div>
-      </div>
-
-      <!-- Category selector — click to toggle -->
-      <div class="drawer__prop drawer__prop--wrap">
-        <span class="drawer__prop-label">
-          <tp-icon name="folder" [size]="13" /> Categories
-        </span>
-        <div class="drawer__prop-value drawer__cats-grid">
-          @for (cat of allCategories(); track cat.id) {
-            <button
-              class="cat-btn"
-              [class.cat-btn--active]="editCategoryIds().includes(cat.id)"
-              [style.--cat-color]="cat.color"
-              (click)="toggleCategory(cat.id)">
-              {{ cat.icon }} {{ cat.name }}
-            </button>
-          }
-        </div>
-      </div>
-
-    </div>
-
-    <div class="drawer__divider"></div>
-
-    <!-- Description -->
-    <div class="drawer__desc-section">
-      <div class="drawer__section-title">
-        <tp-icon name="file-text" [size]="13" />
-        Description
-      </div>
-      <textarea class="drawer__textarea" rows="5" placeholder="Add a description…"
-        [value]="editDesc()"
-        (input)="editDesc.set($any($event.target).value); scheduleAutoSave()"></textarea>
-    </div>
-
-    <!-- Checklist -->
-    <div class="drawer__checklist-section">
-      <div class="drawer__section-title">
-        <tp-icon name="check-square" [size]="13" />
-        Checklist
-        @if (checklistProgress(); as cp) {
-          <span class="drawer__cl-count">{{ cp.done }}/{{ cp.total }}</span>
-        }
-      </div>
-
-      @if (live().checklist.length > 0) {
-        @if (checklistProgress(); as cp) {
-          <div class="drawer__cl-bar"><div class="drawer__cl-fill" [style.width.%]="cp.pct"></div></div>
-        }
-        @for (item of live().checklist; track item.id) {
-          <div class="cl-item" [class.done]="item.completed">
-            <button class="cl-check" [class.checked]="item.completed" (click)="toggleChecklist(item.id)">
-              @if (item.completed) { <tp-icon name="check" [size]="9" /> }
-            </button>
-            <span class="cl-text">{{ item.text }}</span>
+          <div class="field field--full" data-f="tags">
+            <span class="field__label"><tp-icon name="tag" [size]="13" /> Tags</span>
+            <div class="chipbox">
+              @for (tag of editTags(); track tag) {
+                <span class="chip chip--tag">
+                  <span class="chip__text">{{ tag }}</span>
+                  <button class="chip__x" (click)="removeTag(tag)" [attr.aria-label]="'Remove tag ' + tag">
+                    <tp-icon name="x" [size]="11" />
+                  </button>
+                </span>
+              }
+              <input class="chipbox__input" placeholder="Add a tag…" aria-label="Add a tag"
+                [value]="newTag()"
+                (input)="newTag.set($any($event.target).value)"
+                (keydown.enter)="addTag()"
+                (keydown.backspace)="onTagBackspace()"
+                (blur)="addTag()" />
+            </div>
           </div>
-        }
-      }
 
-      <div class="cl-add">
-        <input class="drawer__input" placeholder="Add checklist item…"
-          [value]="newItemText()"
-          (input)="newItemText.set($any($event.target).value)"
-          (keydown.enter)="addChecklistItem()" />
-        <button class="cl-add-btn" (click)="addChecklistItem()" [disabled]="!newItemText().trim()">
-          <tp-icon name="plus" [size]="13" />
-        </button>
-      </div>
-    </div>
+          <div class="field field--full" data-f="cats">
+            <span class="field__label"><tp-icon name="folder" [size]="13" /> Categories</span>
+            <div class="popover-host" (click)="$event.stopPropagation()">
+              <div class="chipbox chipbox--plain">
+                @for (cat of selectedCategories(); track cat.id) {
+                  <span class="chip chip--cat" [style.--cat-color]="cat.color">
+                    <span class="chip__emoji">{{ cat.icon }}</span>
+                    <span class="chip__text">{{ cat.name }}</span>
+                    <button class="chip__x" (click)="toggleCategory(cat.id)"
+                      [attr.aria-label]="'Remove category ' + cat.name">
+                      <tp-icon name="x" [size]="11" />
+                    </button>
+                  </span>
+                }
+                <button class="chip-add" (click)="toggleCatMenu()">
+                  <tp-icon name="plus" [size]="13" />
+                  {{ selectedCategories().length ? 'Add' : 'Categorize' }}
+                </button>
+              </div>
+
+              @if (catMenuOpen()) {
+                <div class="assign-menu">
+                  <p class="assign-menu__label">Categories</p>
+                  @if (allCategories().length === 0) {
+                    <p class="assign-menu__empty">No categories yet.</p>
+                  }
+                  @for (cat of allCategories(); track cat.id) {
+                    <button class="assign-menu__item" [class.on]="editCategoryIds().includes(cat.id)"
+                      (click)="toggleCategory(cat.id)">
+                      <span class="cat-dot" [style.background]="cat.color"></span>
+                      <span class="assign-menu__name">{{ cat.icon }} {{ cat.name }}</span>
+                      @if (editCategoryIds().includes(cat.id)) { <tp-icon name="check" [size]="14" /> }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Description -->
+      <section class="dsec" data-sec="desc">
+        <h3 class="dsec__title"><tp-icon name="file-text" [size]="13" /> Description</h3>
+        <textarea class="dsec__textarea" rows="5" placeholder="Add more detail, links, acceptance criteria…"
+          [value]="editDesc()"
+          (input)="editDesc.set($any($event.target).value); scheduleAutoSave()"></textarea>
+      </section>
+
+      <!-- Checklist -->
+      <section class="dsec" data-sec="check">
+        <h3 class="dsec__title">
+          <tp-icon name="check-square" [size]="13" /> Checklist
+          @if (checklistProgress(); as cp) { <span class="dsec__count">{{ cp.done }}/{{ cp.total }}</span> }
+        </h3>
+
+        @if (checklistProgress(); as cp) {
+          <div class="meter"><span class="meter__fill meter__fill--check" [style.width.%]="cp.pct"></span></div>
+        }
+
+        <div class="rows">
+          @for (item of live().checklist; track item.id) {
+            <div class="row" [class.row--done]="item.completed">
+              <button class="tick" [class.is-on]="item.completed" (click)="toggleChecklist(item.id)"
+                [attr.aria-label]="item.completed ? 'Mark as not done' : 'Mark as done'">
+                @if (item.completed) { <tp-icon name="check" [size]="10" /> }
+              </button>
+              <span class="row__text">{{ item.text }}</span>
+              <button class="row__x" (click)="removeChecklistItem(item.id)" aria-label="Remove item">
+                <tp-icon name="x" [size]="12" />
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="add">
+          <input class="add__input" placeholder="Add checklist item…" aria-label="Add checklist item"
+            [value]="newItemText()"
+            (input)="newItemText.set($any($event.target).value)"
+            (keydown.enter)="addChecklistItem()" />
+          <button class="add__btn" (click)="addChecklistItem()" [disabled]="!newItemText().trim()" aria-label="Add checklist item">
+            <tp-icon name="plus" [size]="14" />
+          </button>
+        </div>
+      </section>
 
     }
 
     <!-- Subtasks -->
-    <div class="drawer__subtask-section">
-      <div class="drawer__section-title">
-        <tp-icon name="list" [size]="13" />
-        Subtasks
-        @if (subtaskProgress(); as sp) {
-          <span class="drawer__cl-count">{{ sp.done }}/{{ sp.total }}</span>
-        }
-      </div>
+    <section class="dsec" data-sec="subs">
+      <h3 class="dsec__title">
+        <tp-icon name="list" [size]="13" /> Subtasks
+        @if (subtaskProgress(); as sp) { <span class="dsec__count">{{ sp.done }}/{{ sp.total }}</span> }
+      </h3>
 
-      @if (subtasks().length > 0) {
-        @if (subtaskProgress(); as sp) {
-          <div class="drawer__cl-bar"><div class="drawer__cl-fill" [style.width.%]="sp.pct"></div></div>
-        }
+      @if (subtaskProgress(); as sp) {
+        <div class="meter"><span class="meter__fill meter__fill--subs" [style.width.%]="sp.pct"></span></div>
+      }
+
+      <div class="rows">
         @for (sub of subtasks(); track sub.id) {
-          <div class="subtask-item" [class.done]="sub.status === 'completed'">
-            <button class="cl-check" [class.checked]="sub.status === 'completed'" (click)="toggleSubtaskStatus(sub)">
-              @if (sub.status === 'completed') { <tp-icon name="check" [size]="9" /> }
+          <div class="row" [class.row--done]="sub.status === 'completed'">
+            <button class="tick" [class.is-on]="sub.status === 'completed'" (click)="toggleSubtaskStatus(sub)"
+              [attr.aria-label]="sub.status === 'completed' ? 'Reopen subtask' : 'Complete subtask'">
+              @if (sub.status === 'completed') { <tp-icon name="check" [size]="10" /> }
             </button>
-            <button class="subtask-item__title subtask-item__open" (click)="openSubtask(sub)" data-tooltip="Open subtask">
+            <button class="row__text row__text--link" (click)="openSubtask(sub)" data-tooltip="Open subtask">
               {{ sub.title }}
-              @if (childCount(sub.id); as n) { <span class="subtask-item__kids"><tp-icon name="list" [size]="10" /> {{ n }}</span> }
             </button>
-            <span class="subtask-item__priority" [attr.data-p]="sub.priority">
-              <tp-icon name="flag" [size]="10" />
+            @if (childCount(sub.id); as n) {
+              <span class="row__kids"><tp-icon name="list" [size]="10" /> {{ n }}</span>
+            }
+            <span class="row__flag" data-tooltip [attr.data-p]="sub.priority" [attr.data-tooltip]="sub.priority + ' priority'">
+              <tp-icon name="flag" [size]="11" />
             </span>
-            <button class="subtask-item__delete" (click)="deleteSubtask(sub.id)">
-              <tp-icon name="x" [size]="10" />
+            <button class="row__x" (click)="deleteSubtask(sub.id)" aria-label="Delete subtask">
+              <tp-icon name="x" [size]="12" />
             </button>
           </div>
         }
-      }
+      </div>
 
-      <div class="cl-add">
-        <input class="drawer__input" placeholder="Add subtask…"
+      <div class="add">
+        <input class="add__input" placeholder="Add subtask…" aria-label="Add subtask"
           [value]="newSubtaskTitle()"
           (input)="newSubtaskTitle.set($any($event.target).value)"
           (keydown.enter)="addSubtask()" />
-        <button class="cl-add-btn" (click)="addSubtask()" [disabled]="!newSubtaskTitle().trim()">
-          <tp-icon name="plus" [size]="13" />
+        <button class="add__btn" (click)="addSubtask()" [disabled]="!newSubtaskTitle().trim()" aria-label="Add subtask">
+          <tp-icon name="plus" [size]="14" />
         </button>
       </div>
-    </div>
+    </section>
 
     <!-- Attachments -->
-    <div class="drawer__comments">
+    <section class="dsec">
       <tp-task-attachments [taskId]="activeId()" />
-    </div>
+    </section>
 
-    <!-- Comments -->
-    <div class="drawer__comments">
+    <!-- Comments / activity -->
+    <section class="dsec">
       <tp-task-comments [taskId]="activeId()" />
-    </div>
+    </section>
 
     <!-- AI suggestion -->
     @if (live().aiMetadata?.schedulingSuggestion) {
-      <div class="drawer__ai-hint">
-        <tp-icon name="sparkles" [size]="13" />
+      <div class="ai-hint">
+        <tp-icon name="sparkles" [size]="14" />
         {{ live().aiMetadata!.schedulingSuggestion }}
       </div>
     }
 
   </div>
 
-  <!-- Footer -->
-  <div class="drawer__footer">
-    <button class="drawer__delete" (click)="deleteTask()">
-      <tp-icon name="trash-2" [size]="14" /> Delete
-    </button>
-    <button class="drawer__close-btn" (click)="close()">Close</button>
-  </div>
+  <!-- ── Footer: provenance only; every edit autosaves ── -->
+  <footer class="drawer__foot">
+    <span>Created {{ timeAgo(live().createdAt) }}</span>
+    <span>Updated {{ timeAgo(live().updatedAt) }}</span>
+  </footer>
 
 </aside>

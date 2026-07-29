@@ -521,6 +521,13 @@ export class TaskService {
     return this.updateTask(taskId, { checklist: [...task.checklist, newItem] } as Partial<Task>);
   }
 
+  removeChecklistItem(taskId: string, itemId: string): Promise<void> {
+    const task = this.tasks().find(t => t.id === taskId);
+    if (!task) return Promise.resolve();
+    const checklist = task.checklist.filter(item => item.id !== itemId);
+    return this.updateTask(taskId, { checklist } as Partial<Task>);
+  }
+
   // ---- Query Helpers (pure over signals — unchanged) ----
 
   getTaskById(id: string): Task | undefined {

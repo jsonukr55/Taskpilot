@@ -15,14 +15,9 @@
 :host(.tp-select-host--pill) {
   display: inline-block;
   width: auto;
-
-  // A pill is narrower than the panel's min-width, and it usually sits at the
-  // right end of a row (member lists), so grow the panel leftwards — anchored
-  // left it would spill past the container's right edge.
-  .tp-select__panel {
-    left: auto;
-    right: 0;
-  }
+  // Side is decided at runtime (positionPanel): anchored to the control's left
+  // edge, flipped only when that would overflow. A fixed `right: 0` made every
+  // pill in a left-aligned toolbar hang off to the left.
 }
 
 .tp-select {

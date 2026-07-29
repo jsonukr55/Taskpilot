@@ -97,7 +97,9 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
    * there isn't room below, and closes on any scroll so it can't detach.
    */
   private positionPanel(): void {
-    if (!this.chip()) return;
+    // Compact variants only. A full-width select's panel spans its own field,
+    // where the default absolute left/right: 0 is already correct.
+    if (!this.chip() && !this.pill()) return;
     const el = this.host.nativeElement.querySelector('.tp-select__control') as HTMLElement | null;
     if (!el) return;
 
@@ -110,7 +112,12 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     const spaceBelow = window.innerHeight - r.bottom;
     const openUp = spaceBelow < height && r.top > spaceBelow;
 
-    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+    // Anchor to the control's left edge; if that would run off the right of
+    // the viewport, align the panel's right edge to the control's instead.
+    const overflowsRight = r.left + width > window.innerWidth - 8;
+    const left = overflowsRight
+      ? Math.max(8, r.right - width)
+      : r.left;
     const top  = openUp ? r.top - height - 6 : r.bottom + 6;
 
     this.panelStyle.set({

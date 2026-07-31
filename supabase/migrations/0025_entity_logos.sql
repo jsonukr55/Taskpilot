@@ -41,7 +41,7 @@ create or replace function can_manage_logo(kind text, entity_id text)
   set search_path = public as $$
 begin
   case kind
-    when 'clients'       then return is_global_admin();
+    when 'clients'       then return is_platform_owner();  -- client edits are Owner-only (0024)
     when 'organizations' then return can_manage_org(entity_id);
     when 'spaces'        then return exists (
       select 1 from spaces s

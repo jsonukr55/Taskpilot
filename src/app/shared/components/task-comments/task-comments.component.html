@@ -57,17 +57,46 @@
 
   @if (canComment()) {
     <div class="tc__compose">
+      @if (draftImages().length) {
+        <div class="tc-drafts">
+          @for (im of draftImages(); track im.url; let i = $index) {
+            <div class="tc-draft">
+              <img [src]="im.url" alt="">
+              <button class="tc-draft__x" (click)="removeDraftImage(i)" aria-label="Remove image">
+                <tp-icon name="x" [size]="12" />
+              </button>
+            </div>
+          }
+        </div>
+      }
       <textarea class="form-textarea" rows="2" placeholder="Add a comment…"
                 [ngModel]="draft()" (ngModelChange)="draft.set($event)"
                 (keydown.enter)="$event.preventDefault(); post()"></textarea>
-      <button class="btn-primary btn-sm" (click)="post()" [disabled]="!draft().trim()">
-        <tp-icon name="send" [size]="14" /> Comment
-      </button>
+      <div class="tc__compose-actions">
+        <label class="tc__attach" data-tooltip="Add images">
+          <tp-icon name="image" [size]="16" />
+          <input type="file" accept="image/*" multiple hidden (change)="pickImages($event)">
+        </label>
+        <button class="btn-primary btn-sm" (click)="post()"
+                [disabled]="posting() || (!draft().trim() && !draftImages().length)">
+          <tp-icon name="send" [size]="14" /> {{ posting() ? 'Posting…' : 'Comment' }}
+        </button>
+      </div>
     </div>
   }
 
   }
 </div>
+
+<!-- Full-size image preview -->
+@if (lightbox()) {
+  <div class="tc-lightbox" (click)="closeLightbox()">
+    <img [src]="lightbox()!" alt="comment image" (click)="$event.stopPropagation()">
+    <button class="tc-lightbox__close" (click)="closeLightbox()" aria-label="Close">
+      <tp-icon name="x" [size]="20" />
+    </button>
+  </div>
+}
 
 <!-- One comment (used for both a post and a reply) -->
 <ng-template #commentTpl let-c>
@@ -88,7 +117,17 @@
           <button class="btn-sm btn-ghost" (click)="cancelEdit()">Cancel</button>
         </div>
       } @else {
-        <p class="comment__text">{{ c.body }}</p>
+        @if (c.body) { <p class="comment__text">{{ c.body }}</p> }
+        @if (c.images.length) {
+          <div class="comment__images">
+            @for (p of c.images; track p) {
+              <button class="comment__img" (click)="openLightbox(p)" [disabled]="!imgUrl(p)" title="View image">
+                @if (imgUrl(p)) { <img [src]="imgUrl(p)" alt="comment image" loading="lazy"> }
+                @else { <span class="comment__img-skel"></span> }
+              </button>
+            }
+          </div>
+        }
         @if (canModify(c)) {
           <div class="comment__actions">
             <button (click)="startEdit(c)">Edit</button>

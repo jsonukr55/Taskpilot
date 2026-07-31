@@ -40,10 +40,42 @@ export class TaskCommentsComponent implements OnDestroy {
   readonly editId    = signal<string | null>(null);
   readonly editText  = signal('');
 
+  // Images being attached to the post being composed (local previews).
+  readonly draftImages = signal<{ file: File; url: string }[]>([]);
+  readonly posting     = signal(false);
+
+  // Resolved signed URLs for images already posted (path -> url).
+  private readonly urlCache = signal<Record<string, string>>({});
+  imgUrl = (path: string): string => this.urlCache()[path] ?? '';
+
+  // Full-size preview
+  readonly lightbox = signal<string | null>(null);
+
   constructor() {
     effect(() => { const id = this.taskId(); this.svc.open(id); this.act.open(id); });
+    // Resolve signed URLs for any newly-seen comment images (deferred out of
+    // the reactive context so the signal writes don't need allowSignalWrites).
+    effect(() => {
+      const paths = [...new Set(this.svc.comments().flatMap(c => c.images))];
+      queueMicrotask(() => void this.ensureUrls(paths));
+    });
   }
-  ngOnDestroy(): void { this.svc.close(); this.act.close(); }
+  ngOnDestroy(): void { this.svc.close(); this.act.close(); this.clearDraftImages(); }
+
+  private async ensureUrls(paths: string[]): Promise<void> {
+    const cache = this.urlCache();
+    const missing = paths.filter(p => p && !cache[p]);
+    if (!missing.length) return;
+    const entries = await Promise.all(missing.map(async p => {
+      try { return [p, await this.svc.signedUrl(p)] as const; }
+      catch { return [p, ''] as const; }
+    }));
+    this.urlCache.update(c => {
+      const next = { ...c };
+      for (const [p, u] of entries) if (u) next[p] = u;
+      return next;
+    });
+  }
 
   activityTime = (a: TaskActivity): string => {
     const d = a.createdAt?.toDate?.();
@@ -68,12 +100,50 @@ export class TaskCommentsComponent implements OnDestroy {
     return d.toLocaleDateString();
   };
 
+  // ---- Compose images ----
+  pickImages(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';   // allow re-picking the same file
+    for (const f of files) {
+      if (!f.type.startsWith('image/')) { this.toast.error(`"${f.name}" isn't an image.`); continue; }
+      if (f.size > 10 * 1024 * 1024)    { this.toast.error(`"${f.name}" is over the 10 MB limit.`); continue; }
+      this.draftImages.update(list => [...list, { file: f, url: URL.createObjectURL(f) }]);
+    }
+  }
+
+  removeDraftImage(i: number): void {
+    this.draftImages.update(list => {
+      const item = list[i];
+      if (item) URL.revokeObjectURL(item.url);
+      return list.filter((_, idx) => idx !== i);
+    });
+  }
+
+  private clearDraftImages(): void {
+    for (const it of this.draftImages()) URL.revokeObjectURL(it.url);
+    this.draftImages.set([]);
+  }
+
+  openLightbox(path: string): void { const u = this.imgUrl(path); if (u) this.lightbox.set(u); }
+  closeLightbox(): void { this.lightbox.set(null); }
+
   async post(): Promise<void> {
     const body = this.draft().trim();
-    if (!body) return;
-    this.draft.set('');
-    try { await this.svc.add(this.taskId(), body); }
-    catch (e: any) { this.toast.error(e?.message ?? 'Could not post the comment'); }
+    const imgs = this.draftImages();
+    if (!body && !imgs.length) return;
+    this.posting.set(true);
+    try {
+      const paths: string[] = [];
+      for (const it of imgs) paths.push(await this.svc.uploadImage(this.taskId(), it.file));
+      await this.svc.add(this.taskId(), body, null, paths);
+      this.draft.set('');
+      this.clearDraftImages();
+    } catch (e: any) {
+      this.toast.error(e?.message ?? 'Could not post the comment');
+    } finally {
+      this.posting.set(false);
+    }
   }
 
   openReply(parentId: string): void {
@@ -103,7 +173,7 @@ export class TaskCommentsComponent implements OnDestroy {
 
   async remove(c: TaskComment): Promise<void> {
     if (!(await this.dialog.confirm({ title: 'Delete comment', message: 'Delete this comment?', confirmText: 'Delete', danger: true }))) return;
-    try { await this.svc.remove(c.id); }
+    try { await this.svc.remove(c.id, c.images); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the comment'); }
   }
 }

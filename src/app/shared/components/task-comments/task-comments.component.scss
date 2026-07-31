@@ -49,8 +49,73 @@
     display: flex;
     flex-direction: column;
     gap: $space-2;
-    align-items: flex-end;
+    align-items: stretch;
     .form-textarea { width: 100%; resize: vertical; min-height: 56px; }
+  }
+  &__compose-actions { @include flex-between; gap: $space-2; }
+
+  // Add-images button (wraps a hidden file input)
+  &__attach {
+    @include flex-center;
+    width: 32px; height: 32px;
+    border-radius: $radius-md;
+    color: var(--text-secondary);
+    cursor: pointer;
+    &:hover { color: var(--text-brand); background: var(--bg-tertiary); }
+  }
+}
+
+// ---- Pending images on the composer ----
+.tc-drafts { display: flex; flex-wrap: wrap; gap: $space-2; }
+.tc-draft {
+  position: relative;
+  width: 64px; height: 64px;
+  border-radius: $radius-md;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  &__x {
+    position: absolute; top: 2px; right: 2px;
+    @include flex-center;
+    width: 18px; height: 18px;
+    border: 0; border-radius: $radius-full;
+    background: rgba(0,0,0,0.6); color: #fff;
+    cursor: pointer;
+    &:hover { background: rgba(0,0,0,0.8); }
+  }
+}
+
+// ---- Posted images inside a comment ----
+.comment__images {
+  display: flex; flex-wrap: wrap; gap: $space-2;
+  margin-top: $space-2;
+}
+.comment__img {
+  padding: 0; border: 1px solid var(--border-subtle);
+  border-radius: $radius-md; overflow: hidden;
+  background: var(--bg-tertiary); cursor: pointer;
+  width: 120px; height: 120px;
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  &:hover { border-color: var(--accent-500); }
+  &[disabled] { cursor: default; }
+  &-skel { display: block; width: 100%; height: 100%; @include shimmer; }
+}
+
+// ---- Lightbox ----
+.tc-lightbox {
+  position: fixed; inset: 0; z-index: 1000;
+  @include flex-center;
+  background: rgba(0,0,0,0.8);
+  padding: $space-6;
+  img { max-width: 92vw; max-height: 88vh; border-radius: $radius-md; box-shadow: $shadow-xl; }
+  &__close {
+    position: absolute; top: $space-4; right: $space-4;
+    @include flex-center;
+    width: 40px; height: 40px;
+    border: 0; border-radius: $radius-full;
+    background: rgba(255,255,255,0.12); color: #fff;
+    cursor: pointer;
+    &:hover { background: rgba(255,255,255,0.22); }
   }
 }
 

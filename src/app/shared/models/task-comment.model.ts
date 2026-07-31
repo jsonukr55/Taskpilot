@@ -2,8 +2,9 @@ import { Timestamp } from '@angular/fire/firestore';
 
 // ============================================================
 // Task comment — a message on a task. `parentId` forms a one-level
-// post → replies thread (null = a top-level post). Image attachments
-// arrive with the file-storage epic (Epic 6).
+// post → replies thread (null = a top-level post). `images` holds object
+// paths (in the private "attachments" bucket) of pictures posted with the
+// comment; the UI renders each via a short-lived signed URL.
 // ============================================================
 
 export interface TaskComment {
@@ -14,6 +15,7 @@ export interface TaskComment {
   authorName:  string;
   authorPhoto: string | null;
   body:        string;
+  images:      string[];   // storage object paths (attachments bucket)
   createdAt:   Timestamp;
   updatedAt:   Timestamp;
 }

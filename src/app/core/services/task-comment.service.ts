@@ -2,8 +2,11 @@ import { Injectable, inject, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
+import { StorageService } from './storage.service';
 import { TaskComment } from '@shared/models/task-comment.model';
 import { toTs } from './supabase-map.util';
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;   // 10 MB per comment image
 
 // ============================================================
 // TaskCommentService — threaded comments for the currently open task.
@@ -16,6 +19,7 @@ import { toTs } from './supabase-map.util';
 export class TaskCommentService {
   private readonly supa = inject(SupabaseService);
   private readonly auth = inject(AuthService);
+  private readonly storage = inject(StorageService);
 
   readonly comments = signal<TaskComment[]>([]);
   private taskId?: string;
@@ -50,7 +54,7 @@ export class TaskCommentService {
 
   // ---- Mutations ----
 
-  async add(taskId: string, body: string, parentId: string | null = null): Promise<void> {
+  async add(taskId: string, body: string, parentId: string | null = null, images: string[] = []): Promise<void> {
     const uid = this.auth.userId();
     if (!uid) throw new Error('Not authenticated');
     const { error } = await this.supa.db('task_comments').insert({
@@ -60,6 +64,7 @@ export class TaskCommentService {
       author_name:  this.auth.displayName() || 'You',
       author_photo: this.auth.photoURL() ?? null,
       body:         body.trim(),
+      image_paths:  images,
     });
     if (error) throw error;
   }
@@ -69,9 +74,27 @@ export class TaskCommentService {
     if (error) throw error;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, images: string[] = []): Promise<void> {
     const { error } = await this.supa.db('task_comments').delete().eq('id', id);
     if (error) throw error;
+    if (images.length) await this.storage.remove(images).catch(() => {});   // best-effort
+  }
+
+  // ---- Comment images (private "attachments" bucket) ----
+
+  /** Validate + upload one image; returns its object path (store on the comment). */
+  async uploadImage(taskId: string, file: File): Promise<string> {
+    if (!file.type.startsWith('image/')) throw new Error('Only image files can be added to a comment.');
+    if (file.size > MAX_IMAGE_BYTES)     throw new Error('That image is over the 10 MB limit.');
+    const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase() : 'png';
+    const path = `${taskId}/comments/${crypto.randomUUID()}.${ext}`;
+    await this.storage.upload(path, file);
+    return path;
+  }
+
+  /** Short-lived signed URL to render a stored comment image. */
+  signedUrl(path: string): Promise<string> {
+    return this.storage.signedUrl(path);
   }
 }
 
@@ -86,6 +109,7 @@ function rowToComment(r: any): TaskComment {
     authorName:  r.author_name,
     authorPhoto: r.author_photo ?? null,
     body:        r.body,
+    images:      r.image_paths ?? [],
     createdAt:   toTs(r.created_at) as any,
     updatedAt:   toTs(r.updated_at) as any,
   };

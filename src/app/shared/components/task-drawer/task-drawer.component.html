@@ -41,14 +41,15 @@
       </button>
     </div>
 
-    <input
+    <textarea
       class="drawer__title"
+      rows="1"
       [value]="editTitle()"
       (input)="editTitle.set($any($event.target).value); scheduleAutoSave()"
       placeholder="Task title"
       aria-label="Task title"
       autocomplete="off"
-    />
+    ></textarea>
 
     @if (mode() === 'full') {
       <!-- The two properties changed most often stay pinned above the scroll,
@@ -270,57 +271,7 @@
 
     }
 
-    <!-- Subtasks -->
-    <section class="dsec" data-sec="subs">
-      <h3 class="dsec__title">
-        <tp-icon name="list" [size]="13" /> Subtasks
-        @if (subtaskProgress(); as sp) { <span class="dsec__count">{{ sp.done }}/{{ sp.total }}</span> }
-      </h3>
-
-      @if (subtaskProgress(); as sp) {
-        <div class="meter"><span class="meter__fill meter__fill--subs" [style.width.%]="sp.pct"></span></div>
-      }
-
-      <div class="rows">
-        @for (sub of subtasks(); track sub.id) {
-          <div class="row" [class.row--done]="sub.status === 'completed'">
-            <button class="tick" [class.is-on]="sub.status === 'completed'" (click)="toggleSubtaskStatus(sub)"
-              [attr.aria-label]="sub.status === 'completed' ? 'Reopen subtask' : 'Complete subtask'">
-              @if (sub.status === 'completed') { <tp-icon name="check" [size]="10" /> }
-            </button>
-            <button class="row__text row__text--link" (click)="openSubtask(sub)" data-tooltip="Open subtask">
-              {{ sub.title }}
-            </button>
-            @if (childCount(sub.id); as n) {
-              <span class="row__kids"><tp-icon name="list" [size]="10" /> {{ n }}</span>
-            }
-            <span class="row__flag" data-tooltip [attr.data-p]="sub.priority" [attr.data-tooltip]="sub.priority + ' priority'">
-              <tp-icon name="flag" [size]="11" />
-            </span>
-            <button class="row__x" (click)="deleteSubtask(sub.id)" aria-label="Delete subtask">
-              <tp-icon name="x" [size]="12" />
-            </button>
-          </div>
-        }
-      </div>
-
-      <div class="add">
-        <input class="add__input" placeholder="Add subtask…" aria-label="Add subtask"
-          [value]="newSubtaskTitle()"
-          (input)="newSubtaskTitle.set($any($event.target).value)"
-          (keydown.enter)="addSubtask()" />
-        <button class="add__btn" (click)="addSubtask()" [disabled]="!newSubtaskTitle().trim()" aria-label="Add subtask">
-          <tp-icon name="plus" [size]="14" />
-        </button>
-      </div>
-    </section>
-
-    <!-- Attachments -->
-    <section class="dsec">
-      <tp-task-attachments [taskId]="activeId()" />
-    </section>
-
-    <!-- Comments / activity -->
+    <!-- Posts / activity (image uploads live in the post composer) -->
     <section class="dsec">
       <tp-task-comments [taskId]="activeId()" />
     </section>

@@ -187,6 +187,16 @@
   outline: none;
   transition: background $transition-fast, border-color $transition-fast;
 
+  // Wrap long titles and grow to fit instead of truncating on one line.
+  display: block;
+  font-family: inherit;
+  resize: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  max-height: 30vh;
+  field-sizing: content;   // auto-height to content (Chromium); harmless elsewhere
+
   &::placeholder { color: var(--text-tertiary); }
   &:hover { background: var(--bg-tertiary); }
   &:focus {

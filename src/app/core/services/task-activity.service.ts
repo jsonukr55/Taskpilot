@@ -22,12 +22,14 @@ export class TaskActivityService {
     this.close();
     this.taskId = taskId;
     void this.load(taskId);
-    this.channel = this.supa.client
-      .channel(`task_activity:${taskId}`)
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'task_activity', filter: `task_id=eq.${taskId}` },
-        () => void this.load(taskId))
-      .subscribe();
+    try {
+      this.channel = this.supa.client
+        .channel(`task_activity:${taskId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'task_activity', filter: `task_id=eq.${taskId}` },
+          () => void this.load(taskId))
+        .subscribe();
+    } catch (e) { console.error('[activity realtime]', e); }
   }
 
   close(): void {
@@ -37,10 +39,15 @@ export class TaskActivityService {
   }
 
   private async load(taskId: string): Promise<void> {
-    const { data } = await this.supa.db('task_activity')
-      .select('*').eq('task_id', taskId).order('created_at', { ascending: false });
-    if (this.taskId !== taskId) return;
-    this.activity.set((data ?? []).map(rowToActivity));
+    try {
+      const { data, error } = await this.supa.db('task_activity')
+        .select('*').eq('task_id', taskId).order('created_at', { ascending: false });
+      if (this.taskId !== taskId) return;
+      if (error) console.error('[activity load]', error);
+      this.activity.set((data ?? []).map(rowToActivity));
+    } catch (e) {
+      console.error('[activity load threw]', e);
+    }
   }
 }
 

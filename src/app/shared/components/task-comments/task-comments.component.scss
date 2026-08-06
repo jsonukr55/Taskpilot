@@ -101,6 +101,33 @@
   &-skel { display: block; width: 100%; height: 100%; @include shimmer; }
 }
 
+// ---- Formatting toolbar ----
+.tc__toolbar { display: flex; gap: $space-1; }
+.tc__fmt {
+  @include flex-center;
+  width: 26px; height: 26px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  border-radius: $radius-sm;
+  color: var(--text-secondary);
+  font-size: $font-size-sm; font-family: $font-sans; line-height: 1;
+  cursor: pointer;
+  &:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+  &--b { font-weight: $font-weight-bold; }
+  &--i { font-style: italic; }
+  &--s { text-decoration: line-through; }
+  &--c { font-family: monospace; font-size: $font-size-xs; }
+}
+
+// Inline markdown rendered inside a post body
+.comment__text {
+  code {
+    font-family: monospace; font-size: 0.85em;
+    background: var(--bg-tertiary); padding: 1px 4px; border-radius: $radius-sm;
+  }
+  a { color: var(--text-brand); text-decoration: underline; word-break: break-all; }
+}
+
 // ---- Lightbox ----
 .tc-lightbox {
   position: fixed; inset: 0; z-index: 1000;

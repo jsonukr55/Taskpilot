@@ -18,11 +18,14 @@ import { TaskActivity } from '@shared/models/task-activity.model';
   styleUrl:    './task-comments.component.scss'
 })
 export class TaskCommentsComponent implements OnDestroy {
-  taskId     = input.required<string>();
+  // Not input.required: a constructor effect reads this eagerly, and reading a
+  // required input before it's bound throws (NG0950) and leaves the effect dead,
+  // so the initial load never fires. Default '' + guard is reliable.
+  taskId     = input<string>('');
   canComment = input<boolean>(true);
 
   private readonly svc   = inject(TaskCommentService);
-  private readonly act   = inject(TaskActivityService);
+  readonly act           = inject(TaskActivityService);
   readonly auth          = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
@@ -52,7 +55,11 @@ export class TaskCommentsComponent implements OnDestroy {
   readonly lightbox = signal<string | null>(null);
 
   constructor() {
-    effect(() => { const id = this.taskId(); this.svc.open(id); this.act.open(id); });
+    effect(() => {
+      const id = this.taskId(); if (!id) return;
+      try { this.svc.open(id); } catch (e) { console.error('[comments open]', e); }
+      try { this.act.open(id); } catch (e) { console.error('[activity open]', e); }
+    });
     // Resolve signed URLs for any newly-seen comment images (deferred out of
     // the reactive context so the signal writes don't need allowSignalWrites).
     effect(() => {
@@ -128,6 +135,39 @@ export class TaskCommentsComponent implements OnDestroy {
   openLightbox(path: string): void { const u = this.imgUrl(path); if (u) this.lightbox.set(u); }
   closeLightbox(): void { this.lightbox.set(null); }
 
+  /** Wrap the composer's selection with markdown markers (bold/italic/etc.). */
+  wrap(el: HTMLTextAreaElement, before: string, after: string = before): void {
+    const s = el.selectionStart ?? 0, e = el.selectionEnd ?? 0;
+    const v = this.draft();
+    const sel = v.slice(s, e) || 'text';
+    this.draft.set(v.slice(0, s) + before + sel + after + v.slice(e));
+    queueMicrotask(() => { el.focus(); el.setSelectionRange(s + before.length, s + before.length + sel.length); });
+  }
+
+  /** Minimal, safe markdown → HTML for rendering a post body. HTML is escaped
+   *  first, then only a fixed set of inline tags is introduced; Angular's
+   *  [innerHTML] sanitizer keeps strong/em/del/code/a/br and drops anything else. */
+  renderBody(text: string): string {
+    const esc = (text ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return esc
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+      .replace(/(^|[^\w])_([^_\n]+)_/g, '$1<em>$2</em>')
+      .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+  }
+
+  /** Enter posts; Shift+Enter inserts a newline (posts can be multi-line). */
+  onComposerEnter(e: Event): void {
+    const ke = e as KeyboardEvent;
+    if (ke.shiftKey) return;
+    ke.preventDefault();
+    void this.post();
+  }
+
   async post(): Promise<void> {
     const body = this.draft().trim();
     const imgs = this.draftImages();
@@ -172,7 +212,7 @@ export class TaskCommentsComponent implements OnDestroy {
   }
 
   async remove(c: TaskComment): Promise<void> {
-    if (!(await this.dialog.confirm({ title: 'Delete comment', message: 'Delete this comment?', confirmText: 'Delete', danger: true }))) return;
+    if (!(await this.dialog.confirm({ title: 'Delete post', message: 'Delete this post?', confirmText: 'Delete', danger: true }))) return;
     try { await this.svc.remove(c.id, c.images); }
     catch (e: any) { this.toast.error(e?.message ?? 'Could not delete the comment'); }
   }

@@ -31,12 +31,14 @@ export class TaskCommentService {
     this.close();
     this.taskId = taskId;
     void this.load(taskId);
-    this.channel = this.supa.client
-      .channel(`task_comments:${taskId}`)
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'task_comments', filter: `task_id=eq.${taskId}` },
-        () => void this.load(taskId))
-      .subscribe();
+    try {
+      this.channel = this.supa.client
+        .channel(`task_comments:${taskId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'task_comments', filter: `task_id=eq.${taskId}` },
+          () => void this.load(taskId))
+        .subscribe();
+    } catch (e) { console.error('[comments realtime]', e); }
   }
 
   close(): void {
@@ -46,10 +48,12 @@ export class TaskCommentService {
   }
 
   private async load(taskId: string): Promise<void> {
-    const { data } = await this.supa.db('task_comments').select('*').eq('task_id', taskId);
-    // Ignore a stale response if the open task changed mid-flight.
-    if (this.taskId !== taskId) return;
-    this.comments.set((data ?? []).map(rowToComment));
+    try {
+      const { data } = await this.supa.db('task_comments').select('*').eq('task_id', taskId);
+      // Ignore a stale response if the open task changed mid-flight.
+      if (this.taskId !== taskId) return;
+      this.comments.set((data ?? []).map(rowToComment));
+    } catch (e) { console.error('[comments load threw]', e); }
   }
 
   // ---- Mutations ----

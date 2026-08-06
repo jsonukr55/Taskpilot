@@ -1,7 +1,7 @@
 <div class="tc">
   <div class="tc__tabs">
     <button class="tc__tab" [class.active]="tab() === 'comments'" (click)="tab.set('comments')">
-      <tp-icon name="message-circle" [size]="14" /> Comments @if (count()) { <span class="tc__count">{{ count() }}</span> }
+      <tp-icon name="message-circle" [size]="14" /> Posts @if (count()) { <span class="tc__count">{{ count() }}</span> }
     </button>
     <button class="tc__tab" [class.active]="tab() === 'activity'" (click)="tab.set('activity')">
       <tp-icon name="clock" [size]="14" /> Activity @if (activityCount()) { <span class="tc__count">{{ activityCount() }}</span> }
@@ -51,7 +51,7 @@
         }
       </div>
     } @empty {
-      <p class="tc__empty">No comments yet.@if (canComment()) {  Start the discussion.}</p>
+      <p class="tc__empty">No posts yet.@if (canComment()) {  Start the discussion.}</p>
     }
   </div>
 
@@ -69,9 +69,15 @@
           }
         </div>
       }
-      <textarea class="form-textarea" rows="2" placeholder="Add a comment…"
+      <div class="tc__toolbar">
+        <button type="button" class="tc__fmt tc__fmt--b" (click)="wrap(composer, '**')" data-tooltip="Bold">B</button>
+        <button type="button" class="tc__fmt tc__fmt--i" (click)="wrap(composer, '*')" data-tooltip="Italic">I</button>
+        <button type="button" class="tc__fmt tc__fmt--s" (click)="wrap(composer, '~~')" data-tooltip="Strikethrough">S</button>
+        <button type="button" class="tc__fmt tc__fmt--c" (click)="wrap(composer, '`')" data-tooltip="Code">&lt;/&gt;</button>
+      </div>
+      <textarea #composer class="form-textarea" rows="2" placeholder="Write a post…  (**bold**, *italic*, Shift+Enter for a new line)"
                 [ngModel]="draft()" (ngModelChange)="draft.set($event)"
-                (keydown.enter)="$event.preventDefault(); post()"></textarea>
+                (keydown.enter)="onComposerEnter($event)"></textarea>
       <div class="tc__compose-actions">
         <label class="tc__attach" data-tooltip="Add images">
           <tp-icon name="image" [size]="16" />
@@ -79,7 +85,7 @@
         </label>
         <button class="btn-primary btn-sm" (click)="post()"
                 [disabled]="posting() || (!draft().trim() && !draftImages().length)">
-          <tp-icon name="send" [size]="14" /> {{ posting() ? 'Posting…' : 'Comment' }}
+          <tp-icon name="send" [size]="14" /> {{ posting() ? 'Posting…' : 'Post' }}
         </button>
       </div>
     </div>
@@ -117,7 +123,7 @@
           <button class="btn-sm btn-ghost" (click)="cancelEdit()">Cancel</button>
         </div>
       } @else {
-        @if (c.body) { <p class="comment__text">{{ c.body }}</p> }
+        @if (c.body) { <p class="comment__text" [innerHTML]="renderBody(c.body)"></p> }
         @if (c.images.length) {
           <div class="comment__images">
             @for (p of c.images; track p) {

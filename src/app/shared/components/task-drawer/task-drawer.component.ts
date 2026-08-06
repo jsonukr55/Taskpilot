@@ -9,7 +9,6 @@ import { ToastService } from '@core/services/toast.service';
 import { IconComponent } from '../icon/icon.component';
 import { MenuComponent, MenuItem } from '../menu/menu.component';
 import { TaskCommentsComponent } from '../task-comments/task-comments.component';
-import { TaskAttachmentsComponent } from '../task-attachments/task-attachments.component';
 import { ShowPickerDirective } from '@shared/directives/show-picker.directive';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { Task, TaskStatus, TaskPriority, ChecklistItem } from '@shared/models/task.model';
@@ -21,7 +20,7 @@ import { Timestamp } from '@angular/fire/firestore';
   standalone: true,
   imports: [
     FormsModule, IconComponent, MenuComponent, TaskCommentsComponent,
-    TaskAttachmentsComponent, ShowPickerDirective, TooltipDirective,
+    ShowPickerDirective, TooltipDirective,
   ],
   templateUrl: './task-drawer.component.html',
   styleUrl: './task-drawer.component.scss',

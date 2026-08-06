@@ -13,7 +13,10 @@ import { TaskAttachment, isImage, formatBytes } from '@shared/models/task-attach
   styleUrl:    './task-attachments.component.scss'
 })
 export class TaskAttachmentsComponent implements OnDestroy {
-  taskId  = input.required<string>();
+  // Not input.required: the constructor effect below reads this eagerly; a
+  // required input read before binding throws (NG0950) and kills the effect,
+  // so the load never fires. Default '' + guard is reliable.
+  taskId  = input<string>('');
   canEdit = input<boolean>(true);
 
   private readonly svc    = inject(AttachmentService);
@@ -29,7 +32,7 @@ export class TaskAttachmentsComponent implements OnDestroy {
   fmt = formatBytes;
 
   constructor() {
-    effect(() => this.svc.open(this.taskId()));
+    effect(() => { const id = this.taskId(); if (id) this.svc.open(id); });
   }
   ngOnDestroy(): void { this.svc.close(); }
 

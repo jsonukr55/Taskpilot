@@ -1,0 +1,49 @@
+# Dependabot configuration
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Goal: keep dependencies patched WITHOUT pushing the app past the versions we
+# actually support. The stack is pinned to Angular 17 and Capacitor 6, so we
+# ignore major-version bumps for those families (they break `ng build` when the
+# rest of the framework stays on 17) while still allowing minor/patch + security
+# fixes. Remove the relevant `ignore` block only as part of a deliberate upgrade.
+version: 2
+updates:
+  # ── Angular web app (repo root) ──────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      # Bundle non-major updates into a single PR to cut review noise.
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Stay on Angular 17 until a planned framework migration.
+      - dependency-name: "@angular/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@angular-devkit/*"
+        update-types: ["version-update:semver-major"]
+      # Capacitor pinned to v6 until a planned upgrade.
+      - dependency-name: "@capacitor/*"
+        update-types: ["version-update:semver-major"]
+
+  # ── Firebase Cloud Functions ─────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/functions"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── GitHub Actions workflows (no-op until .github/workflows exists) ───────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

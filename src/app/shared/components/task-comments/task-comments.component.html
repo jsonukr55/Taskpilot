@@ -25,31 +25,8 @@
   } @else {
 
   <div class="tc__list">
-    @for (th of threads(); track th.post.id) {
-      <div class="tc-thread">
-        <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: th.post }"></ng-container>
-
-        @if (th.replies.length || replyTo() === th.post.id) {
-          <div class="tc-thread__replies">
-            @for (r of th.replies; track r.id) {
-              <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: r }"></ng-container>
-            }
-            @if (replyTo() === th.post.id) {
-              <div class="tc-reply">
-                <input class="form-input" placeholder="Write a reply…" autofocus
-                       [ngModel]="replyText()" (ngModelChange)="replyText.set($event)"
-                       (keydown.enter)="sendReply(th.post.id)" (keydown.escape)="cancelReply()">
-                <button class="btn-sm btn-primary" (click)="sendReply(th.post.id)" [disabled]="!replyText().trim()">Reply</button>
-                <button class="btn-sm btn-ghost" (click)="cancelReply()">Cancel</button>
-              </div>
-            }
-          </div>
-        }
-
-        @if (canComment() && replyTo() !== th.post.id) {
-          <button class="tc-replybtn" (click)="openReply(th.post.id)"><tp-icon name="corner-down-left" [size]="12" /> Reply</button>
-        }
-      </div>
+    @for (root of tree(); track root.comment.id) {
+      <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: root }"></ng-container>
     } @empty {
       <p class="tc__empty">No posts yet.@if (canComment()) {  Start the discussion.}</p>
     }
@@ -142,5 +119,35 @@
         }
       }
     </div>
+  </div>
+</ng-template>
+
+<!-- One comment + its nested replies (recursive; any depth) -->
+<ng-template #nodeTpl let-n>
+  <div class="tc-node">
+    <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: n.comment }"></ng-container>
+
+    @if (canComment() && replyTo() !== n.comment.id) {
+      <button class="tc-replybtn" (click)="openReply(n.comment.id)">
+        <tp-icon name="corner-down-left" [size]="12" /> Reply
+      </button>
+    }
+    @if (replyTo() === n.comment.id) {
+      <div class="tc-reply">
+        <input class="form-input" placeholder="Write a reply…" autofocus
+               [ngModel]="replyText()" (ngModelChange)="replyText.set($event)"
+               (keydown.enter)="sendReply(n.comment.id)" (keydown.escape)="cancelReply()">
+        <button class="btn-sm btn-primary" (click)="sendReply(n.comment.id)" [disabled]="!replyText().trim()">Reply</button>
+        <button class="btn-sm btn-ghost" (click)="cancelReply()">Cancel</button>
+      </div>
+    }
+
+    @if (n.children.length) {
+      <div class="tc-node__children">
+        @for (child of n.children; track child.comment.id) {
+          <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+        }
+      </div>
+    }
   </div>
 </ng-template>

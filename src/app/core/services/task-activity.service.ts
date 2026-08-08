@@ -43,7 +43,7 @@ export class TaskActivityService {
       const { data, error } = await this.supa.db('task_activity')
         .select('*').eq('task_id', taskId).order('created_at', { ascending: false });
       if (this.taskId !== taskId) return;
-      if (error) console.error('[activity load]', error);
+      if (error) { console.error('[activity load]', error); return; }
       this.activity.set((data ?? []).map(rowToActivity));
     } catch (e) {
       console.error('[activity load threw]', e);

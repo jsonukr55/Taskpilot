@@ -20,20 +20,28 @@ export interface TaskComment {
   updatedAt:   Timestamp;
 }
 
-/** A top-level comment with its (chronological) replies — for rendering. */
-export interface CommentThread {
-  post:    TaskComment;
-  replies: TaskComment[];
+/** A comment with its nested replies — for recursive rendering (any depth). */
+export interface CommentNode {
+  comment:  TaskComment;
+  children: CommentNode[];
 }
 
-/** Group a flat comment list into top-level posts + their replies. */
-export function threadComments(all: TaskComment[]): CommentThread[] {
-  const byTime = (a: TaskComment, b: TaskComment) =>
-    (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0);
-  const posts   = all.filter(c => !c.parentId).sort(byTime);
-  const replies = all.filter(c => c.parentId);
-  return posts.map(post => ({
-    post,
-    replies: replies.filter(r => r.parentId === post.id).sort(byTime),
-  }));
+/** Build a reply tree from the flat comment list. `parentId` may point at any
+ *  comment, so replies can themselves be replied to (unlimited depth). Siblings
+ *  are ordered oldest-first at every level. */
+export function buildCommentTree(all: TaskComment[]): CommentNode[] {
+  const byTime = (a: CommentNode, b: CommentNode) =>
+    (a.comment.createdAt?.seconds ?? 0) - (b.comment.createdAt?.seconds ?? 0);
+  const nodes = new Map<string, CommentNode>();
+  for (const c of all) nodes.set(c.id, { comment: c, children: [] });
+  const roots: CommentNode[] = [];
+  for (const c of all) {
+    const node = nodes.get(c.id)!;
+    const parent = c.parentId ? nodes.get(c.parentId) : undefined;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+  const sortRec = (list: CommentNode[]) => { list.sort(byTime); list.forEach(n => sortRec(n.children)); };
+  sortRec(roots);
+  return roots;
 }

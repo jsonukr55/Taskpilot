@@ -4,7 +4,7 @@
 .sd {
   max-width: none;      // board uses the full available width
   margin: 0;
-  padding: $space-6;
+  padding: 0;           // the shell content area already provides the page inset
 
   &__header {
     display: flex;

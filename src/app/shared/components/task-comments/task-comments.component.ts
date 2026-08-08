@@ -7,7 +7,7 @@ import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '../icon/icon.component';
-import { TaskComment, threadComments } from '@shared/models/task-comment.model';
+import { TaskComment, buildCommentTree } from '@shared/models/task-comment.model';
 import { TaskActivity } from '@shared/models/task-activity.model';
 
 @Component({
@@ -32,8 +32,8 @@ export class TaskCommentsComponent implements OnDestroy {
 
   readonly tab = signal<'comments' | 'activity'>('comments');
 
-  readonly threads = computed(() => threadComments(this.svc.comments()));
-  readonly count   = computed(() => this.svc.comments().length);
+  readonly tree  = computed(() => buildCommentTree(this.svc.comments()));
+  readonly count = computed(() => this.svc.comments().length);
   readonly activity = computed(() => this.act.activity());
   readonly activityCount = computed(() => this.act.activity().length);
 
@@ -55,11 +55,14 @@ export class TaskCommentsComponent implements OnDestroy {
   readonly lightbox = signal<string | null>(null);
 
   constructor() {
+    // allowSignalWrites: open() -> close() clears the list signal synchronously,
+    // which is a signal write inside the effect (NG0600 without this flag).
     effect(() => {
-      const id = this.taskId(); if (!id) return;
-      try { this.svc.open(id); } catch (e) { console.error('[comments open]', e); }
-      try { this.act.open(id); } catch (e) { console.error('[activity open]', e); }
-    });
+      const id = this.taskId();
+      if (!id) return;
+      this.svc.open(id);
+      this.act.open(id);
+    }, { allowSignalWrites: true });
     // Resolve signed URLs for any newly-seen comment images (deferred out of
     // the reactive context so the signal writes don't need allowSignalWrites).
     effect(() => {

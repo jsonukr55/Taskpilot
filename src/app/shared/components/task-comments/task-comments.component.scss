@@ -146,15 +146,20 @@
   }
 }
 
-.tc-thread {
-  &__replies {
+// Recursive comment node: a comment, its reply affordance, then nested children.
+.tc-node {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  &__children {
     margin-left: $space-6;
     padding-left: $space-3;
     border-left: 2px solid var(--border-subtle);
     display: flex;
     flex-direction: column;
     gap: $space-3;
-    margin-top: $space-2;
+    margin-top: $space-1;
   }
 }
 

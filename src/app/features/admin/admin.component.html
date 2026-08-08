@@ -250,28 +250,7 @@
               <button class="btn-ghost btn-sm" (click)="openManage(u.uid)" title="Manage org access">
                 <tp-icon name="grid" [size]="14" /> Access
               </button>
-              <button class="btn-ghost btn-sm admin-user__menu-btn" (click)="toggleMenu(u.uid)" title="Actions">
-                <tp-icon name="more-horizontal" [size]="16" />
-              </button>
-
-              @if (openMenuUid() === u.uid) {
-                <div class="admin-menu">
-                  @if (platform && canActOnRole(u)) {
-                    @for (c of roleChoices(u); track c.label) {
-                      <button class="admin-menu__item" [class.admin-danger]="c.role === null"
-                              (click)="setUserRole(u, c.role)" [disabled]="working()">
-                        <tp-icon name="shield" [size]="14" /> {{ c.label }}
-                      </button>
-                    }
-                  }
-                  <button class="admin-menu__item" (click)="openManage(u.uid)">
-                    <tp-icon name="grid" [size]="14" /> Manage org access
-                  </button>
-                  <button class="admin-menu__item admin-danger" (click)="removeFromScope(u)">
-                    <tp-icon name="x" [size]="14" /> Remove from all
-                  </button>
-                </div>
-              }
+              <tp-menu [items]="userMenu(u, platform)" />
             </div>
 
             <!-- Manage org access panel -->
@@ -306,8 +285,4 @@
       </ul>
     }
   </ng-template>
-
-  @if (openMenuUid()) {
-    <div class="admin-menu-overlay" (click)="closeMenus()"></div>
-  }
 </div>

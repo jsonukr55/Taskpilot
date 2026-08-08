@@ -32,6 +32,7 @@
   }
 
   &__startup { display: inline-flex; color: var(--accent-500); flex-shrink: 0; }
+  &__startup-btn--on { color: var(--accent-500); background: var(--bg-tertiary); }
 
   &__avatars { @include flex-start; gap: 2px; }
   &__add-member { margin-left: $space-1; }

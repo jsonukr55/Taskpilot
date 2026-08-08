@@ -9,6 +9,7 @@ import { ClientService } from '@core/services/client.service';
 import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
 import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
 import { LogoService } from '@core/services/logo.service';
@@ -44,7 +45,7 @@ export interface ScopeUser {
 @Component({
   selector:   'tp-admin',
   standalone: true,
-  imports:    [NgTemplateOutlet, RouterLink, FormsModule, IconComponent,
+  imports:    [NgTemplateOutlet, RouterLink, FormsModule, IconComponent, MenuComponent,
                AvatarPickerComponent, EntityAvatarComponent],
   templateUrl: './admin.component.html',
   styleUrl:    './admin.component.scss'
@@ -126,8 +127,7 @@ export class AdminComponent {
     return [...byUid.values()].sort((a, b) => a.displayName.localeCompare(b.displayName));
   });
 
-  // Row menus / inline panels
-  readonly openMenuUid = signal<string | null>(null);
+  // Inline "Manage org access" panel (which user's panel is open)
   readonly manageUid   = signal<string | null>(null);
 
   // Add-user-to-org (by email)
@@ -203,22 +203,24 @@ export class AdminComponent {
 
   selectClient(id: string): void {
     this.selectedClientId.set(id);
-    this.closeMenus();
-  }
-
-  toggleMenu(uid: string): void {
-    this.openMenuUid.update(v => v === uid ? null : uid);
     this.manageUid.set(null);
   }
 
   openManage(uid: string): void {
     this.manageUid.update(v => v === uid ? null : uid);
-    this.openMenuUid.set(null);
   }
 
-  closeMenus(): void {
-    this.openMenuUid.set(null);
-    this.manageUid.set(null);
+  /** Actions for a user row's ⋯ menu (uses the shared tp-menu).
+   *  Platform-role actions only in the global panel; org-scoped shows just access. */
+  userMenu(u: ScopeUser, platform: boolean): MenuItem[] {
+    const items: MenuItem[] = [];
+    if (platform && this.canActOnRole(u)) {
+      for (const c of this.roleChoices(u)) {
+        items.push({ label: c.label, icon: 'shield', action: () => void this.setUserRole(u, c.role) });
+      }
+    }
+    items.push({ label: 'Manage org access', icon: 'grid', action: () => this.openManage(u.uid) });
+    return items;
   }
 
   membershipIn(u: ScopeUser, orgId: string): { orgId: string; orgName: string; role: OrgRole } | undefined {
@@ -255,27 +257,6 @@ export class AdminComponent {
     }
   }
 
-  async removeFromScope(u: ScopeUser): Promise<void> {
-    const orgs = u.memberships.filter(m => this.scopeOrgs().some(o => o.id === m.orgId));
-    const scopeLabel = this.auth.isAdmin() ? (this.selectedClient()?.name ?? 'this client') : 'your organizations';
-    if (!(await this.dialog.confirm({
-      title: 'Remove user',
-      message: `Remove ${u.displayName} from all of ${scopeLabel}? They lose access to ${orgs.length} organization${orgs.length === 1 ? '' : 's'}.`,
-      confirmText: 'Remove', danger: true,
-    }))) return;
-    this.closeMenus();
-    try {
-      for (const m of orgs) {
-        const org = this.orgs.getOrgById(m.orgId);
-        if (org?.ownerId === u.uid) continue; // never remove an owner
-        await this.orgs.removeMember(m.orgId, u.uid);
-      }
-      this.toast.success(`${u.displayName} removed`);
-    } catch (e: any) {
-      this.toast.error(this.msg(e) || 'Could not remove the user');
-    }
-  }
-
   /** Human label for a platform role. */
   platformRoleLabel(role: GlobalRole): string {
     return role === 'admin' ? 'Owner' : role === 'superglobal' ? 'Superglobal' : 'No platform role';
@@ -297,7 +278,6 @@ export class AdminComponent {
   }
 
   async setUserRole(u: ScopeUser, role: GlobalRole): Promise<void> {
-    this.closeMenus();
     if (role === null && !(await this.dialog.confirm({
       title: 'Remove platform role',
       message: `Remove platform access from ${u.displayName}?`, confirmText: 'Remove', danger: true,

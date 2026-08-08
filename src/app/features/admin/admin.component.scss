@@ -159,29 +159,6 @@
 .badge--admin { background: var(--accent-500); }
 .badge--super { background: #0ea5e9; }
 
-// Row action menu
-.admin-menu-overlay { position: fixed; inset: 0; z-index: 40; }
-.admin-menu {
-  position: absolute; right: $space-2; top: calc(100% - #{$space-1}); z-index: 50;
-  min-width: 210px;
-  display: flex; flex-direction: column;
-  padding: $space-1;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: $radius-md;
-  box-shadow: $shadow-lg;
-  &__item {
-    @include flex-start; gap: $space-2;
-    width: 100%; text-align: left;
-    padding: $space-2 $space-3; border-radius: $radius-sm;
-    font-size: $font-size-sm; color: var(--text-primary);
-    background: transparent; border: none;
-    cursor: pointer;
-    &:hover:not([disabled]) { background: var(--bg-tertiary); }
-    &[disabled] { opacity: 0.5; cursor: not-allowed; }
-  }
-}
-
 // Manage-org-access panel
 .admin-access {
   margin: 0 $space-2 $space-2;

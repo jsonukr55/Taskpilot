@@ -13,7 +13,6 @@ import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
-import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
@@ -40,7 +39,7 @@ const STAGE_HEX: Record<TaskStage, string> = {
 @Component({
   selector:   'tp-space-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, MenuComponent, TooltipDirective, TaskDrawerComponent, SelectComponent, AvatarPickerComponent],
+  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, TooltipDirective, TaskDrawerComponent, SelectComponent, AvatarPickerComponent],
   templateUrl: './space-detail.component.html',
   styleUrl:    './space-detail.component.scss'
 })
@@ -582,13 +581,8 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ---- Startup screen ----
+  // ---- Startup screen (visible star toggle in the header) ----
   readonly isStartup = computed(() => this.auth.startupSpaceId() === this.spaceId());
-  readonly headerMenu = computed<MenuItem[]>(() => [
-    this.isStartup()
-      ? { label: 'Remove as startup screen', icon: 'x',    action: () => this.toggleStartup() }
-      : { label: 'Set as startup screen',    icon: 'star', action: () => this.toggleStartup() },
-  ]);
   async toggleStartup(): Promise<void> {
     try {
       if (this.isStartup()) {

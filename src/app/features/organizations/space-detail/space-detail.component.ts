@@ -14,6 +14,7 @@ import { ToastService } from '@core/services/toast.service';
 import { DialogService } from '@core/services/dialog.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
+import { AnchorDirective } from '@shared/directives/anchor.directive';
 import { TaskDrawerComponent } from '@shared/components/task-drawer/task-drawer.component';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
@@ -39,7 +40,7 @@ const STAGE_HEX: Record<TaskStage, string> = {
 @Component({
   selector:   'tp-space-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, TooltipDirective, TaskDrawerComponent, SelectComponent, AvatarPickerComponent],
+  imports:    [RouterLink, FormsModule, DatePipe, NgTemplateOutlet, DragDropModule, IconComponent, TooltipDirective, AnchorDirective, TaskDrawerComponent, SelectComponent, AvatarPickerComponent],
   templateUrl: './space-detail.component.html',
   styleUrl:    './space-detail.component.scss'
 })

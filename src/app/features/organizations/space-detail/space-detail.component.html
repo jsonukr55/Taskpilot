@@ -192,7 +192,7 @@
             <div class="c c--custom" [class.c--member]="col.custom!.type === 'member'">
               @if (col.custom!.type === 'member') {
                 <!-- Member column: avatar + picker, like Assignee -->
-                <button class="ava-row" (click)="canEdit() && toggleMemberPick(t.id, col.custom!.id)">
+                <button #memBtn class="ava-row" (click)="canEdit() && toggleMemberPick(t.id, col.custom!.id)">
                   @if (fieldValue(t, col.custom!.id); as uid) {
                     <span class="ava2" [attr.data-tooltip]="memberLabel(uid)" data-tooltip>
                       @if (memberPhoto(uid); as p) { <img [src]="p" alt=""> } @else { {{ initial(memberLabel(uid)) }} }
@@ -200,7 +200,7 @@
                   } @else { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
                 </button>
                 @if (isMemberPickOpen(t.id, col.custom!.id)) {
-                  <div class="assign-pop">
+                  <div class="assign-pop" [tpAnchor]="memBtn" (dismiss)="memberFor.set(null)">
                     <button class="assign-opt" (click)="setMember(t, col.custom!.id, '')">
                       <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span>
                       <span class="assign-opt__name">Unassigned</span>
@@ -264,7 +264,7 @@
               }
               @case ('assignee') {
                 <div class="c c--people">
-                  <button class="ava-row" (click)="canEdit() && toggleAssign(t.id)">
+                  <button #asgBtn class="ava-row" (click)="canEdit() && toggleAssign(t.id)">
                     @for (a of assigneesOf(t); track $index) {
                       <span class="ava2" [attr.data-tooltip]="a.displayName" data-tooltip>
                         @if (a.photoURL) { <img [src]="a.photoURL" alt=""> } @else { {{ initial(a.displayName) }} }
@@ -272,7 +272,7 @@
                     } @empty { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
                   </button>
                   @if (assignFor() === t.id) {
-                    <div class="assign-pop">
+                    <div class="assign-pop" [tpAnchor]="asgBtn" (dismiss)="assignFor.set(null)">
                       @for (m of members(); track m.userId) {
                         <button class="assign-opt" (click)="toggleAssignee(t, m.userId)">
                           <span class="avatar avatar--sm">
@@ -289,7 +289,7 @@
               }
               @case ('pmpo') {
                 <div class="c c--people c--member">
-                  <button class="ava-row" (click)="canEdit() && toggleMemberPick(t.id, '__pmpo')">
+                  <button #pmBtn class="ava-row" (click)="canEdit() && toggleMemberPick(t.id, '__pmpo')">
                     @if (t.pmPo; as uid) {
                       <span class="ava2" [attr.data-tooltip]="memberLabel(uid)" data-tooltip>
                         @if (memberPhoto(uid); as p) { <img [src]="p" alt=""> } @else { {{ initial(memberLabel(uid)) }} }
@@ -297,7 +297,7 @@
                     } @else { <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span> }
                   </button>
                   @if (isMemberPickOpen(t.id, '__pmpo')) {
-                    <div class="assign-pop">
+                    <div class="assign-pop" [tpAnchor]="pmBtn" (dismiss)="memberFor.set(null)">
                       <button class="assign-opt" (click)="setPmPo(t, '')">
                         <span class="ava2 ava2--empty"><tp-icon name="user" [size]="13" /></span>
                         <span class="assign-opt__name">Unassigned</span>

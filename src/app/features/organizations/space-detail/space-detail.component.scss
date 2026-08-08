@@ -313,7 +313,19 @@
     align-items: stretch;
     border-bottom: 1px solid var(--border-subtle);
     &:last-child { border-bottom: 0; }
-    &:not(.subtable__add):hover { background: var(--bg-tertiary); }
+    &:not(.subtable__add):not(.subtable__head):hover { background: var(--bg-tertiary); }
+  }
+  // Column-label header for the subtask block.
+  &__head {
+    background: var(--bg-tertiary);
+    .c { padding-top: $space-1; padding-bottom: $space-1; }
+    .ch-name {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-tertiary);
+    }
   }
   // The task cell isn't sticky inside the inset block (it scrolls with it).
   .c--task { position: static; background: transparent; }

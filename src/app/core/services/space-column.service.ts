@@ -50,7 +50,10 @@ export class SpaceColumnService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.supa.db('space_columns').delete().eq('id', id);
+    const prev = this.columns();
+    this.columns.set(prev.filter(c => c.id !== id));   // optimistic — reflect instantly
+    const { error } = await this.supa.db('space_columns').delete().eq('id', id);
+    if (error) { this.columns.set(prev); throw error; }   // revert on failure
   }
 }
 

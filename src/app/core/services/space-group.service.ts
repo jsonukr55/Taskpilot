@@ -60,7 +60,10 @@ export class SpaceGroupService {
 
   /** Delete a section. Tasks in it become ungrouped (FK on delete set null). */
   async remove(id: string): Promise<void> {
-    await this.supa.db('space_groups').delete().eq('id', id);
+    const prev = this.groups();
+    this.groups.set(prev.filter(g => g.id !== id));   // optimistic — reflect instantly
+    const { error } = await this.supa.db('space_groups').delete().eq('id', id);
+    if (error) { this.groups.set(prev); throw error; }   // revert on failure
   }
 
   async reorder(orderedIds: string[]): Promise<void> {

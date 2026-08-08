@@ -51,11 +51,11 @@
   </div>
 
   <div class="topbar__right">
-    <!-- Quick Add Task -->
-    <a routerLink="/tasks" [queryParams]="{new: true}" class="btn btn-primary btn-sm">
+    <!-- Quick Add Task — adds in whatever context is open (space/sprint or personal) -->
+    <button type="button" (click)="quickAdd()" class="btn btn-primary btn-sm">
       <tp-icon name="plus" [size]="14" />
       New Task
-    </a>
+    </button>
 
     <!-- AI Chat (coming soon) -->
     <button type="button" class="btn btn-ghost btn-icon topbar__soon" data-tooltip="Coming soon" aria-disabled="true">

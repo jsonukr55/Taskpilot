@@ -97,9 +97,9 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
    * there isn't room below, and closes on any scroll so it can't detach.
    */
   private positionPanel(): void {
-    // Compact variants only. A full-width select's panel spans its own field,
-    // where the default absolute left/right: 0 is already correct.
-    if (!this.chip() && !this.pill()) return;
+    // Fixed-position the panel for every variant so it escapes any overflow /
+    // scroll ancestor (board table, scrollable modal bodies, etc.) rather than
+    // being clipped by it.
     const el = this.host.nativeElement.querySelector('.tp-select__control') as HTMLElement | null;
     if (!el) return;
 

@@ -1,5 +1,5 @@
 import { Component, output, inject, viewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { TaskService } from '@core/services/task.service';
 import { SearchService } from '@core/services/search.service';
@@ -12,7 +12,7 @@ import { SearchResult } from '@shared/models/search.model';
 @Component({
   selector:   'tp-topbar',
   standalone: true,
-  imports:    [RouterLink, IconComponent, NotificationBellComponent, TooltipDirective],
+  imports:    [IconComponent, NotificationBellComponent, TooltipDirective],
   templateUrl: './topbar.component.html',
   styleUrl:    './topbar.component.scss'
 })
@@ -36,6 +36,19 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.disposeShortcuts?.();
+  }
+
+  /** Add a task in whatever context is open: the current space board (which
+   *  drops it into the active view — section / sprint / status), otherwise the
+   *  user's personal Tasks. Each view handles the `new` query param. */
+  quickAdd(): void {
+    const path = this.router.url.split('?')[0].split('#')[0];
+    const inSpace = /^\/organizations\/[^/]+\/spaces\/[^/]+$/.test(path);
+    if (inSpace) {
+      this.router.navigate([path], { queryParams: { new: true } });
+    } else {
+      this.router.navigate(['/tasks'], { queryParams: { new: true } });
+    }
   }
 
   private focusSearch(): void {

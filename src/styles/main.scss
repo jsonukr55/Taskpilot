@@ -84,29 +84,34 @@ select:not(.filter-pill):not(.pill) {
   100% { transform: scale(2.5); opacity: 0; }
 }
 
+// NOTE: entrance animations rest at `transform: none` (not the identity
+// translate/scale). With fill-mode `both`, ending on scale(1)/translate(0)
+// leaves a lingering transform, which makes the element a containing block —
+// that traps and CLIPS position:fixed popovers (dropdowns) inside modals and
+// pages. Resting at `none` avoids the containing block so popovers escape.
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes slide-in-left {
   from { opacity: 0; transform: translateX(-16px); }
-  to   { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes slide-in-right {
   from { opacity: 0; transform: translateX(16px); }
-  to   { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes spin {

@@ -1,5 +1,6 @@
-import { Component, inject, input, computed, signal, HostListener, OnInit, OnDestroy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject, input, computed, signal, HostListener, ElementRef, OnInit, OnDestroy } from '@angular/core';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Timestamp } from '@angular/fire/firestore';
@@ -56,6 +57,10 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   readonly auth        = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(DialogService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private quickAddSub?: Subscription;
 
   readonly space    = computed(() => this.spaces.getSpaceById(this.spaceId()));
   readonly notFound = computed(() => !this.spaces.isLoading() && !this.space());
@@ -195,11 +200,30 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
       const saved = localStorage.getItem('space-view:' + this.spaceId());
       if (saved === 'section' || saved === 'status' || saved === 'sprint') this.view.set(saved);
     } catch { /* ignore */ }
+
+    // The header "New Task" button drops a task into whatever space is open by
+    // navigating here with ?new — focus the first add-task input of the current
+    // view (section / sprint / status), then clear the flag so it can re-fire.
+    this.quickAddSub = this.route.queryParamMap.subscribe(q => {
+      if (!q.has('new')) return;
+      this.focusQuickAdd();
+      this.router.navigate([], { relativeTo: this.route, queryParams: { new: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    });
   }
   ngOnDestroy(): void {
     this.tasks.closeSpaceTasks();
     this.spaceGroups.close();
     this.spaceColumns.close();
+    this.quickAddSub?.unsubscribe();
+  }
+
+  /** Focus (and scroll to) the first "+ Add task" input of the current view. */
+  private focusQuickAdd(): void {
+    setTimeout(() => {
+      const el = this.host.nativeElement.querySelector('.addrow') as HTMLInputElement | null;
+      el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el?.focus();
+    }, 150);
   }
 
   // ---- Columns: built-in fields (in render order) + resizable widths ----

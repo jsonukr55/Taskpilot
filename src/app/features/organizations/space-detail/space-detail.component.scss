@@ -457,10 +457,13 @@
   cursor: grab;
   opacity: 0;
   margin-right: $space-1;
+  border-radius: $radius-sm;
   transition: opacity $transition-fast;
   &:active { cursor: grabbing; }
+  // Selected for column-resize — stays visible and highlighted.
+  &.is-selected { opacity: 1; color: var(--text-brand); background: var(--surface-brand); }
 }
-.tbl__row:hover .drag-handle { opacity: 0.6; }
+.tbl__row:hover .drag-handle:not(.is-selected) { opacity: 0.6; }
 .drag-handle:hover { opacity: 1; }
 .tbl__row.cdk-drag-dragging { opacity: 0.4; }
 

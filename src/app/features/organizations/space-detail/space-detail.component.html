@@ -181,19 +181,20 @@
     <ng-template #cells let-t let-depth="depth" let-drag="drag" let-rootId="rootId">
         <!-- Task cell -->
         <div class="c c--task">
-          @if (drag && canEdit()) { <span class="drag-handle" cdkDragHandle data-tooltip="Drag to move"><tp-icon name="drag" [size]="16" /></span> }
+          @if (drag && canEdit()) {
+            <!-- One handle: drag to move the row, click to select it for column resize -->
+            <span class="drag-handle" [class.is-selected]="selectedRow() === t.id" cdkDragHandle
+                  (click)="toggleSelectRow(t.id)"
+                  [attr.data-tooltip]="selectedRow() === t.id ? 'Done adjusting columns' : 'Drag to move · click to resize this task’s columns'">
+              <tp-icon name="drag" [size]="16" />
+            </span>
+          }
           <button class="tw-expand" [class.tw-expand--on]="isRowOpen(t.id)" (click)="toggleRow(t.id)"
                   [attr.data-tooltip]="childCountOf(t.id) ? childCountOf(t.id) + ' subtasks' : 'Subtasks'">
             <tp-icon [name]="isRowOpen(t.id) ? 'chevron-down' : 'chevron-right'" [size]="14" />
           </button>
           <button class="tname" (click)="selectedTask.set(t)">{{ t.title }}</button>
           @if (childCountOf(t.id)) { <span class="tw-count">{{ childCountOf(t.id) }}</span> }
-          @if (drag && canEdit()) {
-            <button class="tw-cols" [class.tw-cols--on]="selectedRow() === t.id" (click)="toggleSelectRow(t.id)"
-                    [attr.data-tooltip]="selectedRow() === t.id ? 'Done adjusting columns' : 'Adjust this task\'s column widths'">
-              <tp-icon name="grid" [size]="13" />
-            </button>
-          }
         </div>
 
         @for (col of columnsFor(rootId); track col.key) {

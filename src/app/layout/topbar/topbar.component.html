@@ -72,6 +72,31 @@
         <span class="topbar__alert-count">{{ tasks.overdueTasks().length }}</span>
       </div>
     }
+
+    <!-- Profile -->
+    <div class="topbar__profile">
+      <button class="topbar__avatar-btn" [class.is-open]="profileOpen()" (click)="profileOpen.set(!profileOpen())"
+              data-tooltip [attr.data-tooltip]="auth.displayName()">
+        @if (auth.photoURL()) { <img [src]="auth.photoURL()!" alt="" class="topbar__avatar"> }
+        @else { <span class="topbar__avatar topbar__avatar--fallback">{{ auth.displayName().charAt(0).toUpperCase() }}</span> }
+      </button>
+      @if (profileOpen()) {
+        <div class="profile-backdrop" (click)="profileOpen.set(false)"></div>
+        <div class="profile-menu">
+          <div class="profile-menu__head">
+            @if (auth.photoURL()) { <img [src]="auth.photoURL()!" alt="" class="profile-menu__avatar"> }
+            @else { <span class="profile-menu__avatar profile-menu__avatar--fallback">{{ auth.displayName().charAt(0).toUpperCase() }}</span> }
+            <div class="profile-menu__id">
+              <span class="profile-menu__name">{{ auth.displayName() }}</span>
+              <span class="profile-menu__email">{{ auth.currentUser()?.email }}</span>
+            </div>
+          </div>
+          <button class="profile-menu__item" (click)="auth.signOut()">
+            <tp-icon name="log-out" [size]="16" /> Sign out
+          </button>
+        </div>
+      }
+    </div>
   </div>
 </header>
 

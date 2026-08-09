@@ -1,4 +1,4 @@
-import { Component, output, inject, viewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
+import { Component, output, inject, viewChild, signal, ElementRef, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { TaskService } from '@core/services/task.service';
@@ -27,6 +27,9 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
   private disposeShortcuts?: () => void;
+
+  /** Profile dropdown (moved here from the sidebar). */
+  readonly profileOpen = signal(false);
 
   ngOnInit(): void {
     this.disposeShortcuts = this.kb.register(

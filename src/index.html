@@ -5,6 +5,10 @@
   <title>TaskPilot — AI-Powered Task Management</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Google (lh3.googleusercontent.com) throttles avatar requests that carry a
+       Referer; no-referrer makes user profile photos load reliably. Safe here —
+       Supabase/Firebase authenticate via headers, not the Referer. -->
+  <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#0f0f14">
   <meta name="description" content="AI-powered personal execution system that manages your tasks automatically">
   <meta name="apple-mobile-web-app-capable" content="yes">

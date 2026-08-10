@@ -187,6 +187,30 @@
         }
       </section>
 
+      <!-- Archived (soft-deleted) tasks -->
+      <section class="admin-card card admin-card--wide">
+        <div class="admin-card__head">
+          <h2><tp-icon name="trash-2" [size]="18" /> Archived ({{ archived().length }})</h2>
+          <span class="admin-list__tag">auto-deleted after 30 days</span>
+        </div>
+        <p class="admin-muted">Deleted tasks are kept here — restore them, or they're permanently removed 30 days after deletion.</p>
+        @if (archived().length === 0) {
+          <p class="admin-muted">Nothing archived.</p>
+        } @else {
+          <ul class="admin-list">
+            @for (t of archived(); track t.id) {
+              <li class="admin-list__row">
+                <span class="admin-list__icon"><tp-icon name="check-square" [size]="16" /></span>
+                <span class="admin-list__name">{{ t.title }}</span>
+                <span class="admin-list__meta">{{ clientName(t.clientId) }}</span>
+                <button class="btn-ghost btn-sm" (click)="restoreArchived(t)"><tp-icon name="rotate-ccw" [size]="14" /> Restore</button>
+                <button class="btn-ghost btn-sm admin-danger" (click)="purgeArchived(t)" title="Delete permanently"><tp-icon name="trash-2" [size]="14" /></button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
     </div>
 
   } @else {

@@ -221,7 +221,7 @@ export class TaskService {
   }
 
   private async loadScoped(col: 'group_id' | 'space_id', id: string, sig: { set: (t: Task[]) => void }): Promise<void> {
-    const { data } = await this.supa.db('tasks').select('*').eq(col, id);
+    const { data } = await this.supa.db('tasks').select('*').eq(col, id).is('deleted_at', null);
     sig.set((data ?? []).map(rowToTask));
   }
 
@@ -247,8 +247,8 @@ export class TaskService {
 
   private async loadMain(uid: string): Promise<void> {
     const [own, assigned] = await Promise.all([
-      this.supa.db('tasks').select('*').eq('user_id', uid),
-      this.supa.db('tasks').select('*').contains('assignee_ids', [uid]),
+      this.supa.db('tasks').select('*').eq('user_id', uid).is('deleted_at', null),
+      this.supa.db('tasks').select('*').contains('assignee_ids', [uid]).is('deleted_at', null),
     ]);
     if (own.error) this.error.set(own.error.message);
     this.ownTasks.set((own.data ?? []).map(rowToTask));
@@ -420,8 +420,10 @@ export class TaskService {
     await this.updateTask(id, changes);
   }
 
+  /** Soft-delete (archive): sets deleted_at so it drops out of all views but
+   *  can be restored from Admin for 30 days before a scheduled purge. */
   async deleteTask(id: string): Promise<void> {
-    const { error } = await this.supa.db('tasks').delete().eq('id', id);
+    const { error } = await this.supa.db('tasks').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (error) throw error;
   }
 
@@ -460,7 +462,7 @@ export class TaskService {
   // ---- Bulk operations (single UPDATE/DELETE with .in()) ----
 
   async bulkDelete(ids: string[]): Promise<void> {
-    await this.supa.db('tasks').delete().in('id', ids);
+    await this.supa.db('tasks').update({ deleted_at: new Date().toISOString() }).in('id', ids);
   }
 
   async bulkUpdateStatus(ids: string[], status: TaskStatus): Promise<void> {

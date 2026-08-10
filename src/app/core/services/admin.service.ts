@@ -14,6 +14,7 @@ export interface TaskLite {
   spaceId: string | null; orgId: string | null; clientId: string | null; updatedAt: string | null;
 }
 export interface SpaceLite { id: string; clientId: string | null; orgId: string; }
+export interface ArchivedTask { id: string; title: string; clientId: string | null; spaceId: string | null; deletedAt: string | null; }
 
 // ============================================================
 // AdminService — global-admin operations (promote/demote admins).
@@ -43,12 +44,37 @@ export class AdminService {
   async allTasks(): Promise<TaskLite[]> {
     const { data, error } = await this.supa.db('tasks')
       .select('id,title,status,stage,parent_id,space_id,org_id,client_id,updated_at')
+      .is('deleted_at', null)
       .order('updated_at', { ascending: false });
     if (error) throw error;
     return (data ?? []).map((r: any) => ({
       id: r.id, title: r.title, status: r.status, stage: r.stage, parentId: r.parent_id ?? null,
       spaceId: r.space_id ?? null, orgId: r.org_id ?? null, clientId: r.client_id ?? null, updatedAt: r.updated_at ?? null,
     }));
+  }
+
+  /** Archived (soft-deleted) tasks — for the Admin archive list. */
+  async allArchivedTasks(): Promise<ArchivedTask[]> {
+    const { data, error } = await this.supa.db('tasks')
+      .select('id,title,client_id,space_id,deleted_at')
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r: any) => ({
+      id: r.id, title: r.title, clientId: r.client_id ?? null, spaceId: r.space_id ?? null, deletedAt: r.deleted_at ?? null,
+    }));
+  }
+
+  /** Restore an archived task (clears deleted_at). */
+  async restoreTask(id: string): Promise<void> {
+    const { error } = await this.supa.db('tasks').update({ deleted_at: null }).eq('id', id);
+    if (error) throw error;
+  }
+
+  /** Permanently delete an archived task now (skips the 30-day wait). */
+  async purgeTask(id: string): Promise<void> {
+    const { error } = await this.supa.db('tasks').delete().eq('id', id);
+    if (error) throw error;
   }
 
   async allSpaces(): Promise<SpaceLite[]> {

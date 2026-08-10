@@ -3,7 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
-import { AdminService, AdminUser, TaskLite, SpaceLite, GlobalRole } from '@core/services/admin.service';
+import { AdminService, AdminUser, TaskLite, SpaceLite, GlobalRole, ArchivedTask } from '@core/services/admin.service';
 import { OrganizationService } from '@core/services/organization.service';
 import { ClientService } from '@core/services/client.service';
 import { ToastService } from '@core/services/toast.service';
@@ -68,6 +68,7 @@ export class AdminComponent {
   readonly tasks  = signal<TaskLite[]>([]);
   readonly spaces = signal<SpaceLite[]>([]);
   readonly attachments = signal<{ clientId: string | null; size: number }[]>([]);
+  readonly archived    = signal<ArchivedTask[]>([]);
   readonly loadingData = signal(false);
 
   readonly totalStorage = computed(() => formatBytes(this.attachments().reduce((s, a) => s + a.size, 0)));
@@ -187,14 +188,15 @@ export class AdminComponent {
   private async loadData(): Promise<void> {
     if (this.loadingData()) return;
     this.loadingData.set(true);
-    const [users, tasks, spaces, attachments] = await Promise.allSettled([
-      this.admin.allUsers(), this.admin.allTasks(), this.admin.allSpaces(), this.admin.allAttachments(),
+    const [users, tasks, spaces, attachments, archived] = await Promise.allSettled([
+      this.admin.allUsers(), this.admin.allTasks(), this.admin.allSpaces(), this.admin.allAttachments(), this.admin.allArchivedTasks(),
     ]);
     if (users.status === 'fulfilled')       this.users.set(users.value);
     if (tasks.status === 'fulfilled')       this.tasks.set(tasks.value);
     if (spaces.status === 'fulfilled')      this.spaces.set(spaces.value);
     if (attachments.status === 'fulfilled') this.attachments.set(attachments.value);
-    const failed = [users, tasks, spaces, attachments].find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+    if (archived.status === 'fulfilled')    this.archived.set(archived.value);
+    const failed = [users, tasks, spaces, attachments, archived].find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
     if (failed) this.toast.error(this.msg(failed.reason) || 'Some platform data could not be loaded');
     this.loadingData.set(false);
   }
@@ -396,6 +398,32 @@ export class AdminComponent {
       this.toast.error(this.msg(e) || 'Not authorized to claim admin access');
     } finally {
       this.claiming.set(false);
+    }
+  }
+
+  // ---- Archive (soft-deleted tasks; purged after 30 days) ----
+  clientName(clientId: string | null): string {
+    return clientId ? (this.clients.getClientById(clientId)?.name ?? '—') : '—';
+  }
+
+  async restoreArchived(t: ArchivedTask): Promise<void> {
+    try {
+      await this.admin.restoreTask(t.id);
+      this.archived.update(list => list.filter(x => x.id !== t.id));
+      this.toast.success(`Restored "${t.title}"`);
+    } catch (e: any) {
+      this.toast.error(this.msg(e) || 'Could not restore the task');
+    }
+  }
+
+  async purgeArchived(t: ArchivedTask): Promise<void> {
+    if (!(await this.dialog.confirm({ title: 'Delete permanently', message: `Permanently delete "${t.title}"? This cannot be undone.`, confirmText: 'Delete forever', danger: true }))) return;
+    try {
+      await this.admin.purgeTask(t.id);
+      this.archived.update(list => list.filter(x => x.id !== t.id));
+      this.toast.success('Permanently deleted');
+    } catch (e: any) {
+      this.toast.error(this.msg(e) || 'Could not delete the task');
     }
   }
 

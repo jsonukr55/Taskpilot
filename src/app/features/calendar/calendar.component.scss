@@ -51,10 +51,9 @@ $num-hours: 16;
   z-index: $z-tooltip;
   width: 260px;
   padding: $space-3;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-xl;
+  @include glass-panel(16px, true);
+  border-radius: $radius-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   pointer-events: none;
   animation: fade-in 120ms both;
 

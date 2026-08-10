@@ -185,10 +185,9 @@
 }
 
 .modal {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  @include glass-panel(20px, true);
   border-radius: $radius-2xl;
-  box-shadow: $shadow-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   width: 100%;
   max-width: 520px;
   max-height: 90vh;

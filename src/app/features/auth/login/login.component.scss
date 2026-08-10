@@ -299,10 +299,9 @@
   flex-direction: column;
   gap: $space-5;
   padding: $space-8 $space-6;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  @include glass-panel(20px, true);
   border-radius: $radius-2xl;
-  box-shadow: var(--card-shadow-hover);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
 
   // On the split layout the form sits directly on the page.
   @include lg {

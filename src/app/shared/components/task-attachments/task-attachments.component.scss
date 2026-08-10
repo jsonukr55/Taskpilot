@@ -63,10 +63,9 @@
   width: 100%;
   max-width: 720px;
   max-height: 84vh;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: $radius-xl;
-  box-shadow: $shadow-xl;
+  @include glass-panel(20px, true);
+  border-radius: $radius-2xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   overflow: hidden;
   display: flex;
   flex-direction: column;

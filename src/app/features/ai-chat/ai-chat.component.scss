@@ -17,9 +17,9 @@
 .chat-header {
   @include flex-between;
   padding: $space-4 $space-6;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  @include glass-panel(16px, true);
   border-radius: $radius-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   margin-bottom: $space-4;
   flex-shrink: 0;
 
@@ -249,9 +249,9 @@
   display: flex;
   align-items: flex-end;
   gap: $space-3;
-  background: var(--card-bg);
-  border: 1px solid var(--border-default);
+  @include glass-panel(16px, true);
   border-radius: $radius-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   padding: $space-3 $space-3;
   transition: border-color $transition-fast, box-shadow $transition-fast;
 

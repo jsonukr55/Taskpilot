@@ -179,10 +179,9 @@
     top: calc(100% + 4px);
     z-index: $z-dropdown;
     width: 220px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-default);
-    border-radius: $radius-lg;
-    box-shadow: $shadow-lg;
+    @include glass-panel(16px, true);
+    border-radius: $radius-xl;
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
     padding: $space-2;
   }
 

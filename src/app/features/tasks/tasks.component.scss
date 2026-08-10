@@ -488,10 +488,9 @@
   gap: $space-4;
   max-width: calc(100vw - #{$space-6});
   padding: $space-2 $space-4;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
+  @include glass-panel(16px, true);
   border-radius: $radius-xl;
-  box-shadow: $shadow-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   animation: slide-up $transition-normal both;
 
   @include mobile-only {

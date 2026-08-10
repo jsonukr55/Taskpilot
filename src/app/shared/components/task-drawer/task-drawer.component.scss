@@ -27,13 +27,13 @@
   width: 40%;
   min-width: 400px;
   max-width: 680px;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border-subtle);
+  @include glass-panel(20px, true);
+  border-left: 1px solid var(--glass-border);
   z-index: $z-modal;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   animation: slide-in-right $transition-normal both;
 
   &[data-tone='low']    { --tone: #{$priority-low}; }

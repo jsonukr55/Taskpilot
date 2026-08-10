@@ -1,4 +1,5 @@
 @use 'variables' as *;
+@use 'mixins' as *;
 
 .toast-host {
   position: fixed;
@@ -18,10 +19,9 @@
   align-items: center;
   gap: $space-2;
   padding: $space-3 $space-3 $space-3 $space-4;
-  border-radius: $radius-lg;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  border-radius: $radius-xl;
+  @include glass-panel(16px, true);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   font-size: $font-size-sm;
   color: var(--text-primary);
   animation: toast-in 0.18s ease-out;

@@ -41,10 +41,9 @@
   width: 340px;
   max-width: calc(100vw - #{$space-6});
   padding: $space-4;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  @include glass-panel(16px, true);
+  border-radius: $radius-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
 
   &--up    { top: auto; bottom: calc(100% + #{$space-2}); }
   &--right { left: auto; right: 0; }

@@ -13,10 +13,9 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: $radius-xl;
-  box-shadow: $shadow-xl;
+  @include glass-panel(20px, true);
+  border-radius: $radius-2xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   animation: slide-up $transition-normal both;
 
   &__backdrop {

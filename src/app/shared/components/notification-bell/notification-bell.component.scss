@@ -27,10 +27,9 @@
     right: 0;
     width: 340px;
     max-width: calc(100vw - #{$space-6});
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-subtle);
-    border-radius: $radius-lg;
-    box-shadow: $shadow-xl;
+    @include glass-panel(16px, true);
+    border-radius: $radius-xl;
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
     z-index: $z-dropdown;
     overflow: hidden;
     animation: scale-in $transition-fast both;

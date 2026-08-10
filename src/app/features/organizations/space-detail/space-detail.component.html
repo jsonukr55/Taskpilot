@@ -26,10 +26,67 @@
             @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
           </span>
         }
-        <button class="btn-icon sd__add-member" (click)="showMembers.set(true)"
+        <button #memBtn class="btn-icon sd__add-member" (click)="showMembers.set(!showMembers())"
                 [attr.data-tooltip]="canManageMembers() ? 'Manage members' : 'Members'" data-tooltip>
           <tp-icon [name]="canManageMembers() ? 'user-plus' : 'users'" [size]="16" />
         </button>
+
+        @if (showMembers()) {
+          <div class="assign-backdrop" (click)="showMembers.set(false)"></div>
+          <div class="members-pop" [tpAnchor]="memBtn" (dismiss)="showMembers.set(false)">
+            <div class="members-pop__header">
+              <h2>Members</h2>
+              <button class="btn-icon" (click)="showMembers.set(false)"><tp-icon name="x" [size]="16" /></button>
+            </div>
+            <div class="members-pop__body">
+              @if (canManageMembers()) {
+                @if (addableMembers().length === 0) {
+                  <p class="od-empty">Everyone in the organization is already in this space.</p>
+                } @else {
+                  <div class="form-group">
+                    <label class="form-label">Add an organization member</label>
+                    <div class="sd-add-row">
+                      <tp-select [options]="roleOptions" [value]="addRole()" (changed)="addRole.set($event)" />
+                    </div>
+                    <ul class="member-list sd-addable">
+                      @for (a of addableMembers(); track a.uid) {
+                        <li class="member">
+                          <span class="avatar">
+                            @if (a.profile.photoURL) { <img [src]="a.profile.photoURL" alt=""> } @else { {{ initial(a.profile.displayName) }} }
+                          </span>
+                          <div class="member__info"><span class="member__name">{{ a.profile.displayName }}</span></div>
+                          <button class="btn-sm btn-secondary" (click)="addMember(a.uid, a.profile)"><tp-icon name="plus" [size]="14" /> Add</button>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                  <div class="divider"></div>
+                }
+              }
+
+              <ul class="member-list">
+                @for (m of members(); track m.userId) {
+                  <li class="member">
+                    <span class="avatar">
+                      @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
+                    </span>
+                    <div class="member__info">
+                      <span class="member__name">{{ m.displayName }} @if (m.userId === auth.userId()) { <span class="member__you">you</span> }</span>
+                    </div>
+                    @if (m.role === 'owner') {
+                      <span class="badge member__badge">Owner</span>
+                    } @else if (canManageMembers()) {
+                      <tp-select pill class="member__role" [options]="roleOptions" [value]="m.role" (changed)="changeRole(m.userId, $event)" />
+                      <button class="btn-icon" (click)="removeMember(m.userId)" data-tooltip="Remove"><tp-icon name="x" [size]="16" /></button>
+                    } @else {
+                      <span class="badge member__badge">{{ spaceRoleLabel(m.role) }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
         <button class="btn-icon sd__startup-btn" [class.sd__startup-btn--on]="isStartup()"
                 (click)="toggleStartup()"
                 [attr.data-tooltip]="isStartup() ? 'Startup screen · opens first on login' : 'Set as startup screen'" data-tooltip>
@@ -400,69 +457,6 @@
   <tp-task-drawer [task]="selectedTask()!" mode="discussion" (closed)="selectedTask.set(null)" />
 }
 
-@if (showMembers()) {
-  <div class="modal-overlay" (click)="showMembers.set(false)">
-    <div class="modal scale-in" (click)="$event.stopPropagation()">
-      <div class="modal__header">
-        <h2>Members</h2>
-        <button class="btn-icon" (click)="showMembers.set(false)"><tp-icon name="x" [size]="18" /></button>
-      </div>
-      <div class="modal__body">
-        @if (canManageMembers()) {
-          @if (addableMembers().length === 0) {
-            <p class="od-empty">Everyone in the organization is already in this space.</p>
-          } @else {
-            <div class="form-group">
-              <label class="form-label">Add an organization member</label>
-              <div class="sd-add-row">
-                <tp-select [options]="roleOptions" [value]="addRole()" (changed)="addRole.set($event)" />
-              </div>
-              <ul class="member-list sd-addable">
-                @for (a of addableMembers(); track a.uid) {
-                  <li class="member">
-                    <span class="avatar">
-                      @if (a.profile.photoURL) { <img [src]="a.profile.photoURL" alt=""> } @else { {{ initial(a.profile.displayName) }} }
-                    </span>
-                    <div class="member__info"><span class="member__name">{{ a.profile.displayName }}</span></div>
-                    <button class="btn-sm btn-secondary" (click)="addMember(a.uid, a.profile)"><tp-icon name="plus" [size]="14" /> Add</button>
-                  </li>
-                }
-              </ul>
-            </div>
-            <div class="divider"></div>
-          }
-        }
-
-        <ul class="member-list">
-          @for (m of members(); track m.userId) {
-            <li class="member">
-              <span class="avatar">
-                @if (m.photoURL) { <img [src]="m.photoURL" alt=""> } @else { {{ initial(m.displayName) }} }
-              </span>
-              <div class="member__info">
-                <span class="member__name">{{ m.displayName }} @if (m.userId === auth.userId()) { <span class="member__you">you</span> }</span>
-              </div>
-              @if (m.role === 'owner') {
-                <span class="badge member__badge">Owner</span>
-              } @else if (canManageMembers()) {
-                <tp-select
-                  pill
-                  class="member__role"
-                  [options]="roleOptions"
-                  [value]="m.role"
-                  (changed)="changeRole(m.userId, $event)"
-                />
-                <button class="btn-icon" (click)="removeMember(m.userId)" data-tooltip="Remove"><tp-icon name="x" [size]="16" /></button>
-              } @else {
-                <span class="badge member__badge">{{ spaceRoleLabel(m.role) }}</span>
-              }
-            </li>
-          }
-        </ul>
-      </div>
-    </div>
-  </div>
-}
 
 @if (showAddColumn()) {
   <div class="modal-overlay" (click)="showAddColumn.set(false)">

@@ -615,3 +615,29 @@
 }
 .assign-empty { padding: $space-2; color: var(--text-tertiary); font-size: $font-size-xs; }
 .assign-backdrop { position: fixed; inset: 0; z-index: 29; }
+
+// ---- Members popover (anchored to the header button via tpAnchor) ----
+.members-pop {
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  overflow: hidden;
+
+  &__header {
+    @include flex-between;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid var(--border-subtle);
+    h2 { font-size: $font-size-base; font-weight: $font-weight-semibold; }
+  }
+  &__body {
+    padding: $space-3 $space-4 $space-4;
+    overflow-y: auto;
+    @include custom-scrollbar;
+  }
+}

@@ -107,6 +107,46 @@
           }
         </div>
         <div class="board__bar-actions">
+          <!-- Search within this space -->
+          <div class="board__search">
+            <tp-icon name="search" [size]="14" />
+            <input class="board__search-input" placeholder="Search tasks…" aria-label="Search tasks"
+                   [ngModel]="filterText()" (ngModelChange)="filterText.set($event)">
+            @if (filterText()) {
+              <button class="board__search-x" (click)="filterText.set('')" aria-label="Clear search"><tp-icon name="x" [size]="12" /></button>
+            }
+          </div>
+
+          <!-- Filter -->
+          <button #filterBtn class="btn-ghost btn-sm" [class.is-on]="activeFilterCount()" (click)="filterOpen.set(!filterOpen())">
+            <tp-icon name="filter" [size]="14" /> Filter
+            @if (activeFilterCount()) { <span class="board__filter-count">{{ activeFilterCount() }}</span> }
+          </button>
+          @if (filterOpen()) {
+            <div class="assign-backdrop" (click)="filterOpen.set(false)"></div>
+            <div class="filter-pop" [tpAnchor]="filterBtn" (dismiss)="filterOpen.set(false)">
+              <div class="filter-pop__row">
+                <label>Person</label>
+                <tp-select [options]="personOptions()" [value]="filterPerson()" (changed)="filterPerson.set($event)" />
+              </div>
+              <div class="filter-pop__row">
+                <label>Priority</label>
+                <tp-select [options]="priorityFilterOptions" [value]="filterPriority()" (changed)="filterPriority.set($event)" />
+              </div>
+              <div class="filter-pop__row">
+                <label>Status</label>
+                <tp-select [options]="stageFilterOptions" [value]="filterStage()" (changed)="filterStage.set($event)" />
+              </div>
+              <div class="filter-pop__row">
+                <label>PM / PO</label>
+                <tp-select [options]="personOptions()" [value]="filterPmPo()" (changed)="filterPmPo.set($event)" />
+              </div>
+              @if (activeFilterCount()) {
+                <button class="btn-ghost btn-sm filter-pop__clear" (click)="clearFilters()">Clear all filters</button>
+              }
+            </div>
+          }
+
           @if (canEdit()) {
             <button class="btn-ghost btn-sm" (click)="resetColumnWidths()"
                     [attr.data-tooltip]="selectedRow() ? 'Reset this task\'s column widths' : 'Reset column widths'" data-tooltip>

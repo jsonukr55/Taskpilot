@@ -137,9 +137,55 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     try { localStorage.setItem('space-view:' + this.spaceId(), v); } catch { /* ignore */ }
   }
 
+  // ---- Search + filters (board toolbar) ----
+  readonly filterText     = signal('');
+  readonly filterOpen     = signal(false);
+  readonly filterPerson   = signal<string | null>(null);   // assignee uid
+  readonly filterPriority = signal<string | null>(null);
+  readonly filterStage    = signal<string | null>(null);
+  readonly filterPmPo     = signal<string | null>(null);
+
+  readonly personOptions = computed<SelectOption[]>(() => [
+    { value: null, label: 'Anyone' },
+    ...this.members().map(m => ({ value: m.userId, label: m.displayName })),
+  ]);
+  readonly priorityFilterOptions: SelectOption[] = [
+    { value: null, label: 'Any priority' },
+    { value: 'urgent', label: 'Urgent' }, { value: 'high', label: 'High' },
+    { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' },
+  ];
+  readonly stageFilterOptions: SelectOption[] = [
+    { value: null, label: 'Any status' },
+    ...TASK_STAGES.map(s => ({ value: s.value, label: s.label })),
+  ];
+
+  readonly activeFilterCount = computed(() =>
+    [this.filterPerson(), this.filterPriority(), this.filterStage(), this.filterPmPo()].filter(v => v != null).length);
+
+  clearFilters(): void {
+    this.filterPerson.set(null); this.filterPriority.set(null);
+    this.filterStage.set(null);  this.filterPmPo.set(null);
+  }
+
+  /** Root tasks after the search box + filter popover are applied. */
+  readonly filteredRootTasks = computed(() => {
+    const q = this.filterText().trim().toLowerCase();
+    const person = this.filterPerson(), prio = this.filterPriority(),
+          stage = this.filterStage(), pmpo = this.filterPmPo();
+    if (!q && !person && !prio && !stage && !pmpo) return this.rootTasks();
+    return this.rootTasks().filter(t => {
+      if (q && !((t.title ?? '').toLowerCase().includes(q) || (t.description ?? '').toLowerCase().includes(q))) return false;
+      if (person && !(t.assigneeIds ?? []).includes(person)) return false;
+      if (prio && t.priority !== prio) return false;
+      if (stage && (t.stage ?? 'created') !== stage) return false;
+      if (pmpo && t.pmPo !== pmpo) return false;
+      return true;
+    });
+  });
+
   /** Board columns for the current view. */
   readonly columns = computed<BoardColumn[]>(() => {
-    const tasks = this.rootTasks();
+    const tasks = this.filteredRootTasks();
     const byPos = (a: Task, b: Task) => (a.position ?? 0) - (b.position ?? 0);
 
     switch (this.view()) {

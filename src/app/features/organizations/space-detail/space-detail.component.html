@@ -32,7 +32,7 @@
         </button>
 
         @if (showMembers()) {
-          <div class="assign-backdrop" (click)="showMembers.set(false)"></div>
+          <div class="assign-backdrop" (click)="showMembers.set(false)" (document:keydown.escape)="showMembers.set(false)"></div>
           <div class="members-pop" [tpAnchor]="memBtn" (dismiss)="showMembers.set(false)">
             <div class="members-pop__header">
               <h2>Members</h2>
@@ -123,7 +123,7 @@
             @if (activeFilterCount()) { <span class="board__filter-count">{{ activeFilterCount() }}</span> }
           </button>
           @if (filterOpen()) {
-            <div class="assign-backdrop" (click)="filterOpen.set(false)"></div>
+            <div class="assign-backdrop" (click)="filterOpen.set(false)" (document:keydown.escape)="filterOpen.set(false)"></div>
             <div class="filter-pop" [tpAnchor]="filterBtn" (dismiss)="filterOpen.set(false)">
               <div class="filter-pop__row">
                 <label>Person</label>
@@ -333,7 +333,7 @@
                       </button>
                     } @empty { <p class="assign-empty">No space members yet.</p> }
                   </div>
-                  <div class="assign-backdrop" (click)="memberFor.set(null)"></div>
+                  <div class="assign-backdrop" (click)="memberFor.set(null)" (document:keydown.escape)="memberFor.set(null)"></div>
                 }
               } @else if (canEdit()) {
                 @switch (col.custom!.type) {
@@ -398,7 +398,7 @@
                         </button>
                       } @empty { <p class="assign-empty">No space members yet.</p> }
                     </div>
-                    <div class="assign-backdrop" (click)="assignFor.set(null)"></div>
+                    <div class="assign-backdrop" (click)="assignFor.set(null)" (document:keydown.escape)="assignFor.set(null)"></div>
                   }
                 </div>
               }
@@ -428,7 +428,7 @@
                         </button>
                       } @empty { <p class="assign-empty">No space members yet.</p> }
                     </div>
-                    <div class="assign-backdrop" (click)="memberFor.set(null)"></div>
+                    <div class="assign-backdrop" (click)="memberFor.set(null)" (document:keydown.escape)="memberFor.set(null)"></div>
                   }
                 </div>
               }
@@ -505,7 +505,7 @@
 
 
 @if (showAddColumn()) {
-  <div class="modal-overlay" (click)="showAddColumn.set(false)">
+  <div class="modal-overlay" (click)="showAddColumn.set(false)" (document:keydown.escape)="showAddColumn.set(false)">
     <div class="modal scale-in" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>New column</h2>

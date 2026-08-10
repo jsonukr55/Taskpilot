@@ -29,12 +29,18 @@ export class AnchorDirective implements AfterViewInit, OnDestroy {
     const trigger = this.anchor();
     if (!this.el.nativeElement.contains(t) && !(trigger && trigger.contains(t))) this.dismiss.emit();
   };
+  // Capture + stopPropagation so this popover swallows Escape before any outer
+  // overlay (e.g. a modal it's opened inside of) also closes on the same key.
+  private readonly onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') { e.stopPropagation(); this.dismiss.emit(); }
+  };
 
   ngAfterViewInit(): void {
     document.body.appendChild(this.el.nativeElement);   // escape any clip/transform ancestor
     this.place();
     document.addEventListener('scroll', this.onScroll, true);   // capture: any scroll container
     window.addEventListener('resize', this.onScroll);
+    document.addEventListener('keydown', this.onKey, true);      // Escape closes
     // Close on outside click. Deferred so the opening click doesn't dismiss it.
     setTimeout(() => { if (!this.destroyed) document.addEventListener('pointerdown', this.onDocDown, true); }, 0);
   }
@@ -43,6 +49,7 @@ export class AnchorDirective implements AfterViewInit, OnDestroy {
     this.destroyed = true;
     document.removeEventListener('scroll', this.onScroll, true);
     window.removeEventListener('resize', this.onScroll);
+    document.removeEventListener('keydown', this.onKey, true);
     document.removeEventListener('pointerdown', this.onDocDown, true);
     // We moved the node to <body>, so remove it ourselves; Angular's own
     // teardown then sees a detached node and no-ops (no orphaned popovers).

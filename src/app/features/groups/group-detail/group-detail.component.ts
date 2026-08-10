@@ -10,6 +10,7 @@ import { DialogService } from '@core/services/dialog.service';
 import { ActivityService } from '@core/services/activity.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
+import { AnchorDirective } from '@shared/directives/anchor.directive';
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { ActivityFeedComponent } from '@shared/components/activity-feed/activity-feed.component';
 import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
@@ -24,7 +25,7 @@ const GROUP_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9
 @Component({
   selector:   'tp-group-detail',
   standalone: true,
-  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective, SelectComponent, ActivityFeedComponent, AvatarPickerComponent],
+  imports:    [RouterLink, FormsModule, IconComponent, TooltipDirective, AnchorDirective, SelectComponent, ActivityFeedComponent, AvatarPickerComponent],
   templateUrl: './group-detail.component.html',
   styleUrl:    './group-detail.component.scss'
 })

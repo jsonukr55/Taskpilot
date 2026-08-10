@@ -46,7 +46,7 @@
 
 <!-- Create/Edit Form Modal -->
 @if (showForm()) {
-  <div class="modal-overlay" (click)="showForm.set(false)">
+  <div class="modal-overlay" (click)="showForm.set(false)" (document:keydown.escape)="showForm.set(false)">
     <div class="modal scale-in" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2 class="modal__title">{{ editingId() ? 'Edit' : 'New' }} Category</h2>

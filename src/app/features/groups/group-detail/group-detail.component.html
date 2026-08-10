@@ -136,9 +136,9 @@
                 }
                 @if (canEdit()) {
                   <div class="assign">
-                    <button class="btn-icon assign__btn" (click)="toggleAssignMenu(t.id)" data-tooltip="Assign"><tp-icon name="user-plus" [size]="15" /></button>
+                    <button #agAssignBtn class="btn-icon assign__btn" (click)="toggleAssignMenu(t.id)" data-tooltip="Assign"><tp-icon name="user-plus" [size]="15" /></button>
                     @if (assignMenuFor() === t.id) {
-                      <div class="assign__menu" (click)="$event.stopPropagation()">
+                      <div class="assign__menu" [tpAnchor]="agAssignBtn" (dismiss)="assignMenuFor.set(null)">
                         <p class="assign__label">Assign to</p>
                         @for (m of members(); track m.userId) {
                           <button class="assign__item" [class.on]="isAssigned(t, m.userId)" (click)="toggleAssignee(t, m.userId)">
@@ -186,7 +186,7 @@
 
 <!-- Invite modal -->
 @if (showInvite()) {
-  <div class="modal-backdrop" (click)="showInvite.set(false)">
+  <div class="modal-backdrop" (click)="showInvite.set(false)" (document:keydown.escape)="showInvite.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>Invite to group</h2>
@@ -240,7 +240,7 @@
 
 <!-- Settings modal (owner) -->
 @if (showSettings()) {
-  <div class="modal-backdrop" (click)="showSettings.set(false)">
+  <div class="modal-backdrop" (click)="showSettings.set(false)" (document:keydown.escape)="showSettings.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>Group settings</h2>

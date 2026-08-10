@@ -27,7 +27,7 @@
 </div>
 
 @if (preview(); as p) {
-  <div class="modal-overlay" (click)="preview.set(null)">
+  <div class="modal-overlay" (click)="preview.set(null)" (document:keydown.escape)="preview.set(null)">
     <div class="ta-preview scale-in" (click)="$event.stopPropagation()">
       <div class="ta-preview__bar">
         <span class="ta-preview__name">{{ p.att.name }}</span>

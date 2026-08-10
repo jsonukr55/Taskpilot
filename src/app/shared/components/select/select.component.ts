@@ -203,6 +203,7 @@ export class SelectComponent implements ControlValueAccessor, OnDestroy {
     switch (e.key) {
       case 'Escape':
         e.preventDefault();
+        e.stopPropagation();   // don't also close an outer overlay
         this.close();
         break;
       case 'ArrowDown':

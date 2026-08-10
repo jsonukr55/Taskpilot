@@ -11,6 +11,7 @@ import { IconComponent } from '../icon/icon.component';
   selector:   'tp-app-dialog',
   standalone: true,
   imports:    [FormsModule, IconComponent],
+  host: { '(document:keydown.escape)': 'cancel()' },   // Escape cancels confirm + prompt
   template: `
     @if (svc.request(); as r) {
       <div class="modal-backdrop" (click)="cancel()">

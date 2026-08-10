@@ -43,7 +43,7 @@
 
 <!-- Create modal -->
 @if (showForm()) {
-  <div class="modal-backdrop" (click)="showForm.set(false)">
+  <div class="modal-backdrop" (click)="showForm.set(false)" (document:keydown.escape)="showForm.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>New group</h2>

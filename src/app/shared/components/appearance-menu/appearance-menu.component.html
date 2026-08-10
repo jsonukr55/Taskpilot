@@ -8,7 +8,7 @@
   </button>
 
   @if (appearanceOpen()) {
-    <div class="appearance__overlay" (click)="close()"></div>
+    <div class="appearance__overlay" (click)="close()" (document:keydown.escape)="close()"></div>
     <div class="appearance__panel" role="dialog" aria-label="Appearance settings">
       <div class="appearance__section">
         <span class="appearance__title">Theme</span>

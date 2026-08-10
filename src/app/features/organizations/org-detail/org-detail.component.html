@@ -115,7 +115,7 @@
 
 <!-- Create space modal -->
 @if (showSpace()) {
-  <div class="modal-backdrop" (click)="showSpace.set(false)">
+  <div class="modal-backdrop" (click)="showSpace.set(false)" (document:keydown.escape)="showSpace.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>New space</h2>
@@ -158,7 +158,7 @@
 
 <!-- Invite modal -->
 @if (showInvite()) {
-  <div class="modal-backdrop" (click)="showInvite.set(false)">
+  <div class="modal-backdrop" (click)="showInvite.set(false)" (document:keydown.escape)="showInvite.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>Invite to organization</h2>
@@ -200,7 +200,7 @@
 
 <!-- Settings modal -->
 @if (showSettings()) {
-  <div class="modal-backdrop" (click)="showSettings.set(false)">
+  <div class="modal-backdrop" (click)="showSettings.set(false)" (document:keydown.escape)="showSettings.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>Organization settings</h2>

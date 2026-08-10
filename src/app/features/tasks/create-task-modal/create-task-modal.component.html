@@ -1,4 +1,4 @@
-<div class="modal-overlay" (click)="close.emit()">
+<div class="modal-overlay" (click)="close.emit()" (document:keydown.escape)="close.emit()">
   <div class="modal scale-in" (click)="$event.stopPropagation()">
 
     <!-- Header -->

@@ -1,4 +1,4 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, input, signal, HostListener } from '@angular/core';
 import { IconComponent } from '@shared/components/icon/icon.component';
 
 export interface MenuItem {
@@ -47,4 +47,8 @@ export class MenuComponent {
   toggle(): void { this.open.update(v => !v); }
   close(): void { this.open.set(false); }
   run(it: MenuItem): void { this.close(); it.action(); }
+
+  /** Escape closes the open menu (and swallows the key so an outer overlay stays). */
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscape(e: Event): void { if (this.open()) { e.stopPropagation(); this.close(); } }
 }

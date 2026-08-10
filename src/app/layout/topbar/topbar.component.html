@@ -84,7 +84,7 @@
         @else { <span class="topbar__avatar topbar__avatar--fallback">{{ auth.displayName().charAt(0).toUpperCase() }}</span> }
       </button>
       @if (profileOpen()) {
-        <div class="profile-backdrop" (click)="profileOpen.set(false)"></div>
+        <div class="profile-backdrop" (click)="profileOpen.set(false)" (document:keydown.escape)="profileOpen.set(false)"></div>
         <div class="profile-menu">
           <div class="profile-menu__head">
             @if (auth.photoURL()) { <img [src]="auth.photoURL()!" alt="" class="profile-menu__avatar"> }
@@ -103,4 +103,4 @@
   </div>
 </header>
 
-@if (search.open()) { <div class="search-backdrop" (click)="search.close()"></div> }
+@if (search.open()) { <div class="search-backdrop" (click)="search.close()" (document:keydown.escape)="search.close()"></div> }

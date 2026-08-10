@@ -30,6 +30,6 @@
         }
       </div>
     </div>
-    <div class="nb__backdrop" (click)="close()"></div>
+    <div class="nb__backdrop" (click)="close()" (document:keydown.escape)="close()"></div>
   }
 </div>

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { OrganizationService } from '@core/services/organization.service';
@@ -10,6 +10,7 @@ import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
 import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { LogoService } from '@core/services/logo.service';
 import { Organization } from '@shared/models/organization.model';
 
@@ -19,7 +20,7 @@ const ORG_COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9',
   selector:   'tp-organizations',
   standalone: true,
   imports:    [RouterLink, ReactiveFormsModule, IconComponent, MenuComponent,
-               AvatarPickerComponent, EntityAvatarComponent],
+               AvatarPickerComponent, EntityAvatarComponent, SelectComponent],
   templateUrl: './organizations.component.html',
   styleUrl:    './organizations.component.scss'
 })
@@ -54,6 +55,12 @@ export class OrganizationsComponent implements OnInit {
   readonly showForm     = signal(false);
   readonly isSubmitting = signal(false);
   readonly COLORS = ORG_COLORS;
+
+  /** Client picker options for the create-org modal (tp-select). */
+  readonly clientOptions = computed<SelectOption[]>(() => [
+    { value: '', label: '— No client —' },
+    ...this.clients.clients().map(c => ({ value: c.id, label: c.name, icon: c.icon, color: c.color })),
+  ]);
 
   private readonly logos = inject(LogoService);
   /** Chosen logo, held until the org exists — see IconPickerComponent. */

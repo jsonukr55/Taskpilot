@@ -461,6 +461,20 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
   // ---- Custom columns ----
   readonly COLUMN_TYPES = SPACE_COLUMN_TYPES;
 
+  /** Dropdown custom-field options as tp-select options, cached by option set so
+   *  the reference is stable across change detection (avoids needless re-renders). */
+  private readonly cfOptCache = new Map<string, SelectOption[]>();
+  cfOptions(opts: string[] | undefined): SelectOption[] {
+    const list = opts ?? [];
+    const key = list.join('');
+    let cached = this.cfOptCache.get(key);
+    if (!cached) {
+      cached = [{ value: '', label: '—' }, ...list.map(o => ({ value: o, label: o }))];
+      this.cfOptCache.set(key, cached);
+    }
+    return cached;
+  }
+
   fieldValue = (t: Task, colId: string): string | number | null => t.customFields?.[colId] ?? null;
 
   /** Resolve a member custom-field value (a profile uid) to a display name / photo. */

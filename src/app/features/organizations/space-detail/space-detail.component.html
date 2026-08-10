@@ -338,10 +338,8 @@
               } @else if (canEdit()) {
                 @switch (col.custom!.type) {
                   @case ('dropdown') {
-                    <select class="cf-input" [value]="fieldValue(t, col.custom!.id) ?? ''" (change)="setCustomField(t, col.custom!.id, $any($event.target).value)">
-                      <option value="">—</option>
-                      @for (o of col.custom!.options; track o) { <option [value]="o">{{ o }}</option> }
-                    </select>
+                    <tp-select chip [options]="cfOptions(col.custom!.options)" [value]="fieldValue(t, col.custom!.id) ?? ''"
+                               (changed)="setCustomField(t, col.custom!.id, $event)" placeholder="—" />
                   }
                   @case ('date') {
                     <input class="cf-input" type="date" [value]="fieldValue(t, col.custom!.id) ?? ''" (change)="setCustomField(t, col.custom!.id, $any($event.target).value)">
@@ -521,9 +519,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Type</label>
-          <select class="form-input" [ngModel]="newColType()" (ngModelChange)="newColType.set($event)">
-            @for (ct of COLUMN_TYPES; track ct.value) { <option [value]="ct.value">{{ ct.label }}</option> }
-          </select>
+          <tp-select [options]="COLUMN_TYPES" [value]="newColType()" (changed)="newColType.set($event)" />
         </div>
         @if (newColType() === 'dropdown') {
           <div class="form-group">

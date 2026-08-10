@@ -234,9 +234,8 @@
       <div class="admin-add">
         <input class="form-input" type="email" placeholder="Add a user by email…"
                [ngModel]="addEmail()" (ngModelChange)="addEmail.set($event)" (keydown.enter)="addUser()">
-        <select class="form-input admin-add__org" [ngModel]="addOrgId()" (ngModelChange)="addOrgId.set($event)">
-          @for (o of scopeOrgs(); track o.id) { <option [value]="o.id">{{ o.name }}</option> }
-        </select>
+        <tp-select class="admin-add__org" [options]="orgOptions()" [value]="addOrgId()"
+                   (changed)="addOrgId.set($event)" placeholder="Organization" />
         <button class="btn-primary" (click)="addUser()" [disabled]="adding() || !addEmail().trim() || !addOrgId()">
           <tp-icon name="user-plus" [size]="14" /> Add
         </button>
@@ -289,10 +288,8 @@
                       @if (o.ownerId === u.uid) {
                         <span class="admin-list__tag">Owner</span>
                       } @else {
-                        <select class="form-input admin-access__role" [ngModel]="m.role"
-                                (ngModelChange)="setOrgRole(u, o, $event)">
-                          @for (r of ASSIGNABLE_ORG_ROLES; track r) { <option [value]="r">{{ ORG_ROLE_LABELS[r] }}</option> }
-                        </select>
+                        <tp-select class="admin-access__role" [options]="orgRoleOptions" [value]="m.role"
+                                   (changed)="setOrgRole(u, o, $event)" />
                         <button class="btn-ghost btn-sm admin-danger" (click)="toggleOrgAccess(u, o)">Remove</button>
                       }
                     } @else {

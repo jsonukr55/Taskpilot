@@ -12,6 +12,7 @@ import { IconComponent } from '@shared/components/icon/icon.component';
 import { MenuComponent, MenuItem } from '@shared/components/menu/menu.component';
 import { AvatarPickerComponent } from '@shared/components/avatar-picker/avatar-picker.component';
 import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
+import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { LogoService } from '@core/services/logo.service';
 import { Client } from '@shared/models/client.model';
 import { TASK_STAGE_LABELS } from '@shared/models/task.model';
@@ -46,7 +47,7 @@ export interface ScopeUser {
   selector:   'tp-admin',
   standalone: true,
   imports:    [NgTemplateOutlet, RouterLink, FormsModule, IconComponent, MenuComponent,
-               AvatarPickerComponent, EntityAvatarComponent],
+               AvatarPickerComponent, EntityAvatarComponent, SelectComponent],
   templateUrl: './admin.component.html',
   styleUrl:    './admin.component.scss'
 })
@@ -62,6 +63,8 @@ export class AdminComponent {
   readonly CLIENT_COLORS = CLIENT_COLORS;
   readonly ASSIGNABLE_ORG_ROLES = ASSIGNABLE_ORG_ROLES;
   readonly ORG_ROLE_LABELS = ORG_ROLE_LABELS;
+  /** Role choices for the per-org access picker (tp-select). */
+  readonly orgRoleOptions: SelectOption[] = ASSIGNABLE_ORG_ROLES.map(r => ({ value: r, label: ORG_ROLE_LABELS[r] }));
 
   // ---- Platform data (loaded when a global admin opens the panel) ----
   readonly users  = signal<AdminUser[]>([]);
@@ -95,6 +98,10 @@ export class AdminComponent {
     }
     return this.myAdminOrgs();
   });
+
+  /** Scope orgs as tp-select options for the "add user to org" picker. */
+  readonly orgOptions = computed<SelectOption[]>(() =>
+    this.scopeOrgs().map(o => ({ value: o.id, label: o.name, icon: o.icon, color: o.color })));
 
   private readonly usersByUid = computed(() => {
     const m = new Map<string, AdminUser>();

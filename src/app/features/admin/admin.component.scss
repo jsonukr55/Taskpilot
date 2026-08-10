@@ -129,10 +129,10 @@
 
 // Add-user row
 .admin-add {
-  display: flex; gap: $space-2; margin-bottom: $space-3;
+  display: flex; gap: $space-2; margin-bottom: $space-3; align-items: center;
   .form-input { flex: 1; }
-  &__org { flex: 0 0 auto; max-width: 200px; }
-  @media (max-width: 640px) { flex-wrap: wrap; &__org { max-width: none; flex: 1; } }
+  &__org { flex: 0 0 200px; width: 200px; }
+  @media (max-width: 640px) { flex-wrap: wrap; &__org { width: auto; flex: 1 1 100%; } }
 }
 
 // User rows
@@ -169,5 +169,5 @@
   &__row { @include flex-between; gap: $space-2; padding: $space-1 0; }
   &__name { @include flex-start; gap: $space-2; font-size: $font-size-sm; color: var(--text-primary); flex: 1; min-width: 0; }
   &__emoji { flex-shrink: 0; }
-  &__role { flex: 0 0 auto; max-width: 130px; padding: 2px $space-2; font-size: $font-size-xs; }
+  &__role { flex: 0 0 140px; width: 140px; }
 }

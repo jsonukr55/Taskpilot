@@ -63,12 +63,7 @@
       <form [formGroup]="form" (ngSubmit)="submit()" class="modal__body">
         <div class="form-group">
           <label class="form-label">Client</label>
-          <select class="form-input" formControlName="clientId">
-            <option value="">— No client —</option>
-            @for (c of clients.clients(); track c.id) {
-              <option [value]="c.id">{{ c.name }}</option>
-            }
-          </select>
+          <tp-select formControlName="clientId" [options]="clientOptions()" placeholder="— No client —" />
         </div>
 
         <div class="form-group">

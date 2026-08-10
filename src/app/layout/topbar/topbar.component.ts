@@ -6,13 +6,14 @@ import { SearchService } from '@core/services/search.service';
 import { KeyboardShortcutService } from '@core/services/keyboard-shortcut.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
 import { NotificationBellComponent } from '@shared/components/notification-bell/notification-bell.component';
+import { AppearanceMenuComponent } from '@shared/components/appearance-menu/appearance-menu.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { SearchResult } from '@shared/models/search.model';
 
 @Component({
   selector:   'tp-topbar',
   standalone: true,
-  imports:    [IconComponent, NotificationBellComponent, TooltipDirective],
+  imports:    [IconComponent, NotificationBellComponent, AppearanceMenuComponent, TooltipDirective],
   templateUrl: './topbar.component.html',
   styleUrl:    './topbar.component.scss'
 })

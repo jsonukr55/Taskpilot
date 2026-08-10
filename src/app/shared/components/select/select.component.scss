@@ -129,10 +129,9 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-default);
-    border-radius: $radius-lg;
-    box-shadow: $shadow-xl;
+    @include glass-panel(16px, true);
+    border-radius: $radius-xl;
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
     animation: fade-in $transition-fast both;
     @include custom-scrollbar;
   }

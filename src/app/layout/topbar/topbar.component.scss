@@ -6,9 +6,9 @@
   height: $topbar-height;
   padding: 0 $space-6;
   background: var(--topbar-bg);
-  border-bottom: 1px solid var(--border-subtle);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   position: sticky;
   top: 0;
   z-index: $z-sticky;
@@ -137,10 +137,9 @@
   z-index: $z-popover;
   max-height: 60vh;
   overflow-y: auto;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-xl;
+  @include glass-panel(18px, true);
+  border-radius: $radius-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   padding: $space-2;
   @include custom-scrollbar;
   animation: scale-in 120ms both;
@@ -231,10 +230,9 @@
 .profile-menu {
   position: absolute; top: calc(100% + 8px); right: 0; z-index: $z-dropdown + 1;
   min-width: 240px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  @include glass-panel(16px, true);
+  border-radius: $radius-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   padding: $space-2;
   animation: scale-in 120ms $transition-fast;
 

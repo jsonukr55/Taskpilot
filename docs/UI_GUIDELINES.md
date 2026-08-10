@@ -84,9 +84,29 @@ danger `$rose-500`, urgent `#ff4444`. Prefer the `--surface-*` tints for backgro
 ## 4. Radius, shadow, transition, z-index
 
 - **Radius:** `$radius-sm` 4px · `$radius-md` 8px (small buttons) · `$radius-lg` 12px
-  (buttons, inputs) · `$radius-xl` 16px (**cards**) · `$radius-full` (pills, swatches, avatars).
+  (buttons, inputs) · `$radius-xl` 16px (dropdowns/menus, `.card-sm`) · `$radius-2xl` 20px
+  (**cards, modals, data lists**) · `$radius-full` (pills, swatches, avatars).
 - **Shadow:** use `var(--card-shadow)` / `var(--card-shadow-hover)` via the `card` mixin.
   Raw `$shadow-*` only for popovers/menus.
+
+### Glass / frosted surfaces (glassmorphism)
+
+The app has a frosted-glass finish: panels are translucent and blurred over an
+ambient page backdrop (`--app-bg`, a soft accent gradient set on `body`/`.shell`).
+Don't hand-roll it — use the tokens/mixin:
+
+- **`@include glass-panel($blur: 16px, $strong: false)`** — translucent bg
+  (`--glass-bg` / `--glass-bg-strong`) + `backdrop-filter` blur/saturate +
+  `--glass-border`. Use `$strong: true` for anything holding text (menus,
+  dropdowns, cards, modals) so contrast stays crisp; the light form is for pure chrome.
+- Pair it with `box-shadow: var(--glass-shadow), var(--glass-highlight)` (the
+  highlight is the top-edge sheen).
+- The **`card` mixin already is glass** (`glass-panel` strong + `$radius-2xl` +
+  the shadow pair). `.modal`, `.tp-list`, `tp-menu`, `tp-select`, the topbar,
+  and the sidebar all use it. New elevated surfaces should too — never a flat
+  `var(--bg-elevated)` panel.
+- Tokens: `--glass-bg`, `--glass-bg-strong`, `--glass-border`, `--glass-shadow`,
+  `--glass-highlight`, `--glass-blur`, `--app-bg` (all theme-aware).
 - **Transition:** `$transition-fast` 150ms (hovers) · `$transition-normal` 250ms
   (cards) · `$transition-spring` (playful). Always transition specific props, not `all`, in new code.
 - **Z-index (use the scale, never magic numbers):** dropdown 100 · sticky 200 ·
@@ -148,9 +168,10 @@ Custom select: `<tp-select [options]="…" formControlName="…">`.
 
 ## 7. Cards
 
-Use the `card` mixin (radius `$radius-xl`, `var(--card-bg)`, `var(--card-border)`,
-`var(--card-shadow)`, hover lift). Inner padding: **`$space-5`** (or `$space-6` for
-roomy). Section/grid gaps: `$space-5`.
+Use the `card` mixin (frosted glass: translucent `--glass-bg-strong`, blur,
+`--glass-border`, radius `$radius-2xl`, top-edge sheen, hover lift). Inner
+padding: **`$space-5`** (or `$space-6` for roomy). Section/grid gaps: `$space-5`.
+See §4 "Glass / frosted surfaces" — don't override the surface with a flat bg.
 
 ```scss
 .my-card { @include card(false); padding: $space-5; }   // false = no hover lift

@@ -28,7 +28,8 @@ body {
   font-size: $font-size-base;
   line-height: $line-height-normal;
   color: var(--text-primary);
-  background: var(--bg-primary);
+  background: var(--app-bg);
+  background-attachment: fixed;   // ambient gradient stays put while content scrolls
   min-height: 100vh;
   overflow-x: hidden;
   transition: background-color $transition-slow, color $transition-slow;
@@ -278,7 +279,7 @@ select:not(.filter-pill):not(.pill) {
   padding: $space-6;
 
   &-hover { @include card(true); }
-  &-sm    { padding: $space-4; border-radius: $radius-lg; }
+  &-sm    { padding: $space-4; border-radius: $radius-xl; }
 }
 
 // ============================================================
@@ -407,10 +408,9 @@ select:not(.filter-pill):not(.pill) {
   max-height: 260px;
   overflow-y: auto;
   padding: $space-2;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-xl;
+  @include glass-panel(16px, true);
+  border-radius: $radius-xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   z-index: $z-dropdown;
   animation: fade-in $transition-fast both;
 
@@ -485,10 +485,9 @@ select:not(.filter-pill):not(.pill) {
   max-width: 460px;
   max-height: 90vh;
   overflow-y: auto;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: $radius-xl;
-  box-shadow: $shadow-xl;
+  @include glass-panel(20px, true);
+  border-radius: $radius-2xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   animation: scale-in $transition-normal both;
   @include custom-scrollbar;
 
@@ -564,14 +563,13 @@ select:not(.filter-pill):not(.pill) {
 // A screen sets grid-template-columns on .tp-list__head / __row.
 // ============================================================
 .tp-list {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: $radius-lg;
-  box-shadow: var(--card-shadow);
+  @include glass-panel(16px, true);
+  border-radius: $radius-2xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   overflow: visible;   // let row context menus escape the container
 
-  &__head { border-radius: $radius-lg $radius-lg 0 0; }
-  &__row:last-child { border-radius: 0 0 $radius-lg $radius-lg; }
+  &__head { border-radius: $radius-2xl $radius-2xl 0 0; }
+  &__row:last-child { border-radius: 0 0 $radius-2xl $radius-2xl; }
 
   &__head, &__row {
     display: grid;
@@ -581,7 +579,7 @@ select:not(.filter-pill):not(.pill) {
   }
   &__head {
     min-height: 40px;
-    background: var(--bg-secondary);
+    background: transparent;   // let the frosted container show through
     border-bottom: 1px solid var(--border-subtle);
     font-size: $font-size-xs;
     font-weight: $font-weight-semibold;
@@ -641,10 +639,9 @@ select:not(.filter-pill):not(.pill) {
 .drag-preview {
   display: inline-flex; align-items: center; gap: $space-2;
   padding: $space-2 $space-3;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: $radius-md;
-  box-shadow: var(--shadow-lg);
+  @include glass-panel(12px, true);
+  border-radius: $radius-lg;
+  box-shadow: var(--glass-shadow);
   font-size: $font-size-sm; font-weight: $font-weight-medium;
   color: var(--text-primary);
 }

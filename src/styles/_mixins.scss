@@ -33,25 +33,34 @@
   overflow: hidden;
 }
 
-// Glassmorphism
+// Glassmorphism — bare blur helper (e.g. a scrim behind a modal).
 @mixin glass($blur: 12px, $opacity: 0.7) {
   backdrop-filter: blur($blur);
   -webkit-backdrop-filter: blur($blur);
 }
 
-// Card — enterprise-crisp: tighter radius, subtle border-led elevation.
+// Frosted panel — translucent surface refracting the page backdrop. Use for
+// elevated popovers/menus/dropdowns and cards. `$strong` = more opaque, so text
+// over busy content stays crisp; leave false for lighter chrome.
+@mixin glass-panel($blur: 16px, $strong: false) {
+  background: if($strong, var(--glass-bg-strong), var(--glass-bg));
+  backdrop-filter: blur($blur) saturate(140%);
+  -webkit-backdrop-filter: blur($blur) saturate(140%);
+  border: 1px solid var(--glass-border);
+}
+
+// Card — frosted glass: translucent, softly rounded, sheen on the top edge.
 @mixin card($hover: true) {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: $radius-lg;
-  box-shadow: var(--card-shadow);
+  @include glass-panel(16px, true);
+  border-radius: $radius-2xl;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   transition: transform $transition-normal, box-shadow $transition-normal, border-color $transition-normal;
 
   @if $hover {
     &:hover {
-      box-shadow: var(--card-shadow-hover);
+      box-shadow: var(--card-shadow-hover), var(--glass-highlight);
       border-color: var(--border-default);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
   }
 }

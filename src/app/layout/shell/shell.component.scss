@@ -5,7 +5,8 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: var(--app-bg);
+  background-attachment: fixed;   // the frosted panels refract this
 
   &__main {
     flex: 1;

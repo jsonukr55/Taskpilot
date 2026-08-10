@@ -4,12 +4,14 @@ import { Directive, ElementRef, inject, input, output, AfterViewInit, OnDestroy 
 // [tpAnchor] — pin a popover to a trigger, escaping every overflow/clip/
 // transform ancestor. The element is teleported to <body> (so its containing
 // block is the viewport) and positioned fixed under the trigger; it flips above
-// when there's no room below and clamps to the viewport. Emits (dismiss) on any
-// scroll/resize so the host can close it (a detached fixed panel would drift).
+// when there's no room below and clamps to the viewport.
 //
-// Angular still owns the element (bindings + emulated-encapsulation styles work
-// wherever it lives); a comment placeholder marks its original slot so it's
-// restored before the view is destroyed — no renderer removeChild errors.
+// Closing is handled here so callers don't need a backdrop: (dismiss) fires on
+// any scroll/resize (a detached fixed panel would drift) and on a pointerdown
+// outside both the popover and its trigger. Angular still owns the element
+// (bindings + emulated-encapsulation styles work wherever it lives); on destroy
+// we remove the teleported node ourselves, so Angular's own teardown just no-ops
+// on the detached node — no orphaned popovers, no renderer removeChild errors.
 //
 //   <button #t ...></button>
 //   <div class="popover" [tpAnchor]="t" (dismiss)="close()"> … </div>
@@ -20,26 +22,31 @@ export class AnchorDirective implements AfterViewInit, OnDestroy {
   readonly dismiss = output<void>();
 
   private readonly el = inject(ElementRef<HTMLElement>);
+  private destroyed = false;
   private readonly onScroll = () => this.dismiss.emit();
-  private placeholder?: Comment;
+  private readonly onDocDown = (e: Event) => {
+    const t = e.target as Node;
+    const trigger = this.anchor();
+    if (!this.el.nativeElement.contains(t) && !(trigger && trigger.contains(t))) this.dismiss.emit();
+  };
 
   ngAfterViewInit(): void {
-    const el = this.el.nativeElement;
-    this.placeholder = document.createComment('tpAnchor');
-    el.parentNode?.insertBefore(this.placeholder, el);
-    document.body.appendChild(el);
+    document.body.appendChild(this.el.nativeElement);   // escape any clip/transform ancestor
     this.place();
     document.addEventListener('scroll', this.onScroll, true);   // capture: any scroll container
     window.addEventListener('resize', this.onScroll);
+    // Close on outside click. Deferred so the opening click doesn't dismiss it.
+    setTimeout(() => { if (!this.destroyed) document.addEventListener('pointerdown', this.onDocDown, true); }, 0);
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     document.removeEventListener('scroll', this.onScroll, true);
     window.removeEventListener('resize', this.onScroll);
-    // Restore to the original slot so Angular's view teardown removes it cleanly.
-    const el = this.el.nativeElement;
-    const ph = this.placeholder;
-    if (ph?.parentNode) { ph.parentNode.insertBefore(el, ph); ph.remove(); }
+    document.removeEventListener('pointerdown', this.onDocDown, true);
+    // We moved the node to <body>, so remove it ourselves; Angular's own
+    // teardown then sees a detached node and no-ops (no orphaned popovers).
+    this.el.nativeElement.remove();
   }
 
   private place(): void {

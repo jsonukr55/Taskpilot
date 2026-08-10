@@ -40,7 +40,9 @@ export class EntityAvatarComponent {
     height:       `${this.size()}px`,
     // A bare emoji reads better a touch larger than one inside a chip.
     'font-size':  `${Math.round(this.size() * (this.plain() && !this.showImage() ? 0.85 : 0.55))}px`,
-    'border-radius': this.round() ? '50%' : `${Math.max(6, Math.round(this.size() * 0.28))}px`,
+    // Logos get gentler corners than emoji chips so the whole mark reads.
+    'border-radius': this.round() ? '50%'
+      : `${Math.max(4, Math.round(this.size() * (this.showImage() ? 0.16 : 0.28)))}px`,
     background:   this.showImage() || this.plain() ? 'transparent' : this.color() + '22',
   }));
 

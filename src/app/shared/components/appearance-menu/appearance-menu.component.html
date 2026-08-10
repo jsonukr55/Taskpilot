@@ -40,6 +40,18 @@
           </label>
         </div>
       </div>
+
+      <div class="appearance__section">
+        <span class="appearance__title">Interface</span>
+        <button class="appearance__toggle" [class.on]="theme.glass()" role="switch"
+                [attr.aria-checked]="theme.glass()" (click)="theme.toggleGlass()">
+          <span class="appearance__toggle-text">
+            Glass effect
+            <small>Frosted, translucent panels</small>
+          </span>
+          <span class="appearance__switch"><span class="appearance__switch-knob"></span></span>
+        </button>
+      </div>
     </div>
   }
 </div>

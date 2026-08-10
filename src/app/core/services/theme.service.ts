@@ -38,6 +38,9 @@ export class ThemeService {
   readonly resolvedTheme = signal<'light' | 'dark'>('light');
   readonly accentColor   = signal<string>(DEFAULT_ACCENT);
 
+  /** Frosted-glass UI on/off (device-local preference). Default on. */
+  readonly glass = signal<boolean>(true);
+
   /** Appearance popover visibility — shared so the command palette can open it. */
   readonly appearanceOpen = signal(false);
 
@@ -48,6 +51,10 @@ export class ThemeService {
   constructor() {
     // Apply the stored accent immediately (avoids a flash on first paint).
     this.applyAccent(DEFAULT_ACCENT);
+
+    // Glass UI preference — device-local (no backend), applied before first paint.
+    const storedGlass = localStorage.getItem('tp-glass');
+    this.setGlass(storedGlass === null ? true : storedGlass === '1', false);
 
     // Listen to system preference changes
     this.mediaQuery.addEventListener('change', () => {
@@ -94,6 +101,17 @@ export class ThemeService {
     this.setTheme(next);
     this.auth.updatePreferences({ theme: next });
   }
+
+  // ---- Glass (frosted) UI ----------------------------------------
+
+  /** Turn the frosted-glass surfaces on/off. Off falls back to solid panels. */
+  setGlass(on: boolean, persist = true): void {
+    this.glass.set(on);
+    document.documentElement.setAttribute('data-glass', on ? 'on' : 'off');
+    if (persist) { try { localStorage.setItem('tp-glass', on ? '1' : '0'); } catch { /* ignore */ } }
+  }
+
+  toggleGlass(): void { this.setGlass(!this.glass()); }
 
   // ---- Accent color ----------------------------------------------
 

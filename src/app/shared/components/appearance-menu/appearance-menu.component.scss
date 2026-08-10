@@ -45,6 +45,34 @@
   &.active { background: var(--surface-brand); border-color: var(--border-brand); color: var(--text-brand); }
 }
 
+// Interface toggle (glass on/off) — a labelled switch row.
+.appearance__toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: $space-3;
+  width: 100%; padding: $space-2 $space-3;
+  border: 1px solid var(--border-subtle); border-radius: $radius-md;
+  background: var(--bg-tertiary); color: var(--text-secondary);
+  cursor: pointer; transition: color $transition-fast, border-color $transition-fast;
+  &:hover { color: var(--text-primary); border-color: var(--border-default); }
+  &.on { color: var(--text-primary); }
+}
+.appearance__toggle-text {
+  display: flex; flex-direction: column; text-align: left;
+  font-size: $font-size-sm; font-weight: $font-weight-medium;
+  small { font-size: 11px; font-weight: $font-weight-normal; color: var(--text-tertiary); }
+}
+.appearance__switch {
+  position: relative; flex-shrink: 0;
+  width: 36px; height: 20px; border-radius: $radius-full;
+  background: var(--border-strong); transition: background $transition-fast;
+  .appearance__toggle.on & { background: var(--accent-500); }
+}
+.appearance__switch-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: $radius-full;
+  background: #fff; transition: transform $transition-fast;
+  .appearance__toggle.on & { transform: translateX(16px); }
+}
+
 .appearance__swatch {
   position: relative;
   width: 28px; height: 28px;

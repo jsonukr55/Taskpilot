@@ -107,6 +107,10 @@ Don't hand-roll it — use the tokens/mixin:
   `var(--bg-elevated)` panel.
 - Tokens: `--glass-bg`, `--glass-bg-strong`, `--glass-border`, `--glass-shadow`,
   `--glass-highlight`, `--glass-blur`, `--app-bg` (all theme-aware).
+- **Toggle:** users can turn frost off (Appearance menu → Interface). ThemeService
+  sets `data-glass="off"` on `<html>`, which flips all glass tokens to solid
+  fallbacks and `--glass-blur` to `0`. So always drive blur through
+  `var(--glass-blur)` (never a hard-coded `blur(16px)`) or the toggle won't reach it.
 - **Transition:** `$transition-fast` 150ms (hovers) · `$transition-normal` 250ms
   (cards) · `$transition-spring` (playful). Always transition specific props, not `all`, in new code.
 - **Z-index (use the scale, never magic numbers):** dropdown 100 · sticky 200 ·

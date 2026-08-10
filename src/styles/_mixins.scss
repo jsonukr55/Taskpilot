@@ -42,10 +42,12 @@
 // Frosted panel — translucent surface refracting the page backdrop. Use for
 // elevated popovers/menus/dropdowns and cards. `$strong` = more opaque, so text
 // over busy content stays crisp; leave false for lighter chrome.
+// $blur is a fallback; the live value is --glass-blur so a single token (set to
+// 0px by the glass-OFF toggle) disables the frost everywhere at once.
 @mixin glass-panel($blur: 16px, $strong: false) {
   background: if($strong, var(--glass-bg-strong), var(--glass-bg));
-  backdrop-filter: blur($blur) saturate(140%);
-  -webkit-backdrop-filter: blur($blur) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur, #{$blur})) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, #{$blur})) saturate(140%);
   border: 1px solid var(--glass-border);
 }
 

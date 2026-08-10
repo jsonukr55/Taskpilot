@@ -156,6 +156,13 @@
           @if (canEdit() && view() === 'section') {
             <button class="btn-secondary btn-sm" (click)="addGroup()"><tp-icon name="plus" [size]="14" /> New section</button>
           }
+          @if (canEdit() && view() === 'sprint') {
+            <div class="board__search">
+              <input class="board__search-input" placeholder="New sprint…" aria-label="New sprint name"
+                     [ngModel]="newSprint()" (ngModelChange)="newSprint.set($event)" (keydown.enter)="addSprint()">
+              <button class="board__search-x" (click)="addSprint()" [disabled]="!newSprint().trim()" data-tooltip="Add sprint"><tp-icon name="plus" [size]="14" /></button>
+            </div>
+          }
         </div>
       </div>
 
@@ -180,6 +187,9 @@
             </span>
             @if (col.canManage && col.group) {
               <button class="btn-icon grp__del" (click)="deleteGroup(col.group)" data-tooltip="Delete section"><tp-icon name="trash-2" [size]="14" /></button>
+            }
+            @if (col.kind === 'sprint' && col.key !== '__none' && canEdit()) {
+              <button class="btn-icon grp__del" (click)="removeSprint(col.key)" data-tooltip="Remove sprint"><tp-icon name="trash-2" [size]="14" /></button>
             }
           </div>
 
@@ -467,9 +477,7 @@
               @case ('sprint') {
                 <div class="c c--sprint">
                   @if (canEdit()) {
-                    <input class="cell-input" [value]="t.sprint || ''" placeholder="—"
-                           (blur)="setSprint(t.id, $any($event.target).value)"
-                           (keydown.enter)="$any($event.target).blur()">
+                    <tp-select chip [options]="sprintCellOptions()" [value]="t.sprint || ''" (changed)="setSprint(t.id, $event)" />
                   } @else {
                     <span class="tp-muted">{{ t.sprint || '—' }}</span>
                   }

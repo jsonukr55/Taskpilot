@@ -105,7 +105,7 @@ export class SpaceService {
     return id;
   }
 
-  async updateSpace(id: string, changes: Partial<Pick<Space, 'name' | 'description' | 'icon' | 'color' | 'iconUrl'>>): Promise<void> {
+  async updateSpace(id: string, changes: Partial<Pick<Space, 'name' | 'description' | 'icon' | 'color' | 'iconUrl' | 'sprints'>>): Promise<void> {
     const { error } = await this.supa.db('spaces').update(entityIconPatch(changes)).eq('id', id);
     if (error) throw error;
   }
@@ -167,6 +167,7 @@ function rowToSpace(r: any): Space {
     memberIds,
     roles,
     memberProfiles,
+    sprints:     r.sprints ?? [],
     createdBy:   r.created_by,
     createdAt:   toTs(r.created_at) as any,
     updatedAt:   toTs(r.updated_at) as any,

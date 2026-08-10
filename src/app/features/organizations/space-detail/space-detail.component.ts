@@ -167,6 +167,26 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
     this.filterStage.set(null);  this.filterPmPo.set(null);
   }
 
+  // ---- Managed sprints (Sprint view columns + the Sprint field) ----
+  readonly newSprint = signal('');
+  readonly sprintCellOptions = computed<SelectOption[]>(() => [
+    { value: '', label: '—' },
+    ...(this.space()?.sprints ?? []).map(s => ({ value: s, label: s })),
+  ]);
+  async addSprint(): Promise<void> {
+    const name = this.newSprint().trim();
+    if (!name) return;
+    const cur = this.space()?.sprints ?? [];
+    if (cur.includes(name)) { this.newSprint.set(''); return; }
+    try { await this.spaces.updateSpace(this.spaceId(), { sprints: [...cur, name] }); this.newSprint.set(''); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not add the sprint'); }
+  }
+  async removeSprint(name: string): Promise<void> {
+    const cur = this.space()?.sprints ?? [];
+    try { await this.spaces.updateSpace(this.spaceId(), { sprints: cur.filter(s => s !== name) }); }
+    catch (e: any) { this.toast.error(e?.message ?? 'Could not remove the sprint'); }
+  }
+
   /** Root tasks after the search box + filter popover are applied. */
   readonly filteredRootTasks = computed(() => {
     const q = this.filterText().trim().toLowerCase();
@@ -195,8 +215,11 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
           tasks: tasks.filter(t => (t.stage ?? 'created') === s.value).sort(byPos),
         }));
       case 'sprint': {
-        const sprints = [...new Set(tasks.map(t => t.sprint).filter((s): s is string => !!s))].sort();
-        const cols: BoardColumn[] = sprints.map(sp => ({
+        // Managed sprints first, then any legacy free-typed sprint still on a task.
+        const managed = this.space()?.sprints ?? [];
+        const extra = [...new Set(tasks.map(t => t.sprint).filter((s): s is string => !!s && !managed.includes(s)))].sort();
+        const names = [...managed, ...extra];
+        const cols: BoardColumn[] = names.map(sp => ({
           key: sp, name: sp, color: '#6366f1', kind: 'sprint' as const, canManage: false,
           tasks: tasks.filter(t => t.sprint === sp).sort(byPos),
         }));

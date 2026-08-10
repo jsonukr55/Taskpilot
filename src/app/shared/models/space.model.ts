@@ -29,6 +29,8 @@ export interface Space {
   roles:          Record<string, SpaceRole>;
   memberProfiles: Record<string, SpaceMemberProfile>;
 
+  sprints:        string[];   // managed sprint names for the Sprint view/field
+
   createdBy:      string;
   createdAt:      Timestamp;
   updatedAt:      Timestamp;

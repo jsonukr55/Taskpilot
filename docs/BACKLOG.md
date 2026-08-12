@@ -75,6 +75,7 @@ rename of existing entities.
 | 11 | Multi-tenancy (`client_id` on tenant tree) | P0 | Done |
 | 12 | Startup screen & user preferences | P2 | Done |
 | 13 | Infrastructure (Postgres, Redis, file storage) | P0 | Partly done |
+| 14 | Profile & account settings page | P2 | Todo |
 
 ---
 
@@ -459,6 +460,43 @@ Azure Database for PostgreSQL via `pg_dump`.
 
 **Open questions**
 - Redis + file-storage hosting (ties into the "Supabase now → Azure at launch" plan).
+
+---
+
+## Epic 14 — Profile & account settings page
+**Goal:** A dedicated **Profile / Settings** page where a user edits their own
+account details and preferences, in the reference layout (stacked setting cards).
+
+**Sections (from the reference design)**
+- **Account** — avatar + name/role header, then editable fields: **Full name**,
+  **Title**, **Email**, **Time zone** (tp-select), and a **Save changes** button.
+- **Notifications** — labelled toggle rows (title + one-line description + switch):
+  Assigned to a task · Mentioned in an update · Due date reminders · Weekly digest email.
+- **Appearance** — toggle rows: Compact table rows · Colorblind-friendly status colors.
+  (Theme + accent already live in the topbar Appearance menu; link/consolidate rather
+  than duplicate.)
+
+**Tasks**
+- [ ] Route + nav entry (e.g. profile dropdown → "Settings", or `/settings`).
+- [ ] Account form bound to the profile; persist via `AuthService.updatePreferences`
+      / a profile update (name/title/email/timezone). Email change may need auth flow.
+- [ ] Extend `profiles.preferences` with the notification + appearance flags
+      (portable JSON on the profile — no new tables).
+- [ ] Reuse the shared switch component (the Appearance-menu "Glass effect" toggle
+      pattern) so every toggle looks identical; use `card`, `form-input`, `tp-select`
+      per UI_GUIDELINES.
+- [ ] Wire the notification flags into notification generation (Epic 8) and the
+      appearance flags into board rendering (compact rows / colorblind palette).
+
+**Acceptance criteria**
+- A user can edit and save their profile details and see them reflected.
+- Each preference toggle persists per user and takes effect where it applies.
+- Matches the reference layout and the app's glass/token design system.
+
+**Open questions**
+- Email change: allowed here, and does it require re-verification via Supabase Auth?
+- "Title" and "Time zone" — new `profiles` columns vs `preferences` JSON?
+- Does "Weekly digest email" depend on the Epic 7 mailer/provider?
 
 ---
 

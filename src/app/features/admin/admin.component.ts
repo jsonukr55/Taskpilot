@@ -15,7 +15,6 @@ import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-a
 import { SelectComponent, SelectOption } from '@shared/components/select/select.component';
 import { LogoService } from '@core/services/logo.service';
 import { Client } from '@shared/models/client.model';
-import { TASK_STAGE_LABELS } from '@shared/models/task.model';
 import { formatBytes } from '@shared/models/task-attachment.model';
 import { Organization, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
 
@@ -144,17 +143,8 @@ export class AdminComponent {
   readonly addOrgId = signal<string | null>(null);
   readonly adding   = signal(false);
 
-  readonly stats = computed(() => {
-    const t = this.tasks();
-    const byStage: Record<string, number> = {};
-    for (const x of t) byStage[x.stage] = (byStage[x.stage] ?? 0) + 1;
-    return {
-      total: t.length,
-      roots: t.filter(x => !x.parentId).length,
-      subs:  t.filter(x => x.parentId).length,
-      byStage: Object.entries(byStage).map(([stage, n]) => ({ label: TASK_STAGE_LABELS[stage as keyof typeof TASK_STAGE_LABELS] ?? stage, n })),
-    };
-  });
+  /** Non-deleted task count across the orgs an org-scoped admin manages. */
+  readonly scopedTaskCount = signal(0);
 
   /** Per-client data footprint (orgs / spaces / tasks / storage). */
   readonly footprint = computed(() => {
@@ -189,6 +179,17 @@ export class AdminComponent {
       const cur = this.addOrgId();
       if (!orgs.some(o => o.id === cur)) this.addOrgId.set(orgs[0]?.id ?? null);
     }, { allowSignalWrites: true });
+    // Org-scoped admins: task count across the orgs they administer (overview KPI).
+    effect(() => {
+      const ids = this.scopeOrgs().map(o => o.id);
+      if (this.auth.isAdmin()) return;   // platform panel doesn't show this metric
+      void this.loadScopedTaskCount(ids);
+    }, { allowSignalWrites: true });
+  }
+
+  private async loadScopedTaskCount(orgIds: string[]): Promise<void> {
+    try { this.scopedTaskCount.set(await this.admin.orgTaskCount(orgIds)); }
+    catch { this.scopedTaskCount.set(0); }
   }
 
   /** Load platform data. Each read is independent (allSettled) so one failing

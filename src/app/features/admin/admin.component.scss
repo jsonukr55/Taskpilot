@@ -20,15 +20,15 @@
 
 // ---- Overview KPI tiles ----
 .admin-kpis {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: $space-3;
   margin-bottom: $space-5;
-  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
-  @media (max-width: 520px) { grid-template-columns: 1fr; }
 }
 .admin-kpi {
   @include card(false);
+  flex: 1 1 180px;
+  max-width: 320px;
   display: flex; align-items: center; gap: $space-3;
   padding: $space-4;
 
@@ -115,26 +115,6 @@
 
 // Delete (trash) action turns red on hover
 .admin-danger:hover { color: #ef4444; }
-
-// ---- Tasks overview: stat blocks + stage chips ----
-.admin-stats { display: flex; gap: $space-3; margin-bottom: $space-3; }
-.admin-stat {
-  flex: 1;
-  display: flex; flex-direction: column; align-items: center;
-  padding: $space-3;
-  background: var(--bg-tertiary);
-  border-radius: $radius-lg;
-  &__n { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: var(--text-primary); }
-  &__l { font-size: $font-size-xs; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
-}
-.admin-chips { display: flex; flex-wrap: wrap; gap: $space-2; }
-.admin-chip {
-  font-size: $font-size-xs;
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
-  padding: 2px $space-3;
-  border-radius: $radius-full;
-}
 
 // ---- Users section (client-scoped) ----
 // Full-width card in the 2-col grid.

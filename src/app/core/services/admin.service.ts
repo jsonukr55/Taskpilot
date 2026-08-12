@@ -77,6 +77,18 @@ export class AdminService {
     if (error) throw error;
   }
 
+  /** Count of non-deleted tasks across the given organizations (org-scoped admin
+   *  overview). RLS lets an org admin see their orgs' tasks (see migration 0027). */
+  async orgTaskCount(orgIds: string[]): Promise<number> {
+    if (!orgIds.length) return 0;
+    const { count, error } = await this.supa.db('tasks')
+      .select('id', { count: 'exact', head: true })
+      .is('deleted_at', null)
+      .in('org_id', orgIds);
+    if (error) throw error;
+    return count ?? 0;
+  }
+
   async allSpaces(): Promise<SpaceLite[]> {
     const { data, error } = await this.supa.db('spaces').select('id,client_id,org_id');
     if (error) throw error;

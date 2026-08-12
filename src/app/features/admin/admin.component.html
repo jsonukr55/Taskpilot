@@ -36,14 +36,6 @@
         <div class="admin-kpi__body"><span class="admin-kpi__n">{{ orgs.organizations().length }}</span><span class="admin-kpi__l">Organizations</span></div>
       </div>
       <div class="admin-kpi">
-        <span class="admin-kpi__icon admin-kpi__icon--sky"><tp-icon name="users" [size]="18" /></span>
-        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ users().length }}</span><span class="admin-kpi__l">Members</span></div>
-      </div>
-      <div class="admin-kpi">
-        <span class="admin-kpi__icon admin-kpi__icon--emerald"><tp-icon name="check-square" [size]="18" /></span>
-        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ stats().total }}</span><span class="admin-kpi__l">Tasks</span></div>
-      </div>
-      <div class="admin-kpi">
         <span class="admin-kpi__icon admin-kpi__icon--amber"><tp-icon name="layers" [size]="18" /></span>
         <div class="admin-kpi__body"><span class="admin-kpi__n">{{ totalStorage() }}</span><span class="admin-kpi__l">Stored</span></div>
       </div>
@@ -165,23 +157,6 @@
         <ng-container *ngTemplateOutlet="usersBody; context: { platform: true }"></ng-container>
       </section>
 
-      <!-- Tasks overview -->
-      <section class="admin-card card">
-        <div class="admin-card__head">
-          <h2><tp-icon name="check-square" [size]="18" /> Tasks</h2>
-        </div>
-        <div class="admin-stats">
-          <div class="admin-stat"><span class="admin-stat__n">{{ stats().roots }}</span><span class="admin-stat__l">Tasks</span></div>
-          <div class="admin-stat"><span class="admin-stat__n">{{ stats().subs }}</span><span class="admin-stat__l">Subtasks</span></div>
-          <div class="admin-stat"><span class="admin-stat__n">{{ stats().total }}</span><span class="admin-stat__l">Total</span></div>
-        </div>
-        @if (stats().byStage.length) {
-          <div class="admin-chips">
-            @for (s of stats().byStage; track s.label) { <span class="admin-chip">{{ s.label }} · {{ s.n }}</span> }
-          </div>
-        }
-      </section>
-
       <!-- Data footprint -->
       <section class="admin-card card">
         <div class="admin-card__head">
@@ -232,6 +207,19 @@
 
   } @else {
     <!-- ============ ORG-SCOPED ADMIN ============ -->
+
+    <!-- Overview KPIs (scoped to the orgs this admin manages) -->
+    <div class="admin-kpis">
+      <div class="admin-kpi">
+        <span class="admin-kpi__icon admin-kpi__icon--sky"><tp-icon name="users" [size]="18" /></span>
+        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ scopeUsers().length }}</span><span class="admin-kpi__l">Members</span></div>
+      </div>
+      <div class="admin-kpi">
+        <span class="admin-kpi__icon admin-kpi__icon--emerald"><tp-icon name="check-square" [size]="18" /></span>
+        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ scopedTaskCount() }}</span><span class="admin-kpi__l">Tasks</span></div>
+      </div>
+    </div>
+
     <div class="admin-grid">
       <section class="admin-card card admin-card--wide">
         <div class="admin-card__head">

@@ -24,12 +24,37 @@
 
   } @else if (auth.isAdmin()) {
     <!-- ============ PLATFORM (GLOBAL) ADMIN ============ -->
+
+    <!-- Overview KPIs -->
+    <div class="admin-kpis">
+      <div class="admin-kpi">
+        <span class="admin-kpi__icon admin-kpi__icon--indigo"><tp-icon name="briefcase" [size]="18" /></span>
+        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ clients.clients().length }}</span><span class="admin-kpi__l">Clients</span></div>
+      </div>
+      <div class="admin-kpi">
+        <span class="admin-kpi__icon admin-kpi__icon--violet"><tp-icon name="grid" [size]="18" /></span>
+        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ orgs.organizations().length }}</span><span class="admin-kpi__l">Organizations</span></div>
+      </div>
+      <div class="admin-kpi">
+        <span class="admin-kpi__icon admin-kpi__icon--sky"><tp-icon name="users" [size]="18" /></span>
+        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ users().length }}</span><span class="admin-kpi__l">Members</span></div>
+      </div>
+      <div class="admin-kpi">
+        <span class="admin-kpi__icon admin-kpi__icon--emerald"><tp-icon name="check-square" [size]="18" /></span>
+        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ stats().total }}</span><span class="admin-kpi__l">Tasks</span></div>
+      </div>
+      <div class="admin-kpi">
+        <span class="admin-kpi__icon admin-kpi__icon--amber"><tp-icon name="layers" [size]="18" /></span>
+        <div class="admin-kpi__body"><span class="admin-kpi__n">{{ totalStorage() }}</span><span class="admin-kpi__l">Stored</span></div>
+      </div>
+    </div>
+
     <div class="admin-grid">
 
       <!-- Clients / Customers -->
       <section class="admin-card card">
         <div class="admin-card__head">
-          <h2><tp-icon name="users" [size]="18" /> Clients</h2>
+          <h2><tp-icon name="briefcase" [size]="18" /> Clients</h2>
           @if (auth.isOwner()) {
             <button class="btn-primary btn-sm" (click)="startCreateClient()">
               <tp-icon name="plus" [size]="14" /> New client
@@ -89,15 +114,7 @@
                 <tp-entity-avatar [icon]="c.icon" [iconUrl]="c.iconUrl ?? null" [color]="c.color" [size]="32" [alt]="c.name" />
                 <span class="admin-list__name">{{ c.name }}</span>
                 <span class="admin-list__meta">{{ orgCount(c.id) }} {{ orgCount(c.id) === 1 ? 'org' : 'orgs' }}</span>
-                <a class="btn-ghost btn-sm" routerLink="/organizations" [queryParams]="{ new: true, client: c.id }"
-                   title="New organization in this client">
-                  <tp-icon name="plus" [size]="14" />
-                </a>
-                @if (auth.isOwner()) {
-                  <button class="btn-ghost btn-sm admin-danger" (click)="deleteClient(c)" title="Delete client">
-                    <tp-icon name="trash-2" [size]="14" />
-                  </button>
-                }
+                <tp-menu [items]="clientMenu(c)" />
               </li>
             }
           </ul>
@@ -107,7 +124,7 @@
       <!-- Organizations -->
       <section class="admin-card card">
         <div class="admin-card__head">
-          <h2><tp-icon name="briefcase" [size]="18" /> Organizations</h2>
+          <h2><tp-icon name="grid" [size]="18" /> Organizations</h2>
           <a class="btn-primary btn-sm" routerLink="/organizations" [queryParams]="{ new: true }">
             <tp-icon name="plus" [size]="14" /> New organization
           </a>

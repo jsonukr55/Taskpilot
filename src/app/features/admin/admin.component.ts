@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, effect } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
 import { AdminService, AdminUser, TaskLite, SpaceLite, GlobalRole, ArchivedTask } from '@core/services/admin.service';
@@ -59,6 +59,7 @@ export class AdminComponent {
   private readonly toast = inject(ToastService);
   private readonly logos = inject(LogoService);
   private readonly dialog = inject(DialogService);
+  private readonly router = inject(Router);
 
   readonly CLIENT_COLORS = CLIENT_COLORS;
   readonly ASSIGNABLE_ORG_ROLES = ASSIGNABLE_ORG_ROLES;
@@ -338,6 +339,18 @@ export class AdminComponent {
   readonly working  = signal(false);
 
   orgCount = (clientId: string): number => this.orgs.orgsInClient(clientId).length;
+
+  /** Row actions for a client (⋯ menu) — clearer than bare +/trash icons. */
+  clientMenu(c: Client): MenuItem[] {
+    const items: MenuItem[] = [
+      { label: 'New organization', icon: 'plus',
+        action: () => void this.router.navigate(['/organizations'], { queryParams: { new: true, client: c.id } }) },
+    ];
+    if (this.auth.isOwner()) {
+      items.push({ label: 'Delete client', icon: 'trash-2', danger: true, action: () => void this.deleteClient(c) });
+    }
+    return items;
+  }
 
   startCreateClient(): void {
     this.newClientName.set('');

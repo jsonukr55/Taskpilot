@@ -18,6 +18,37 @@
   @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
 
+// ---- Overview KPI tiles ----
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: $space-3;
+  margin-bottom: $space-5;
+  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 520px) { grid-template-columns: 1fr; }
+}
+.admin-kpi {
+  @include card(false);
+  display: flex; align-items: center; gap: $space-3;
+  padding: $space-4;
+
+  &__icon {
+    @include flex-center;
+    width: 40px; height: 40px; flex-shrink: 0;
+    border-radius: $radius-lg;
+    color: var(--accent-500);
+    background: var(--surface-brand);
+    &--indigo  { color: $indigo-500;  background: rgba($indigo-500, 0.12); }
+    &--violet  { color: $violet-500;  background: rgba($violet-500, 0.12); }
+    &--sky     { color: $sky-500;     background: rgba($sky-500, 0.12); }
+    &--emerald { color: $emerald-500; background: rgba($emerald-500, 0.12); }
+    &--amber   { color: $amber-500;   background: rgba($amber-500, 0.12); }
+  }
+  &__body { display: flex; flex-direction: column; min-width: 0; }
+  &__n { font-size: $font-size-2xl; font-weight: $font-weight-bold; color: var(--text-primary); line-height: 1.15; @include text-truncate; }
+  &__l { font-size: $font-size-xs; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+}
+
 .admin-card {
   @include card(false);
   padding: $space-5;

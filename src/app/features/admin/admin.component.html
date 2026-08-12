@@ -2,7 +2,7 @@
 
   <header class="admin-page__header">
     <div>
-      <h1 class="admin-page__title"><tp-icon name="shield" [size]="22" /> Admin</h1>
+      <h1 class="admin-page__title">{{ greeting() }}</h1>
       <p class="admin-page__subtitle">
         @if (auth.isAdmin()) { Platform administration — clients, organizations, and users. }
         @else { Organization administration — manage the members of organizations you run. }
@@ -41,8 +41,10 @@
       </div>
     </div>
 
-    <div class="admin-grid">
+    <!-- One section at a time — the section menu lives in the sidebar (Admin dropdown) -->
+    @switch (activeSection()) {
 
+      @case ('clients') {
       <!-- Clients / Customers -->
       <section class="admin-card card">
         <div class="admin-card__head">
@@ -112,7 +114,9 @@
           </ul>
         }
       </section>
+      }
 
+      @case ('orgs') {
       <!-- Organizations -->
       <section class="admin-card card">
         <div class="admin-card__head">
@@ -138,11 +142,13 @@
           </ul>
         }
       </section>
+      }
 
-      <!-- Users (scoped to the selected client) -->
+      @case ('members') {
+      <!-- Members (users scoped to the selected client) -->
       <section class="admin-card card admin-card--wide">
         <div class="admin-card__head">
-          <h2><tp-icon name="users" [size]="18" /> Users ({{ scopeUsers().length }})</h2>
+          <h2><tp-icon name="users" [size]="18" /> Members ({{ scopeUsers().length }})</h2>
           @if (clients.clients().length > 0) {
             <div class="admin-tabs">
               @for (c of clients.clients(); track c.id) {
@@ -156,7 +162,9 @@
 
         <ng-container *ngTemplateOutlet="usersBody; context: { platform: true }"></ng-container>
       </section>
+      }
 
+      @case ('footprint') {
       <!-- Data footprint -->
       <section class="admin-card card">
         <div class="admin-card__head">
@@ -178,7 +186,9 @@
           </ul>
         }
       </section>
+      }
 
+      @case ('archived') {
       <!-- Archived (soft-deleted) tasks -->
       <section class="admin-card card admin-card--wide">
         <div class="admin-card__head">
@@ -202,8 +212,8 @@
           </ul>
         }
       </section>
-
-    </div>
+      }
+    }
 
   } @else {
     <!-- ============ ORG-SCOPED ADMIN ============ -->

@@ -9,6 +9,7 @@ import { SpaceService } from '@core/services/space.service';
 import { ThemeService, Theme } from '@core/services/theme.service';
 import { ReleaseNotesService } from '@core/services/release-notes.service';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { AdminSection, adminSectionsFor } from '@shared/models/admin-section.model';
 import { BrandMarkComponent } from '@shared/components/brand-mark/brand-mark.component';
 import { TooltipDirective } from '@shared/directives/tooltip.directive';
 import { EntityAvatarComponent } from '@shared/components/entity-avatar/entity-avatar.component';
@@ -96,6 +97,9 @@ export class SidebarComponent {
     const uid = this.auth.userId() ?? '';
     return this.orgs.organizations().some(o => o.ownerId === uid || o.roles[uid] === 'admin');
   });
+
+  /** Admin sections for this user's scope — the Admin accordion's sub-items. */
+  readonly adminSections = computed<AdminSection[]>(() => adminSectionsFor(this.auth.isAdmin()));
 
   toggleSection(key: string): void {
     this.expanded.update(s => {

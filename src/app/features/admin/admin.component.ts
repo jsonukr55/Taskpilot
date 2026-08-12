@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, effect } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
 import { AdminService, AdminUser, TaskLite, SpaceLite, GlobalRole, ArchivedTask } from '@core/services/admin.service';
@@ -17,6 +18,7 @@ import { LogoService } from '@core/services/logo.service';
 import { Client } from '@shared/models/client.model';
 import { formatBytes } from '@shared/models/task-attachment.model';
 import { Organization, OrgRole, ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABELS } from '@shared/models/organization.model';
+import { AdminSection, adminSectionsFor } from '@shared/models/admin-section.model';
 
 /** Default avatar for a new client; the full library lives in the picker. */
 const CLIENT_ICONS = ['🏢'];
@@ -59,6 +61,26 @@ export class AdminComponent {
   private readonly logos = inject(LogoService);
   private readonly dialog = inject(DialogService);
   private readonly router = inject(Router);
+  private readonly route  = inject(ActivatedRoute);
+  private readonly queryParams = toSignal(this.route.queryParamMap);
+
+  /** Time-of-day greeting for the header (replaces the bare "Admin" title). */
+  readonly greeting = computed(() => {
+    const h = new Date().getHours();
+    const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+    const first = (this.auth.displayName() || '').trim().split(/\s+/)[0];
+    return first ? `${part}, ${first}` : part;
+  });
+
+  /** Admin sections available for this user's scope; menu lives in the sidebar. */
+  readonly sections = computed<AdminSection[]>(() => adminSectionsFor(this.auth.isAdmin()));
+
+  /** The single section to show (from `?s=`), falling back to the first available. */
+  readonly activeSection = computed(() => {
+    const secs = this.sections();
+    const key = this.queryParams()?.get('s') ?? '';
+    return secs.some(s => s.key === key) ? key : (secs[0]?.key ?? '');
+  });
 
   readonly CLIENT_COLORS = CLIENT_COLORS;
   readonly ASSIGNABLE_ORG_ROLES = ASSIGNABLE_ORG_ROLES;

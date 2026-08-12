@@ -100,15 +100,31 @@
             <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }"></ng-container>
           }
 
-          @if (showAdmin()) {
-            <li class="sidebar__nav-item">
-              <a routerLink="/admin" routerLinkActive="active" class="sidebar__nav-link">
-                <tp-icon name="shield" [size]="18" />
-                <span class="sidebar__nav-label">Admin</span>
-              </a>
-            </li>
-          }
         </ul>
+      }
+
+      <!-- Admin (accordion) — the section menu; the page shows one section at a time -->
+      @if (showAdmin()) {
+        <button class="sidebar__group" (click)="toggleSection('admin')" [class.expanded]="isExpanded('admin')">
+          <tp-icon name="shield" [size]="18" />
+          <span class="sidebar__group-label">Admin</span>
+          <tp-icon [name]="isExpanded('admin') ? 'chevron-down' : 'chevron-right'" [size]="16" />
+        </button>
+        @if (isExpanded('admin')) {
+          <ul class="sidebar__nav-list sidebar__nav-list--nested">
+            @for (sec of adminSections(); track sec.key) {
+              <li class="sidebar__nav-item">
+                <a routerLink="/admin" [queryParams]="{ s: sec.key }"
+                   routerLinkActive="active"
+                   [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', fragment: 'ignored', matrixParams: 'ignored' }"
+                   class="sidebar__nav-link">
+                  <tp-icon [name]="sec.icon" [size]="18" />
+                  <span class="sidebar__nav-label">{{ sec.label }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
       }
     }
   </nav>

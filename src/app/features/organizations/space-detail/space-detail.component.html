@@ -17,7 +17,14 @@
         (iconUrlChange)="saveIcon({ iconUrl: $event })"
       />
       <div class="sd__titles">
-        <h1>{{ s.name }}</h1>
+        <div class="sd__name-row">
+          <h1>{{ s.name }}</h1>
+          <button class="sd__startup-btn" [class.sd__startup-btn--on]="isStartup()"
+                  (click)="toggleStartup()"
+                  [attr.data-tooltip]="isStartup() ? 'Startup screen · opens first on login' : 'Set as startup screen'" data-tooltip>
+            <tp-icon name="home" [size]="18" />
+          </button>
+        </div>
         <p>Space · {{ members().length }} {{ members().length === 1 ? 'member' : 'members' }}</p>
       </div>
       <div class="sd__avatars">
@@ -87,11 +94,6 @@
             </div>
           </div>
         }
-        <button class="btn-icon sd__startup-btn" [class.sd__startup-btn--on]="isStartup()"
-                (click)="toggleStartup()"
-                [attr.data-tooltip]="isStartup() ? 'Startup screen · opens first on login' : 'Set as startup screen'" data-tooltip>
-          <tp-icon name="star" [size]="16" />
-        </button>
       </div>
     </header>
 
@@ -268,7 +270,7 @@
               <div class="c c--addcol"></div>
             </div>
           }
-          @for (s of subtasksOf(parentId); track s.id) {
+          @for (s of visibleSubtasks(parentId); track s.id) {
             <div class="subtable__row" [style.grid-template-columns]="gridTemplate()">
               <ng-container *ngTemplateOutlet="cells; context: { $implicit: s, depth: 0, drag: false, rootId: null }"></ng-container>
             </div>

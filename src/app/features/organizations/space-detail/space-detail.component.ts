@@ -108,9 +108,31 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
 
   // Inline subtask expand/collapse per row.
   readonly expandedRows = signal<Set<string>>(new Set());
-  isRowOpen = (id: string): boolean => this.expandedRows().has(id);
+  // A row is open if the user expanded it, or — while searching — it has a
+  // descendant that matches, so the matching subtask is revealed automatically.
+  isRowOpen = (id: string): boolean => {
+    if (this.expandedRows().has(id)) return true;
+    const q = this.searchQuery();
+    return !!q && this.subtasksOf(id).some(s => this.matchesDeep(s, q));
+  };
   toggleRow(id: string): void {
     this.expandedRows.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  /** Lowercased search text (empty string when the box is clear). */
+  private readonly searchQuery = computed(() => this.filterText().trim().toLowerCase());
+  private textMatches(t: Task, q: string): boolean {
+    return (t.title ?? '').toLowerCase().includes(q) || (t.description ?? '').toLowerCase().includes(q);
+  }
+  /** Task itself, or any nested subtask, matches the query. */
+  private matchesDeep(t: Task, q: string): boolean {
+    return this.textMatches(t, q) || this.subtasksOf(t.id).some(s => this.matchesDeep(s, q));
+  }
+  /** Subtasks to render under a parent: all of them, or only matches while searching. */
+  visibleSubtasks(parentId: string): Task[] {
+    const q = this.searchQuery();
+    const subs = this.subtasksOf(parentId);
+    return q ? subs.filter(s => this.matchesDeep(s, q)) : subs;
   }
 
   async addSubtaskInline(parentId: string, input: HTMLInputElement): Promise<void> {
@@ -189,12 +211,13 @@ export class SpaceDetailComponent implements OnInit, OnDestroy {
 
   /** Root tasks after the search box + filter popover are applied. */
   readonly filteredRootTasks = computed(() => {
-    const q = this.filterText().trim().toLowerCase();
+    const q = this.searchQuery();
     const person = this.filterPerson(), prio = this.filterPriority(),
           stage = this.filterStage(), pmpo = this.filterPmPo();
     if (!q && !person && !prio && !stage && !pmpo) return this.rootTasks();
     return this.rootTasks().filter(t => {
-      if (q && !((t.title ?? '').toLowerCase().includes(q) || (t.description ?? '').toLowerCase().includes(q))) return false;
+      // Search matches the task OR any of its subtasks (which then get revealed).
+      if (q && !this.matchesDeep(t, q)) return false;
       if (person && !(t.assigneeIds ?? []).includes(person)) return false;
       if (prio && t.priority !== prio) return false;
       if (stage && (t.stage ?? 'created') !== stage) return false;

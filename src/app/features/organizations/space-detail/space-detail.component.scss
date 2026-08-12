@@ -27,12 +27,26 @@
   &__titles {
     flex: 1;
     min-width: 0;
-    h1 { font-size: $font-size-xl; font-weight: $font-weight-semibold; letter-spacing: -0.01em; @include text-truncate; display: flex; align-items: center; gap: $space-2; }
+    h1 { font-size: $font-size-xl; font-weight: $font-weight-semibold; letter-spacing: -0.01em; @include text-truncate; min-width: 0; }
     p  { color: var(--text-tertiary); font-size: $font-size-xs; }
   }
 
-  &__startup { display: inline-flex; color: var(--accent-500); flex-shrink: 0; }
-  &__startup-btn--on { color: var(--accent-500); background: var(--bg-tertiary); }
+  &__name-row { display: flex; align-items: center; gap: $space-1; min-width: 0; }
+
+  // "Set as startup screen" toggle — sits right after the space name.
+  &__startup-btn {
+    @include flex-center;
+    flex-shrink: 0;
+    width: 30px; height: 30px;
+    border: 0; border-radius: $radius-md;
+    background: transparent; color: var(--text-tertiary);
+    cursor: pointer;
+    transition: color $transition-fast, background $transition-fast, transform $transition-fast;
+    &:hover { color: var(--text-secondary); background: var(--bg-tertiary); }
+    &:active { transform: scale(0.92); }
+    &--on { color: var(--accent-500); }
+    &--on:hover { color: var(--accent-600); }
+  }
 
   &__avatars { @include flex-start; gap: 2px; }
   &__add-member { margin-left: $space-1; }

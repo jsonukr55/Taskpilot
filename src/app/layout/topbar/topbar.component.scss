@@ -7,12 +7,24 @@
   padding: 0 $space-6;
   background: var(--topbar-bg);
   border-bottom: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   position: sticky;
   top: 0;
   z-index: $z-sticky;
   gap: $space-4;
+
+  // Frost lives on a pseudo-element, NOT on .topbar itself: backdrop-filter on
+  // the bar would make it a containing block for position:fixed descendants, so
+  // the profile/appearance/notification/search backdrops (fixed inset:0) would
+  // only cover the 64px header and outside-click wouldn't close them.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  }
 
   @include mobile-only {
     padding: 0 $space-3;

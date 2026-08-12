@@ -23,7 +23,7 @@ import {
   matSubdirectoryArrowLeft, matAlternateEmail, matPerson, matCropSquare,
   matUndo, matRedo, matStar, matBookmark, matWork, matShield, matMail,
   matAutoAwesome, matDragIndicator, matNotificationsNone,
-  matVisibility, matVisibilityOff, matMood,
+  matVisibility, matVisibilityOff, matMood, matHome,
 } from '@ng-icons/material-icons/baseline';
 
 /** camelCase key (== toPropertyName of the template name) → Material SVG. */
@@ -97,4 +97,5 @@ export const APP_ICONS: Record<string, string> = {
   eye:             matVisibility,
   eyeOff:          matVisibilityOff,
   smile:           matMood,
+  home:            matHome,
 };

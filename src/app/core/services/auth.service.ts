@@ -113,10 +113,15 @@ export class AuthService {
   async signInWithGoogle(): Promise<void> {
     // OAuth redirects the browser to Google and back to redirectTo, where
     // detectSessionInUrl completes the session and onAuthStateChange fires.
+    // `prompt=select_account` forces Google's account chooser every time —
+    // otherwise, with a live Google session it silently reuses the last account.
     const target = this.postAuthTarget();
     const { error } = await this.supa.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}${target}` },
+      options: {
+        redirectTo: `${window.location.origin}${target}`,
+        queryParams: { prompt: 'select_account' },
+      },
     });
     if (error) throw error;
   }
